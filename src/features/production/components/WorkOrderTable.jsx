@@ -21,7 +21,17 @@ function downloadWorkOrderPdf(row, productName) {
   });
 }
 
-export function WorkOrderTable({ workOrders, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
+export function WorkOrderTable({
+  workOrders,
+  isLoading,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+  onEdit,
+  onDelete,
+}) {
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
   const productNameById = new Map((productsData?.data ?? []).map((product) => [product.id, product.name]));
 
@@ -104,6 +114,7 @@ export function WorkOrderTable({ workOrders, isLoading, page, pageSize, total, o
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
       onRowClick={onEdit}
       emptyMessage="No work orders yet"
     />

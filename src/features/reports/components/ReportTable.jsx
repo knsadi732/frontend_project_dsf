@@ -8,7 +8,7 @@ import { pushToast } from '@/utils/toastBus';
 
 const STATUS_VARIANT = { ready: 'success', pending: 'warning', failed: 'danger' };
 
-export function ReportTable({ reports, isLoading, page, pageSize, total, onPageChange }) {
+export function ReportTable({ reports, isLoading, page, pageSize, total, onPageChange, onPageSizeChange }) {
   const [downloadingId, setDownloadingId] = useState(null);
 
   const handleDownload = async (row) => {
@@ -74,6 +74,7 @@ export function ReportTable({ reports, isLoading, page, pageSize, total, onPageC
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
       emptyMessage="No reports yet"
     />
   );

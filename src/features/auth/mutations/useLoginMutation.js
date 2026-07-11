@@ -13,5 +13,9 @@ export function useLoginMutation() {
       setSession(data);
       pushToast('success', TOAST_MESSAGES.LOGIN_SUCCESS);
     },
+    onError: (error) => {
+      const message = error?.response?.data?.message ?? error?.message ?? TOAST_MESSAGES.INVALID_CREDENTIALS;
+      pushToast('error', message);
+    },
   });
 }

@@ -11,7 +11,7 @@ function formatDateTime(value) {
   });
 }
 
-export function LoginHistoryTable({ entries, isLoading }) {
+export function LoginHistoryTable({ entries, isLoading, page, pageSize, total, onPageChange, onPageSizeChange }) {
   const columns = [
     { key: 'loginAt', header: 'Signed in at', render: (row) => formatDateTime(row.loginAt) },
     { key: 'device', header: 'Device' },
@@ -24,6 +24,16 @@ export function LoginHistoryTable({ entries, isLoading }) {
   ];
 
   return (
-    <AppTable columns={columns} data={entries} isLoading={isLoading} emptyMessage="No login history yet" />
+    <AppTable
+      columns={columns}
+      data={entries}
+      isLoading={isLoading}
+      page={page}
+      pageSize={pageSize}
+      total={total}
+      onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
+      emptyMessage="No login history yet"
+    />
   );
 }

@@ -2,9 +2,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePermissionStore } from '@/store/permissionStore';
 import { BaseCard, CardHeader, CardBody } from '@/components/ui/BaseCard';
 import { BaseBadge } from '@/components/ui/BaseBadge';
-import { ROLES, MODULES, ACTIONS } from '@/constants/roles';
+import { ROLES, MODULES, ACTIONS, FULL_ACCESS_ROLES } from '@/constants/roles';
 
-const FULL_ACCESS_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN];
 const EDITABLE_ROLES = Object.values(ROLES).filter((role) => !FULL_ACCESS_ROLES.includes(role));
 const MODULE_LABELS = {
   [MODULES.DASHBOARD]: 'Dashboard',

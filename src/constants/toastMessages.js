@@ -6,6 +6,7 @@ export const TOAST_MESSAGES = {
   NETWORK_ERROR: 'Unable to reach the server. Check your connection.',
   SESSION_EXPIRED: 'Your session has expired. Please sign in again.',
   UNAUTHORIZED: 'You do not have permission to perform this action.',
+  INVALID_CREDENTIALS: 'Invalid phone number or password. Please enter the correct credentials.',
   LOGIN_SUCCESS: 'Welcome back!',
   LOGOUT_SUCCESS: 'You have been signed out.',
 };

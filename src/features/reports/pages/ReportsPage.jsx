@@ -11,9 +11,10 @@ import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 export function ReportsPage() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const filters = { page, pageSize: DEFAULT_PAGE_SIZE };
+  const filters = { page, pageSize };
   const { data, isLoading } = useReportsQuery(filters);
   const generateReport = useGenerateReport();
 
@@ -40,9 +41,13 @@ export function ReportsPage() {
         reports={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
-        pageSize={DEFAULT_PAGE_SIZE}
+        pageSize={pageSize}
         isLoading={isLoading}
         onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
       />
 
       <GenerateReportModal

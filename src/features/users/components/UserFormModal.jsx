@@ -28,7 +28,7 @@ const DEFAULT_VALUES = {
   lastName: '',
   phone: '',
   email: '',
-  role: 'STAFF',
+  role: 'EMPLOYEE',
   departmentId: '',
   designationId: '',
   branchId: '',

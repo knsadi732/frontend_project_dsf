@@ -32,7 +32,17 @@ function downloadPurchasePdf(row) {
   });
 }
 
-export function PurchaseTable({ purchases, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
+export function PurchaseTable({
+  purchases,
+  isLoading,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+  onEdit,
+  onDelete,
+}) {
   const columns = [
     { key: 'poNumber', header: 'PO Number' },
     { key: 'supplier', header: 'Supplier' },
@@ -48,6 +58,16 @@ export function PurchaseTable({ purchases, isLoading, page, pageSize, total, onP
       render: (row) => (
         <BaseBadge variant={STATUS_BADGE_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>
       ),
+    },
+    {
+      key: 'priority',
+      header: 'Priority',
+      render: (row) =>
+        row.priority === 'urgent' ? (
+          <BaseBadge variant="danger">Urgent</BaseBadge>
+        ) : (
+          <span className="text-xs text-text-muted">Normal</span>
+        ),
     },
     {
       key: 'actions',
@@ -106,6 +126,7 @@ export function PurchaseTable({ purchases, isLoading, page, pageSize, total, onP
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
       onRowClick={onEdit}
       emptyMessage="No purchase orders yet"
     />

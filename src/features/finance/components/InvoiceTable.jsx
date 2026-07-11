@@ -12,7 +12,9 @@ function downloadInvoicePdf(row) {
     title: `Invoice - ${row.invoiceNumber}`,
     fields: [
       { label: 'Party', value: row.party },
+      { label: 'Linked SO', value: row.salesOrderNumber ?? '-' },
       { label: 'Amount', value: `Rs.${Number(row.amount).toLocaleString('en-IN')}` },
+      { label: 'GST', value: row.gstAmount ? `${row.gstRate}% (Rs.${Number(row.gstAmount).toLocaleString('en-IN')})` : '-' },
       { label: 'Due Date', value: row.dueDate },
       { label: 'Status', value: row.status },
     ],
@@ -20,7 +22,17 @@ function downloadInvoicePdf(row) {
   });
 }
 
-export function InvoiceTable({ invoices, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
+export function InvoiceTable({
+  invoices,
+  isLoading,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+  onEdit,
+  onDelete,
+}) {
   const columns = [
     { key: 'invoiceNumber', header: 'Invoice #' },
     { key: 'party', header: 'Party' },
@@ -28,6 +40,20 @@ export function InvoiceTable({ invoices, isLoading, page, pageSize, total, onPag
       key: 'amount',
       header: 'Amount',
       render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}`,
+    },
+    {
+      key: 'gst',
+      header: 'GST',
+      render: (row) =>
+        row.gstAmount ? `${row.gstRate}% (₹${Number(row.gstAmount).toLocaleString('en-IN')})` : '—',
+    },
+    {
+      key: 'balanceDue',
+      header: 'Balance Due',
+      render: (row) =>
+        row.status === 'partial' && row.balanceDue != null
+          ? `₹${Number(row.balanceDue).toLocaleString('en-IN')}`
+          : '—',
     },
     { key: 'dueDate', header: 'Due Date' },
     {
@@ -104,6 +130,7 @@ export function InvoiceTable({ invoices, isLoading, page, pageSize, total, onPag
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
       onRowClick={onEdit}
       emptyMessage="No invoices yet"
     />

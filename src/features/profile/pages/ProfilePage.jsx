@@ -11,6 +11,7 @@ import { ChangePasswordForm } from '@/features/profile/components/ChangePassword
 import { LoginHistoryTable } from '@/features/profile/components/LoginHistoryTable';
 import { BaseCard, CardBody } from '@/components/ui/BaseCard';
 import { Tabs } from '@/layouts/components/Tabs';
+import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 const TABS = [
   { key: 'profile', label: 'Profile' },
@@ -21,11 +22,16 @@ const TABS = [
 export function ProfilePage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
+  const [loginHistoryPage, setLoginHistoryPage] = useState(1);
+  const [loginHistoryPageSize, setLoginHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const { data: profile } = useProfileQuery(user?.id);
   const { data: departmentsData } = useDepartmentsQuery({ pageSize: 100 });
   const { data: designationsData } = useDesignationsQuery({ pageSize: 100 });
-  const { data: loginHistory, isLoading: loginHistoryLoading } = useLoginHistoryQuery(user?.id);
+  const { data: loginHistory, isLoading: loginHistoryLoading } = useLoginHistoryQuery(user?.id, {
+    page: loginHistoryPage,
+    pageSize: loginHistoryPageSize,
+  });
   const updateProfile = useUpdateProfile(user?.id);
   const changePassword = useChangePassword();
 
@@ -58,7 +64,18 @@ export function ProfilePage() {
           )}
 
           {activeTab === 'login-history' && (
-            <LoginHistoryTable entries={loginHistory?.data ?? []} isLoading={loginHistoryLoading} />
+            <LoginHistoryTable
+              entries={loginHistory?.data ?? []}
+              total={loginHistory?.total ?? 0}
+              page={loginHistoryPage}
+              pageSize={loginHistoryPageSize}
+              isLoading={loginHistoryLoading}
+              onPageChange={setLoginHistoryPage}
+              onPageSizeChange={(size) => {
+                setLoginHistoryPageSize(size);
+                setLoginHistoryPage(1);
+              }}
+            />
           )}
         </CardBody>
       </BaseCard>

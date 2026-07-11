@@ -20,6 +20,7 @@ export const queryKeys = {
   production: resourceKeys('production'),
   sales: resourceKeys('sales'),
   finance: resourceKeys('finance'),
+  returns: resourceKeys('returns'),
   notifications: resourceKeys('notifications'),
   reports: resourceKeys('reports'),
   dashboard: { all: ['dashboard'] },

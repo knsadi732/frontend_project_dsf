@@ -10,10 +10,10 @@ let mockNotifications = [
 
 let nextNotificationId = mockNotifications.length + 1;
 
-export function addNotification({ title, message }) {
+export function addNotification({ title, message, type, entityId }) {
   if (!env.mockAuth) return;
   mockNotifications = [
-    { id: String(nextNotificationId++), title, message, read: false, createdAt: new Date().toISOString() },
+    { id: String(nextNotificationId++), title, message, type, entityId, read: false, createdAt: new Date().toISOString() },
     ...mockNotifications,
   ];
 }

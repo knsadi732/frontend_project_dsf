@@ -6,7 +6,17 @@ import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 
-export function DepartmentTable({ departments, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
+export function DepartmentTable({
+  departments,
+  isLoading,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+  onEdit,
+  onDelete,
+}) {
   const columns = [
     { key: 'name', header: 'Department', render: (row) => <span className="font-medium text-text">{row.name}</span> },
     {
@@ -49,6 +59,7 @@ export function DepartmentTable({ departments, isLoading, page, pageSize, total,
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
       onRowClick={onEdit}
       emptyMessage="No departments yet"
     />

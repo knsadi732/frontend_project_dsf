@@ -27,6 +27,7 @@ export function SalesPage() {
   const [status, setStatus] = useState('');
   const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, salesOrder: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -38,9 +39,9 @@ export function SalesPage() {
       dateFrom: appliedDateFrom,
       dateTo: appliedDateTo,
       page,
-      pageSize: DEFAULT_PAGE_SIZE,
+      pageSize,
     }),
-    [debouncedSearch, status, appliedDateFrom, appliedDateTo, page],
+    [debouncedSearch, status, appliedDateFrom, appliedDateTo, page, pageSize],
   );
 
   const { data, isLoading, isFetching, refetch } = useSalesOrdersQuery(filters);
@@ -123,9 +124,13 @@ export function SalesPage() {
         salesOrders={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
-        pageSize={DEFAULT_PAGE_SIZE}
+        pageSize={pageSize}
         isLoading={isLoading}
         onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
         onEdit={(salesOrder) => setFormState({ open: true, salesOrder })}
         onDelete={setDeleteTarget}
       />

@@ -1,23 +1,116 @@
 /**
  * Shared in-memory store for the mock ERP data. Unlike the old per-module
  * MOCK_* arrays, these are exported directly and mutated in place, so
- * sales/production/inventory/finance all read and write the same records —
- * that's what makes cross-module business rules (see businessRules.js)
- * possible without a real backend.
+ * sales/purchases/production/inventory/finance/returns all read and write
+ * the same records — that's what makes cross-module business rules (see
+ * businessRules.js) possible without a real backend.
  */
 
+// Documented assumption (no cost data exists anywhere in the app): monthly
+// fixed overhead used only for the dashboard's break-even chart.
+export const MONTHLY_FIXED_COST = 250000;
+
 export const products = [
-  { id: '1', name: 'Classic Leather Loafer', sku: 'DSF-LTH-101', category: 'Formal', price: 2499, stock: 120, status: 'active' },
-  { id: '2', name: 'Running Sport Shoe', sku: 'DSF-RUN-42', category: 'Sports', price: 1899, stock: 8, status: 'active' },
-  { id: '3', name: 'Casual Canvas Sneaker', sku: 'DSF-CAS-77', category: 'Casual', price: 1299, stock: 60, status: 'active' },
-  { id: '4', name: 'Safety Work Boot', sku: 'DSF-SFT-15', category: 'Industrial', price: 2999, stock: 0, status: 'inactive' },
+  {
+    id: '1',
+    name: 'Classic Leather Loafer',
+    sku: 'DSF-LTH-101',
+    category: 'Formal',
+    subCategory: "Men's Loafers",
+    price: 2499,
+    stock: 120,
+    status: 'active',
+    baseCost: Math.round(2499 * 0.55),
+    returnSurcharge: 0,
+    damageCost: 0,
+  },
+  {
+    id: '2',
+    name: 'Running Sport Shoe',
+    sku: 'DSF-RUN-42',
+    category: 'Sports',
+    subCategory: 'Running',
+    price: 1899,
+    stock: 8,
+    status: 'active',
+    baseCost: Math.round(1899 * 0.55),
+    returnSurcharge: 180 * 3,
+    damageCost: Math.round(3 * 1899 * 0.1),
+  },
+  {
+    id: '3',
+    name: 'Casual Canvas Sneaker',
+    sku: 'DSF-CAS-77',
+    category: 'Casual',
+    subCategory: 'Sneakers',
+    price: 1299,
+    stock: 60,
+    status: 'active',
+    baseCost: Math.round(1299 * 0.55),
+    returnSurcharge: 0,
+    damageCost: 0,
+  },
+  {
+    id: '4',
+    name: 'Safety Work Boot',
+    sku: 'DSF-SFT-15',
+    category: 'Industrial',
+    subCategory: 'Work Boots',
+    price: 2999,
+    stock: 0,
+    status: 'inactive',
+    baseCost: Math.round(2999 * 0.55),
+    returnSurcharge: 0,
+    damageCost: 0,
+  },
 ];
+products.forEach((product) => {
+  product.effectiveCost = product.baseCost + product.returnSurcharge + product.damageCost;
+});
 
 export const inventory = [
   { id: '1', productId: '1', sku: 'DSF-LTH-101', productName: 'Classic Leather Loafer', warehouse: 'Main Warehouse - Agra', quantity: 120, reorderLevel: 30 },
   { id: '2', productId: '2', sku: 'DSF-RUN-42', productName: 'Running Sport Shoe', warehouse: 'Main Warehouse - Agra', quantity: 8, reorderLevel: 25 },
   { id: '3', productId: '3', sku: 'DSF-CAS-77', productName: 'Casual Canvas Sneaker', warehouse: 'Delhi Distribution Center', quantity: 60, reorderLevel: 20 },
 ];
+
+// Raw materials feeding Production's bill of materials. `defaultSupplier`
+// is who an auto-raised urgent Purchase Order goes to when a work order is
+// blocked for lack of this material.
+export const rawMaterials = [
+  { id: 'rm1', name: 'Finished Leather - Full Grain (sq ft)', unit: 'sq ft', quantity: 500, reorderLevel: 200, defaultSupplier: 'Leo Leathers', rate: 210 },
+  { id: 'rm2', name: 'Leather Dye - Black (litre)', unit: 'litre', quantity: 20, reorderLevel: 15, defaultSupplier: 'Leo Leathers', rate: 425 },
+  { id: 'rm3', name: 'PU Sole - Size 8 (pair)', unit: 'pair', quantity: 300, reorderLevel: 150, defaultSupplier: 'Sole Components Pvt Ltd', rate: 65 },
+  { id: 'rm4', name: 'PU Sole - Size 9 (pair)', unit: 'pair', quantity: 40, reorderLevel: 150, defaultSupplier: 'Sole Components Pvt Ltd', rate: 55 },
+  { id: 'rm5', name: 'Shoe Box - Standard', unit: 'pcs', quantity: 1000, reorderLevel: 300, defaultSupplier: 'Metro Packaging Co', rate: 18 },
+  { id: 'rm6', name: 'Packing Tape Roll', unit: 'roll', quantity: 100, reorderLevel: 50, defaultSupplier: 'Metro Packaging Co', rate: 42 },
+  { id: 'rm7', name: 'Mesh Fabric - Sport Upper (sq ft)', unit: 'sq ft', quantity: 10, reorderLevel: 30, defaultSupplier: 'Apex Textile Mills', rate: 95 },
+];
+
+// Simple bill of materials: how much of each raw material one finished unit
+// of a product consumes.
+export const productBom = {
+  1: [
+    { rawMaterialId: 'rm1', qtyPerUnit: 2 },
+    { rawMaterialId: 'rm2', qtyPerUnit: 0.05 },
+    { rawMaterialId: 'rm3', qtyPerUnit: 1 },
+    { rawMaterialId: 'rm5', qtyPerUnit: 1 },
+  ],
+  2: [
+    { rawMaterialId: 'rm7', qtyPerUnit: 1.5 },
+    { rawMaterialId: 'rm4', qtyPerUnit: 1 },
+    { rawMaterialId: 'rm5', qtyPerUnit: 1 },
+  ],
+  3: [
+    { rawMaterialId: 'rm7', qtyPerUnit: 1 },
+    { rawMaterialId: 'rm3', qtyPerUnit: 1 },
+    { rawMaterialId: 'rm5', qtyPerUnit: 1 },
+  ],
+  4: [
+    { rawMaterialId: 'rm1', qtyPerUnit: 3 },
+    { rawMaterialId: 'rm3', qtyPerUnit: 1 },
+  ],
+};
 
 export const salesOrders = [
   {
@@ -32,6 +125,8 @@ export const salesOrders = [
     total: 80 * 2499 + 20 * 1299,
     status: 'approved',
     _stockReserved: true,
+    dispatchDate: '2026-07-06',
+    productionEta: null,
   },
   {
     id: '2',
@@ -43,6 +138,8 @@ export const salesOrders = [
     status: 'in_progress',
     _stockReserved: false,
     linkedWorkOrders: ['WO-502'],
+    dispatchDate: null,
+    productionEta: '2026-07-25',
   },
   {
     id: '3',
@@ -53,6 +150,8 @@ export const salesOrders = [
     total: 20 * 1899,
     status: 'pending',
     _stockReserved: false,
+    dispatchDate: null,
+    productionEta: null,
   },
 ];
 
@@ -63,10 +162,87 @@ export const workOrders = [
 ];
 
 export const invoices = [
-  { id: '1', invoiceNumber: 'INV-2201', party: 'Metro Footwear', amount: 245000, dueDate: '2026-07-20', status: 'unpaid', salesOrderId: null, salesOrderNumber: null },
-  { id: '2', invoiceNumber: 'INV-2202', party: 'Leo Leathers', amount: 185000, dueDate: '2026-07-15', status: 'partial', salesOrderId: null, salesOrderNumber: null },
-  { id: '3', invoiceNumber: 'INV-2203', party: 'City Shoe Mart', amount: 98000, dueDate: '2026-06-30', status: 'paid', salesOrderId: null, salesOrderNumber: null },
-  { id: '4', invoiceNumber: 'INV-2204', party: 'Sole Components Pvt Ltd', amount: 34200, dueDate: '2026-06-25', status: 'overdue', salesOrderId: null, salesOrderNumber: null },
+  { id: '1', invoiceNumber: 'INV-2201', party: 'Metro Footwear', amount: 245000, dueDate: '2026-07-20', status: 'unpaid', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: null },
+  { id: '2', invoiceNumber: 'INV-2202', party: 'Leo Leathers', amount: 185000, dueDate: '2026-07-15', status: 'partial', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: null },
+  { id: '3', invoiceNumber: 'INV-2203', party: 'City Shoe Mart', amount: 98000, dueDate: '2026-06-30', status: 'paid', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: null },
+  { id: '4', invoiceNumber: 'INV-2204', party: 'Sole Components Pvt Ltd', amount: 34200, dueDate: '2026-06-25', status: 'overdue', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: null },
+];
+
+export const purchases = [
+  {
+    id: '1',
+    poNumber: 'PO-1001',
+    supplier: 'Leo Leathers',
+    orderDate: '2026-06-20',
+    status: 'approved',
+    items: [
+      { product: 'Finished Leather - Full Grain (sq ft)', quantity: 800, rate: 210 },
+      { product: 'Leather Dye - Black (litre)', quantity: 40, rate: 425 },
+    ],
+    total: 185000,
+    priority: 'normal',
+    sourceType: 'manual',
+    linkedWorkOrderId: null,
+  },
+  {
+    id: '2',
+    poNumber: 'PO-1002',
+    supplier: 'Sole Components Pvt Ltd',
+    orderDate: '2026-06-28',
+    status: 'pending',
+    items: [
+      { product: 'PU Sole - Size 8 (pair)', quantity: 1000, rate: 65 },
+      { product: 'PU Sole - Size 9 (pair)', quantity: 500, rate: 55 },
+    ],
+    total: 92500,
+    priority: 'normal',
+    sourceType: 'manual',
+    linkedWorkOrderId: null,
+  },
+  {
+    id: '3',
+    poNumber: 'PO-1003',
+    supplier: 'Metro Packaging Co',
+    orderDate: '2026-07-02',
+    status: 'draft',
+    items: [
+      { product: 'Shoe Box - Standard', quantity: 1200, rate: 18 },
+      { product: 'Packing Tape Roll', quantity: 300, rate: 42 },
+    ],
+    total: 34200,
+    priority: 'normal',
+    sourceType: 'manual',
+    linkedWorkOrderId: null,
+  },
+];
+
+export const returns = [
+  {
+    id: '1',
+    returnNumber: 'RET-101',
+    salesOrderId: '1',
+    soNumber: 'SO-1042',
+    productId: '2',
+    quantity: 3,
+    type: 'customer',
+    reason: 'Size mismatch',
+    status: 'processed',
+    amount: 3 * 1899,
+    createdDate: '2026-06-15',
+  },
+  {
+    id: '2',
+    returnNumber: 'RET-102',
+    salesOrderId: '1',
+    soNumber: 'SO-1042',
+    productId: '1',
+    quantity: 2,
+    type: 'courier',
+    reason: 'Damaged in transit',
+    status: 'reported',
+    amount: 2 * 2499,
+    createdDate: '2026-07-09',
+  },
 ];
 
 export function nextId(records) {
@@ -83,6 +259,14 @@ export function nextDocNumber(records, field, prefix) {
 
 export function getProductById(productId) {
   return products.find((product) => product.id === productId);
+}
+
+export function getRawMaterialById(rawMaterialId) {
+  return rawMaterials.find((material) => material.id === rawMaterialId);
+}
+
+export function getRawMaterialByName(name) {
+  return rawMaterials.find((material) => material.name === name);
 }
 
 export function getStockQuantity(productId) {
@@ -110,4 +294,34 @@ export function adjustStock(productId, delta) {
 
   const product = getProductById(productId);
   if (product) product.stock = getStockQuantity(productId);
+}
+
+export function adjustRawMaterial(rawMaterialId, delta) {
+  const row = getRawMaterialById(rawMaterialId);
+  if (row) row.quantity = Math.max(0, Number(row.quantity) + delta);
+}
+
+// Checks whether making `quantity` units of `productId` is possible with
+// the raw materials currently on hand. Returns per-material shortfalls (0
+// or negative means that material is not a blocker).
+export function checkBomAvailability(productId, quantity) {
+  const recipe = productBom[productId] ?? [];
+  const shortages = recipe
+    .map((entry) => {
+      const material = getRawMaterialById(entry.rawMaterialId);
+      const needed = entry.qtyPerUnit * quantity;
+      const shortfall = needed - (material?.quantity ?? 0);
+      return { rawMaterialId: entry.rawMaterialId, needed, shortfall };
+    })
+    .filter((entry) => entry.shortfall > 0);
+  return { sufficient: shortages.length === 0, shortages };
+}
+
+export function consumeBom(productId, quantity) {
+  const recipe = productBom[productId] ?? [];
+  recipe.forEach((entry) => adjustRawMaterial(entry.rawMaterialId, -entry.qtyPerUnit * quantity));
+}
+
+export function recomputeProductCost(product) {
+  product.effectiveCost = product.baseCost + product.returnSurcharge + product.damageCost;
 }

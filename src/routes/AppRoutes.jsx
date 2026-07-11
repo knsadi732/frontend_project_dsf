@@ -19,6 +19,7 @@ const InventoryPage = lazy(() => import('@/features/inventory').then((m) => ({ d
 const ProductionPage = lazy(() => import('@/features/production').then((m) => ({ default: m.ProductionPage })));
 const SalesPage = lazy(() => import('@/features/sales').then((m) => ({ default: m.SalesPage })));
 const FinancePage = lazy(() => import('@/features/finance').then((m) => ({ default: m.FinancePage })));
+const ReturnsPage = lazy(() => import('@/features/returns').then((m) => ({ default: m.ReturnsPage })));
 const UsersPage = lazy(() => import('@/features/users').then((m) => ({ default: m.UsersPage })));
 const ProfilePage = lazy(() => import('@/features/profile').then((m) => ({ default: m.ProfilePage })));
 const NotificationsPage = lazy(() =>
@@ -70,6 +71,10 @@ export function AppRoutes() {
 
           <Route element={<PermissionGuard module={MODULES.FINANCE} action={ACTIONS.VIEW} />}>
             <Route path="/finance" element={<SuspenseOutlet><FinancePage /></SuspenseOutlet>} />
+          </Route>
+
+          <Route element={<PermissionGuard module={MODULES.RETURNS} action={ACTIONS.VIEW} />}>
+            <Route path="/returns" element={<SuspenseOutlet><ReturnsPage /></SuspenseOutlet>} />
           </Route>
 
           <Route element={<PermissionGuard module={MODULES.USERS} action={ACTIONS.VIEW} />}>

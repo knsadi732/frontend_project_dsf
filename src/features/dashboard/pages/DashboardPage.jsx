@@ -1,9 +1,16 @@
 import { useDashboardQuery } from '@/features/dashboard/queries/useDashboardQuery';
 import { StatCard } from '@/features/dashboard/components/StatCard';
 import { ChartWidget } from '@/features/dashboard/components/ChartWidget';
+import { ForecastChartWidget } from '@/features/dashboard/components/ForecastChartWidget';
+import { BreakEvenChartWidget } from '@/features/dashboard/components/BreakEvenChartWidget';
+import { PeriodComparisonChartWidget } from '@/features/dashboard/components/PeriodComparisonChartWidget';
+import { ReturnRateChartWidget } from '@/features/dashboard/components/ReturnRateChartWidget';
 import { RecentActivityList } from '@/features/dashboard/components/RecentActivityList';
 import { BaseLoader } from '@/components/ui/BaseLoader';
 
+// Read-only by design: every widget below is computed from live data
+// (see dashboard.api.js) — there is no edit affordance anywhere on this
+// page, for any role.
 export function DashboardPage() {
   const { data, isLoading } = useDashboardQuery();
 
@@ -27,6 +34,13 @@ export function DashboardPage() {
           <ChartWidget data={data.salesTrend} />
         </div>
         <RecentActivityList items={data.recentActivity} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ForecastChartWidget forecast={data.forecast} />
+        <BreakEvenChartWidget breakEven={data.breakEven} />
+        <PeriodComparisonChartWidget periodComparison={data.periodComparison} />
+        <ReturnRateChartWidget returnRate={data.returnRate} />
       </div>
     </div>
   );

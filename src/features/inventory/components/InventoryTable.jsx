@@ -20,7 +20,17 @@ function downloadInventoryPdf(row) {
   });
 }
 
-export function InventoryTable({ items, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
+export function InventoryTable({
+  items,
+  isLoading,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+  onEdit,
+  onDelete,
+}) {
   const columns = [
     { key: 'sku', header: 'SKU' },
     { key: 'productName', header: 'Product Name' },
@@ -94,6 +104,7 @@ export function InventoryTable({ items, isLoading, page, pageSize, total, onPage
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
       onRowClick={onEdit}
       emptyMessage="No inventory items yet"
     />

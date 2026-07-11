@@ -22,6 +22,6 @@ export const usePermissionStore = create(
 
       resetToDefaults: () => set({ rolePermissions: ROLE_PERMISSIONS }),
     }),
-    { name: 'ds-erp-permissions' },
+    { name: 'ds-erp-permissions-v2' },
   ),
 );

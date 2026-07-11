@@ -8,7 +8,19 @@ import { MODULES, ACTIONS } from '@/constants/roles';
 import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 import { getEmployeeFullName } from '@/utils/employeeName';
 
-export function UserTable({ users, departmentsById, isLoading, page, pageSize, total, onPageChange, onView, onEdit, onDelete }) {
+export function UserTable({
+  users,
+  departmentsById,
+  isLoading,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+  onView,
+  onEdit,
+  onDelete,
+}) {
   const columns = [
     {
       key: 'employeeCode',
@@ -102,6 +114,7 @@ export function UserTable({ users, departmentsById, isLoading, page, pageSize, t
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
       onRowClick={onView}
       emptyMessage="No employees yet"
     />

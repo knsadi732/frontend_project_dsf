@@ -11,6 +11,8 @@ export function useUpdatePurchase() {
     mutationFn: ({ id, payload }) => purchaseApi.update(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.purchases.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.production.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
       pushToast('success', TOAST_MESSAGES.UPDATE_SUCCESS('Purchase order'));
     },
   });

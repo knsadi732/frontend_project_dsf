@@ -8,7 +8,7 @@ export const userSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   phone: z.string().min(10, 'Enter a valid phone number'),
   email: z.string().email('Enter a valid email').optional().or(z.literal('')),
-  role: z.enum(Object.values(ROLES)).default('STAFF'),
+  role: z.enum(Object.values(ROLES)).default('EMPLOYEE'),
   departmentId: z.string().optional(),
   designationId: z.string().optional(),
   branchId: z.string().optional(),

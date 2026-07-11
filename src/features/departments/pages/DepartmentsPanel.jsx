@@ -14,10 +14,11 @@ import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 export function DepartmentsPanel() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, department: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useDepartmentsQuery({ page, pageSize: DEFAULT_PAGE_SIZE });
+  const { data, isLoading } = useDepartmentsQuery({ page, pageSize });
   const createDepartment = useCreateDepartment();
   const updateDepartment = useUpdateDepartment();
   const deleteDepartment = useDeleteDepartment();
@@ -50,9 +51,13 @@ export function DepartmentsPanel() {
         departments={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
-        pageSize={DEFAULT_PAGE_SIZE}
+        pageSize={pageSize}
         isLoading={isLoading}
         onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
         onEdit={(department) => setFormState({ open: true, department })}
         onDelete={setDeleteTarget}
       />

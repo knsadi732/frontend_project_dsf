@@ -43,14 +43,15 @@ export function UsersPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, user: null });
   const [viewTarget, setViewTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
-    () => ({ search: debouncedSearch, status, page, pageSize: DEFAULT_PAGE_SIZE }),
-    [debouncedSearch, status, page],
+    () => ({ search: debouncedSearch, status, page, pageSize }),
+    [debouncedSearch, status, page, pageSize],
   );
 
   const { data, isLoading, isFetching, refetch } = useUsersQuery(filters);
@@ -174,9 +175,13 @@ export function UsersPage() {
             departmentsById={departmentsById}
             total={data?.total ?? 0}
             page={page}
-            pageSize={DEFAULT_PAGE_SIZE}
+            pageSize={pageSize}
             isLoading={isLoading}
             onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
             onView={setViewTarget}
             onEdit={(user) => setFormState({ open: true, user })}
             onDelete={setDeleteTarget}

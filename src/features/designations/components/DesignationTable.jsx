@@ -14,6 +14,7 @@ export function DesignationTable({
   pageSize,
   total,
   onPageChange,
+  onPageSizeChange,
   onEdit,
   onDelete,
 }) {
@@ -64,6 +65,7 @@ export function DesignationTable({
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
       onRowClick={onEdit}
       emptyMessage="No designations yet"
     />

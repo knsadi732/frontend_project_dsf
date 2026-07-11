@@ -1,12 +1,24 @@
 import { ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/utils/cn';
-import { BaseLoader } from '@/components/ui/BaseLoader';
+
+function TableSkeleton({ columns, rowCount }) {
+  return Array.from({ length: rowCount }).map((_, rowIndex) => (
+    <tr key={rowIndex} className="border-b border-border last:border-0">
+      {columns.map((column) => (
+        <td key={column.key} className="px-3 py-2.5">
+          <div className="h-4 w-4/5 max-w-[10rem] animate-pulse rounded bg-surface-hover" />
+        </td>
+      ))}
+    </tr>
+  ));
+}
 
 export function BaseTable({
   columns,
   data,
   rowKey = (row) => row.id,
   isLoading = false,
+  pageSize,
   emptyMessage = 'No records found',
   sort,
   onSortChange,
@@ -48,11 +60,7 @@ export function BaseTable({
         </thead>
         <tbody>
           {isLoading ? (
-            <tr>
-              <td colSpan={columns.length}>
-                <BaseLoader />
-              </td>
-            </tr>
+            <TableSkeleton columns={columns} rowCount={Math.min(pageSize ?? 8, 8)} />
           ) : data.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="px-3 py-8 text-center text-text-muted">

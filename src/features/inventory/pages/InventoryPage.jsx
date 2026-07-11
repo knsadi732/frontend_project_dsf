@@ -19,13 +19,14 @@ import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 export function InventoryPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, item: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
-    () => ({ search: debouncedSearch, page, pageSize: DEFAULT_PAGE_SIZE }),
-    [debouncedSearch, page],
+    () => ({ search: debouncedSearch, page, pageSize }),
+    [debouncedSearch, page, pageSize],
   );
 
   const { data, isLoading, isFetching, refetch } = useInventoryListQuery(filters);
@@ -77,9 +78,13 @@ export function InventoryPage() {
         items={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
-        pageSize={DEFAULT_PAGE_SIZE}
+        pageSize={pageSize}
         isLoading={isLoading}
         onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
         onEdit={(item) => setFormState({ open: true, item })}
         onDelete={setDeleteTarget}
       />

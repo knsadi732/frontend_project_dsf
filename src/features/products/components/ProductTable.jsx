@@ -21,7 +21,17 @@ function downloadProductPdf(row) {
   });
 }
 
-export function ProductTable({ products, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
+export function ProductTable({
+  products,
+  isLoading,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+  onEdit,
+  onDelete,
+}) {
   const columns = [
     { key: 'name', header: 'Name' },
     { key: 'sku', header: 'SKU' },
@@ -96,6 +106,7 @@ export function ProductTable({ products, isLoading, page, pageSize, total, onPag
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
       onRowClick={onEdit}
       emptyMessage="No products yet"
     />

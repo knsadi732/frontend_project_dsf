@@ -15,10 +15,11 @@ import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 export function DesignationsPanel() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, designation: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useDesignationsQuery({ page, pageSize: DEFAULT_PAGE_SIZE });
+  const { data, isLoading } = useDesignationsQuery({ page, pageSize });
   const { data: departmentsData } = useDepartmentsQuery({ pageSize: 100 });
   const createDesignation = useCreateDesignation();
   const updateDesignation = useUpdateDesignation();
@@ -60,9 +61,13 @@ export function DesignationsPanel() {
         departmentsById={departmentsById}
         total={data?.total ?? 0}
         page={page}
-        pageSize={DEFAULT_PAGE_SIZE}
+        pageSize={pageSize}
         isLoading={isLoading}
         onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
         onEdit={(designation) => setFormState({ open: true, designation })}
         onDelete={setDeleteTarget}
       />

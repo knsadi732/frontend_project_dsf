@@ -17,6 +17,7 @@ export const ORDER_STATUS = {
   IN_PROGRESS: 'in_progress',
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
+  REJECTED: 'rejected',
 };
 
 export const PAYMENT_STATUS = {
@@ -28,9 +29,26 @@ export const PAYMENT_STATUS = {
 
 export const WORK_ORDER_STAGE_OPTIONS = [
   { value: 'pending', label: 'Pending' },
+  { value: 'blocked_on_material', label: 'Blocked on material' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
+];
+
+export const RETURN_STATUS = {
+  REPORTED: 'reported',
+  WAREHOUSE_VERIFICATION: 'warehouse_verification',
+  VERIFIED: 'verified',
+  PROCESSED: 'processed',
+  REJECTED: 'rejected',
+};
+
+export const RETURN_STATUS_OPTIONS = [
+  { value: 'reported', label: 'Reported' },
+  { value: 'warehouse_verification', label: 'Warehouse verification' },
+  { value: 'verified', label: 'Verified' },
+  { value: 'processed', label: 'Processed' },
+  { value: 'rejected', label: 'Rejected' },
 ];
 
 export function toStatusOptions(statusEnum) {
@@ -52,8 +70,15 @@ export const STATUS_BADGE_VARIANT = {
   [ORDER_STATUS.IN_PROGRESS]: 'info',
   [ORDER_STATUS.COMPLETED]: 'success',
   [ORDER_STATUS.CANCELLED]: 'danger',
+  [ORDER_STATUS.REJECTED]: 'danger',
   [PAYMENT_STATUS.UNPAID]: 'danger',
   [PAYMENT_STATUS.PARTIAL]: 'warning',
   [PAYMENT_STATUS.PAID]: 'success',
   [PAYMENT_STATUS.OVERDUE]: 'danger',
+  blocked_on_material: 'danger',
+  [RETURN_STATUS.REPORTED]: 'warning',
+  [RETURN_STATUS.WAREHOUSE_VERIFICATION]: 'info',
+  [RETURN_STATUS.VERIFIED]: 'info',
+  [RETURN_STATUS.PROCESSED]: 'success',
+  [RETURN_STATUS.REJECTED]: 'danger',
 };

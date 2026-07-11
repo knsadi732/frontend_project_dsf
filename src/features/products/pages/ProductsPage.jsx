@@ -24,13 +24,14 @@ export function ProductsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, product: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
-    () => ({ search: debouncedSearch, status, page, pageSize: DEFAULT_PAGE_SIZE }),
-    [debouncedSearch, status, page],
+    () => ({ search: debouncedSearch, status, page, pageSize }),
+    [debouncedSearch, status, page, pageSize],
   );
 
   const { data, isLoading, isFetching, refetch } = useProductsQuery(filters);
@@ -93,9 +94,13 @@ export function ProductsPage() {
         products={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
-        pageSize={DEFAULT_PAGE_SIZE}
+        pageSize={pageSize}
         isLoading={isLoading}
         onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
         onEdit={(product) => setFormState({ open: true, product })}
         onDelete={setDeleteTarget}
       />

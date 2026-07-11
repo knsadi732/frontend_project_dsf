@@ -20,7 +20,17 @@ function downloadSalesOrderPdf(row) {
   });
 }
 
-export function SalesOrderTable({ salesOrders, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
+export function SalesOrderTable({
+  salesOrders,
+  isLoading,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  onPageSizeChange,
+  onEdit,
+  onDelete,
+}) {
   const columns = [
     { key: 'soNumber', header: 'SO Number' },
     { key: 'customer', header: 'Customer' },
@@ -36,6 +46,12 @@ export function SalesOrderTable({ salesOrders, isLoading, page, pageSize, total,
       render: (row) => (
         <BaseBadge variant={STATUS_BADGE_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>
       ),
+    },
+    {
+      key: 'eta',
+      header: 'Dispatch / ETA',
+      render: (row) =>
+        row.dispatchDate ? `Dispatch ${row.dispatchDate}` : row.productionEta ? `ETA ${row.productionEta}` : '—',
     },
     {
       key: 'linked',
@@ -111,6 +127,7 @@ export function SalesOrderTable({ salesOrders, isLoading, page, pageSize, total,
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
       onRowClick={onEdit}
       emptyMessage="No sales orders yet"
     />

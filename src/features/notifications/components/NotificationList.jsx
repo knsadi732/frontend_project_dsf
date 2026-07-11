@@ -1,11 +1,30 @@
+import { useState } from 'react';
 import { BaseCard } from '@/components/ui/BaseCard';
 import { BaseLoader } from '@/components/ui/BaseLoader';
 import { AppButton } from '@/components/ui/AppButton';
 import { Can } from '@/routes/PermissionGuard';
-import { MODULES, ACTIONS } from '@/constants/roles';
+import { MODULES, ACTIONS, ROLES } from '@/constants/roles';
+import { useAuth } from '@/hooks/useAuth';
+import { useUpdateSalesOrder } from '@/features/sales/mutations/useUpdateSalesOrder';
+import { SalesOrderDetailModal } from '@/features/sales/components/SalesOrderDetailModal';
+import { ORDER_STATUS } from '@/constants/statusEnums';
 import { cn } from '@/utils/cn';
 
+const SALES_REVIEW_ROLES = [ROLES.SALES, ROLES.OWNER, ROLES.SUPER_ADMIN];
+const WAREHOUSE_PACK_ROLES = [ROLES.INVENTORY, ROLES.DISPATCH, ROLES.OWNER, ROLES.SUPER_ADMIN];
+
 export function NotificationList({ notifications, isLoading, onMarkRead, markingId }) {
+  const { role } = useAuth();
+  const updateSalesOrder = useUpdateSalesOrder();
+  const [detailSalesOrderId, setDetailSalesOrderId] = useState(null);
+
+  const actOnSalesOrder = (item, status) => {
+    updateSalesOrder.mutate(
+      { id: item.entityId, payload: { status } },
+      { onSuccess: () => onMarkRead(item.id) },
+    );
+  };
+
   if (isLoading) {
     return (
       <BaseCard>
@@ -39,6 +58,47 @@ export function NotificationList({ notifications, isLoading, onMarkRead, marking
               <p className="text-sm text-text-muted">{item.message}</p>
               <p className="mt-1 text-xs text-text-muted">{new Date(item.createdAt).toLocaleString()}</p>
             </div>
+            {!item.read && item.type === 'sales_order_review' && SALES_REVIEW_ROLES.includes(role) && (
+              <div className="flex shrink-0 gap-1">
+                <AppButton variant="ghost" size="sm" onClick={() => setDetailSalesOrderId(item.entityId)}>
+                  View details
+                </AppButton>
+                <AppButton
+                  variant="secondary"
+                  size="sm"
+                  loading={updateSalesOrder.isPending}
+                  onClick={() => actOnSalesOrder(item, ORDER_STATUS.APPROVED)}
+                >
+                  Accept
+                </AppButton>
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  className="text-danger hover:bg-danger/10"
+                  loading={updateSalesOrder.isPending}
+                  onClick={() => actOnSalesOrder(item, ORDER_STATUS.REJECTED)}
+                >
+                  Reject
+                </AppButton>
+              </div>
+            )}
+
+            {!item.read && item.type === 'sales_order_packing' && WAREHOUSE_PACK_ROLES.includes(role) && (
+              <div className="flex shrink-0 gap-1">
+                <AppButton variant="ghost" size="sm" onClick={() => setDetailSalesOrderId(item.entityId)}>
+                  View details
+                </AppButton>
+                <AppButton
+                  variant="secondary"
+                  size="sm"
+                  loading={updateSalesOrder.isPending}
+                  onClick={() => actOnSalesOrder(item, ORDER_STATUS.COMPLETED)}
+                >
+                  Mark order ready
+                </AppButton>
+              </div>
+            )}
+
             <Can module={MODULES.NOTIFICATIONS} action={ACTIONS.EDIT}>
               {!item.read && (
                 <AppButton
@@ -54,6 +114,12 @@ export function NotificationList({ notifications, isLoading, onMarkRead, marking
           </li>
         ))}
       </ul>
+
+      <SalesOrderDetailModal
+        open={Boolean(detailSalesOrderId)}
+        onClose={() => setDetailSalesOrderId(null)}
+        salesOrderId={detailSalesOrderId}
+      />
     </BaseCard>
   );
 }
