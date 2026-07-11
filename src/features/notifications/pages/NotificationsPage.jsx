@@ -15,7 +15,7 @@ export function NotificationsPage() {
   const hasUnread = notifications.some((item) => !item.read);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-text">Notifications</h1>

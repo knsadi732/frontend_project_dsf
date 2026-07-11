@@ -11,7 +11,7 @@ export function useCreateUser() {
     mutationFn: userApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
-      pushToast('success', TOAST_MESSAGES.CREATE_SUCCESS('User'));
+      pushToast('success', TOAST_MESSAGES.CREATE_SUCCESS('Employee'));
     },
   });
 }

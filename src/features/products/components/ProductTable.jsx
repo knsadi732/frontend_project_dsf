@@ -1,10 +1,25 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { Download, Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
+import { generateRecordPdf } from '@/utils/generateRecordPdf';
+
+function downloadProductPdf(row) {
+  generateRecordPdf({
+    title: `Product - ${row.name}`,
+    fields: [
+      { label: 'SKU', value: row.sku },
+      { label: 'Category', value: row.category },
+      { label: 'Price', value: `Rs.${Number(row.price).toLocaleString('en-IN')}` },
+      { label: 'Stock', value: row.stock },
+      { label: 'Status', value: row.status },
+    ],
+    fileName: `${row.sku}.pdf`,
+  });
+}
 
 export function ProductTable({ products, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
   const columns = [
@@ -29,8 +44,27 @@ export function ProductTable({ products, isLoading, page, pageSize, total, onPag
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
+          <AppButton
+            variant="ghost"
+            size="sm"
+            onClick={(event) => {
+              event.stopPropagation();
+              downloadProductPdf(row);
+            }}
+            aria-label={`Download ${row.name}`}
+          >
+            <Download className="size-4" />
+          </AppButton>
           <Can module={MODULES.PRODUCTS} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={() => onEdit(row)} aria-label={`Edit ${row.name}`}>
+            <AppButton
+              variant="ghost"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit(row);
+              }}
+              aria-label={`Edit ${row.name}`}
+            >
               <Pencil className="size-4" />
             </AppButton>
           </Can>
@@ -38,7 +72,10 @@ export function ProductTable({ products, isLoading, page, pageSize, total, onPag
             <AppButton
               variant="ghost"
               size="sm"
-              onClick={() => onDelete(row)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete(row);
+              }}
               aria-label={`Delete ${row.name}`}
               className="text-danger hover:bg-danger/10"
             >
@@ -59,6 +96,7 @@ export function ProductTable({ products, isLoading, page, pageSize, total, onPag
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onRowClick={onEdit}
       emptyMessage="No products yet"
     />
   );

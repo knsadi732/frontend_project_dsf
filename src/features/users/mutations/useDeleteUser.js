@@ -11,7 +11,7 @@ export function useDeleteUser() {
     mutationFn: userApi.remove,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
-      pushToast('success', TOAST_MESSAGES.DELETE_SUCCESS('User'));
+      pushToast('success', TOAST_MESSAGES.DELETE_SUCCESS('Employee'));
     },
   });
 }

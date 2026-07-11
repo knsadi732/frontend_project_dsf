@@ -3,6 +3,13 @@ export const RECORD_STATUS = {
   INACTIVE: 'inactive',
 };
 
+export const EMPLOYMENT_STATUS = {
+  PROBATION: 'probation',
+  ACTIVE: 'active',
+  ON_LEAVE: 'on_leave',
+  TERMINATED: 'terminated',
+};
+
 export const ORDER_STATUS = {
   DRAFT: 'draft',
   PENDING: 'pending',
@@ -19,9 +26,26 @@ export const PAYMENT_STATUS = {
   OVERDUE: 'overdue',
 };
 
+export const WORK_ORDER_STAGE_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+export function toStatusOptions(statusEnum) {
+  return Object.values(statusEnum).map((value) => ({
+    value,
+    label: value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' '),
+  }));
+}
+
 export const STATUS_BADGE_VARIANT = {
   [RECORD_STATUS.ACTIVE]: 'success',
   [RECORD_STATUS.INACTIVE]: 'default',
+  [EMPLOYMENT_STATUS.PROBATION]: 'warning',
+  [EMPLOYMENT_STATUS.ON_LEAVE]: 'info',
+  [EMPLOYMENT_STATUS.TERMINATED]: 'danger',
   [ORDER_STATUS.DRAFT]: 'default',
   [ORDER_STATUS.PENDING]: 'warning',
   [ORDER_STATUS.APPROVED]: 'info',

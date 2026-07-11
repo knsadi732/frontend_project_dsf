@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { userSchema } from '@/features/users/validators/user.schema';
@@ -6,58 +6,157 @@ import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
+import { DocumentUploadField } from '@/features/users/components/DocumentUploadField';
 import { ROLES } from '@/constants/roles';
+import { EMPLOYMENT_STATUS, toStatusOptions } from '@/constants/statusEnums';
 
 const ROLE_OPTIONS = Object.values(ROLES).map((role) => ({ value: role, label: role }));
+const EMPLOYMENT_STATUS_OPTIONS = toStatusOptions(EMPLOYMENT_STATUS);
+const DOCUMENT_FIELDS = [
+  { key: 'aadhaar', label: 'Aadhaar' },
+  { key: 'pan', label: 'PAN' },
+  { key: 'bank', label: 'Bank proof' },
+  { key: 'photo', label: 'Photo' },
+  { key: 'signature', label: 'Signature' },
+  { key: 'qualification', label: 'Qualification' },
+  { key: 'experience', label: 'Experience letter' },
+];
 
-const DEFAULT_VALUES = { name: '', email: '', role: 'STAFF', status: 'active' };
+const DEFAULT_VALUES = {
+  firstName: '',
+  middleName: '',
+  lastName: '',
+  phone: '',
+  email: '',
+  role: 'STAFF',
+  departmentId: '',
+  designationId: '',
+  branchId: '',
+  warehouseId: '',
+  joiningDate: '',
+  employmentStatus: 'probation',
+  aadhaarNumber: '',
+  panNumber: '',
+  bankAccount: '',
+  ifsc: '',
+  salaryStructure: '',
+  address: '',
+};
 
-export function UserFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
+export function UserFormModal({
+  open,
+  onClose,
+  initialValues,
+  departmentOptions,
+  designationOptions,
+  branchOptions,
+  warehouseOptions,
+  onSubmit,
+  isSubmitting,
+}) {
+  const [documents, setDocuments] = useState(() => initialValues?.documents ?? {});
+
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(userSchema),
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: initialValues ?? DEFAULT_VALUES,
   });
 
-  useEffect(() => {
-    if (open) reset(initialValues ?? DEFAULT_VALUES);
-  }, [open, initialValues, reset]);
+  const submit = (values) => {
+    onSubmit({ ...values, documents });
+  };
 
   return (
     <AppModal
       open={open}
       onClose={onClose}
-      title={initialValues ? 'Edit user' : 'New user'}
+      title={initialValues ? 'Edit employee' : 'New employee'}
+      className="max-w-2xl"
       footer={
         <>
           <AppButton variant="secondary" onClick={onClose}>
             Cancel
           </AppButton>
           <AppButton type="submit" form="user-form" loading={isSubmitting}>
-            Save user
+            Save employee
           </AppButton>
         </>
       }
     >
-      <form id="user-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-        <AppInput label="Name" required error={errors.name?.message} {...register('name')} />
-        <AppInput label="Email" type="email" required error={errors.email?.message} {...register('email')} />
-        <div className="grid grid-cols-2 gap-4">
-          <AppSelect label="Role" error={errors.role?.message} options={ROLE_OPTIONS} {...register('role')} />
-          <AppSelect
-            label="Status"
-            error={errors.status?.message}
-            options={[
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
-            ]}
-            {...register('status')}
-          />
-        </div>
+      <form id="user-form" onSubmit={handleSubmit(submit)} className="flex max-h-[70vh] flex-col gap-5 overflow-y-auto pr-1" noValidate>
+        {initialValues?.employeeCode && (
+          <p className="text-xs text-text-muted">
+            Employee code <span className="font-medium text-text">{initialValues.employeeCode}</span>
+          </p>
+        )}
+
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Personal details</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <AppInput label="First name" required error={errors.firstName?.message} {...register('firstName')} />
+            <AppInput label="Middle name" error={errors.middleName?.message} {...register('middleName')} />
+            <AppInput label="Last name" required error={errors.lastName?.message} {...register('lastName')} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <AppInput label="Phone" required error={errors.phone?.message} {...register('phone')} />
+            <AppInput label="Email" type="email" error={errors.email?.message} {...register('email')} />
+          </div>
+          <AppInput label="Address" error={errors.address?.message} {...register('address')} />
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Employment</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <AppSelect label="Department" error={errors.departmentId?.message} options={departmentOptions} placeholder="Select department" {...register('departmentId')} />
+            <AppSelect label="Designation" error={errors.designationId?.message} options={designationOptions} placeholder="Select designation" {...register('designationId')} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <AppSelect label="Branch" error={errors.branchId?.message} options={branchOptions} placeholder="Select branch" {...register('branchId')} />
+            <AppSelect label="Warehouse" error={errors.warehouseId?.message} options={warehouseOptions} placeholder="Select warehouse" {...register('warehouseId')} />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <AppSelect label="Role" error={errors.role?.message} options={ROLE_OPTIONS} {...register('role')} />
+            <AppInput label="Joining date" type="date" error={errors.joiningDate?.message} {...register('joiningDate')} />
+            <AppSelect
+              label="Employment status"
+              error={errors.employmentStatus?.message}
+              options={EMPLOYMENT_STATUS_OPTIONS}
+              {...register('employmentStatus')}
+            />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Government ID &amp; bank</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <AppInput label="Aadhaar number" error={errors.aadhaarNumber?.message} {...register('aadhaarNumber')} />
+            <AppInput label="PAN number" error={errors.panNumber?.message} {...register('panNumber')} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <AppInput label="Bank account number" error={errors.bankAccount?.message} {...register('bankAccount')} />
+            <AppInput label="IFSC code" error={errors.ifsc?.message} {...register('ifsc')} />
+          </div>
+          <AppInput label="Salary structure" helperText="e.g. 25000 fixed + incentives" error={errors.salaryStructure?.message} {...register('salaryStructure')} />
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+            Documents <span className="normal-case text-text-muted">(uploaded once, reused across HR, Accounts, Payroll, Finance, Dispatch)</span>
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            {DOCUMENT_FIELDS.map((doc) => (
+              <DocumentUploadField
+                key={doc.key}
+                label={doc.label}
+                fileName={documents[doc.key]}
+                onChange={(fileName) => setDocuments((prev) => ({ ...prev, [doc.key]: fileName ?? prev[doc.key] }))}
+              />
+            ))}
+          </div>
+        </section>
       </form>
     </AppModal>
   );

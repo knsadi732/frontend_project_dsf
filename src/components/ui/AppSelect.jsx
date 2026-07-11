@@ -24,7 +24,7 @@ export const AppSelect = forwardRef(function AppSelect(
         aria-invalid={Boolean(error)}
         aria-describedby={errorId}
         className={cn(
-          'h-9 border-border text-text focus-visible:border-primary',
+          'h-8 border-border bg-gradient-to-b from-surface to-primary/10 text-text focus-visible:border-primary',
           error && 'border-danger focus-visible:border-danger',
           className,
         )}

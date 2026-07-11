@@ -42,7 +42,7 @@
 | `main.jsx` | React root entry point |
 
 ## Notes
-- `plan.md` currently ends after Chapter 1 (UI Design Principles & Directory Structure); later chapters referenced but not yet present in the file.
+- `plan.md` now spans Chapter 1 through Chapter 9 (Employee Data Model, added 2026-07-11 — authoritative employee schema, phone-based login flow, employee create flow, shared-document model).
 
 ## Reusable Build Prompt
 

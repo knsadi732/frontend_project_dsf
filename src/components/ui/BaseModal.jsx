@@ -5,6 +5,16 @@ import { cn } from '@/utils/cn';
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
 
+const DEFAULT_DIALOG_CLASSES = 'relative w-full max-w-lg rounded-lg bg-surface p-6 shadow-xl';
+
+// clsx doesn't dedupe conflicting utilities, so drop the default max-w-* when
+// the caller supplies its own, otherwise both classes land in the DOM and
+// whichever the stylesheet happens to emit last silently wins.
+function mergeDialogClassName(className) {
+  if (!className || !/\bmax-w-\S+/.test(className)) return cn(DEFAULT_DIALOG_CLASSES, className);
+  return cn(DEFAULT_DIALOG_CLASSES.replace(/\bmax-w-\S+\s*/, ''), className);
+}
+
 export function BaseModal({ open, onClose, className, children, labelledBy }) {
   const containerRef = useRef(null);
   const previousFocusRef = useRef(null);
@@ -51,7 +61,7 @@ export function BaseModal({ open, onClose, className, children, labelledBy }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className={cn('relative w-full max-w-lg rounded-lg bg-surface p-6 shadow-xl', className)}
+        className={mergeDialogClassName(className)}
       >
         {children}
       </div>

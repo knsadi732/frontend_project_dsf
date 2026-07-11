@@ -11,7 +11,7 @@ export function useUpdateUser() {
     mutationFn: ({ id, payload }) => userApi.update(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
-      pushToast('success', TOAST_MESSAGES.UPDATE_SUCCESS('User'));
+      pushToast('success', TOAST_MESSAGES.UPDATE_SUCCESS('Employee'));
     },
   });
 }

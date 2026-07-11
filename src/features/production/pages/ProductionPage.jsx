@@ -10,24 +10,38 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { AppSelect } from '@/components/ui/AppSelect';
+import { AppInput } from '@/components/ui/AppInput';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
+import { WORK_ORDER_STAGE_OPTIONS } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 export function ProductionPage() {
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
   const [page, setPage] = useState(1);
   const [formState, setFormState] = useState({ open: false, workOrder: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
-    () => ({ search: debouncedSearch, page, pageSize: DEFAULT_PAGE_SIZE }),
-    [debouncedSearch, page],
+    () => ({
+      search: debouncedSearch,
+      status,
+      dateFrom: appliedDateFrom,
+      dateTo: appliedDateTo,
+      page,
+      pageSize: DEFAULT_PAGE_SIZE,
+    }),
+    [debouncedSearch, status, appliedDateFrom, appliedDateTo, page],
   );
 
-  const { data, isLoading } = useWorkOrdersQuery(filters);
+  const { data, isLoading, isFetching, refetch } = useWorkOrdersQuery(filters);
   const createWorkOrder = useCreateWorkOrder();
   const updateWorkOrder = useUpdateWorkOrder();
   const deleteWorkOrder = useDeleteWorkOrder();
@@ -45,7 +59,7 @@ export function ProductionPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-text">Production</h1>
@@ -60,7 +74,47 @@ export function ProductionPage() {
       </div>
 
       <FilterBar>
-        <SearchInput value={search} onChange={setSearch} placeholder="Search work orders…" className="w-72" />
+        <SearchInput
+          value={search}
+          onChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          placeholder="Search work orders…"
+          className="w-72"
+        />
+        <AppSelect
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value);
+            setPage(1);
+          }}
+          options={WORK_ORDER_STAGE_OPTIONS}
+          placeholder="All stages"
+          className="w-40"
+          aria-label="Filter by stage"
+        />
+        <AppInput
+          type="date"
+          value={dateFrom}
+          onChange={(event) => {
+            setDateFrom(event.target.value);
+            setPage(1);
+          }}
+          className="w-36"
+          aria-label="Due date from"
+        />
+        <AppInput
+          type="date"
+          value={dateTo}
+          onChange={(event) => {
+            setDateTo(event.target.value);
+            setPage(1);
+          }}
+          className="w-36"
+          aria-label="Due date to"
+        />
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
 
       <WorkOrderTable

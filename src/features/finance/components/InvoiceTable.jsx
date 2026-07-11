@@ -1,10 +1,24 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { Download, Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
+import { generateRecordPdf } from '@/utils/generateRecordPdf';
+
+function downloadInvoicePdf(row) {
+  generateRecordPdf({
+    title: `Invoice - ${row.invoiceNumber}`,
+    fields: [
+      { label: 'Party', value: row.party },
+      { label: 'Amount', value: `Rs.${Number(row.amount).toLocaleString('en-IN')}` },
+      { label: 'Due Date', value: row.dueDate },
+      { label: 'Status', value: row.status },
+    ],
+    fileName: `${row.invoiceNumber}.pdf`,
+  });
+}
 
 export function InvoiceTable({ invoices, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
   const columns = [
@@ -24,12 +38,41 @@ export function InvoiceTable({ invoices, isLoading, page, pageSize, total, onPag
       ),
     },
     {
+      key: 'linkedSo',
+      header: 'Linked SO',
+      render: (row) =>
+        row.salesOrderNumber ? (
+          <BaseBadge variant="info">{row.salesOrderNumber}</BaseBadge>
+        ) : (
+          <span className="text-xs text-text-muted">—</span>
+        ),
+    },
+    {
       key: 'actions',
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
+          <AppButton
+            variant="ghost"
+            size="sm"
+            onClick={(event) => {
+              event.stopPropagation();
+              downloadInvoicePdf(row);
+            }}
+            aria-label={`Download ${row.invoiceNumber}`}
+          >
+            <Download className="size-4" />
+          </AppButton>
           <Can module={MODULES.FINANCE} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={() => onEdit(row)} aria-label={`Edit ${row.invoiceNumber}`}>
+            <AppButton
+              variant="ghost"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit(row);
+              }}
+              aria-label={`Edit ${row.invoiceNumber}`}
+            >
               <Pencil className="size-4" />
             </AppButton>
           </Can>
@@ -37,7 +80,10 @@ export function InvoiceTable({ invoices, isLoading, page, pageSize, total, onPag
             <AppButton
               variant="ghost"
               size="sm"
-              onClick={() => onDelete(row)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete(row);
+              }}
               aria-label={`Delete ${row.invoiceNumber}`}
               className="text-danger hover:bg-danger/10"
             >
@@ -58,6 +104,7 @@ export function InvoiceTable({ invoices, isLoading, page, pageSize, total, onPag
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onRowClick={onEdit}
       emptyMessage="No invoices yet"
     />
   );

@@ -76,9 +76,9 @@ export const ROLE_PERMISSIONS = {
 
 const FULL_ACCESS_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN];
 
-export function hasPermission(role, module, action = ACTIONS.VIEW) {
+export function hasPermission(role, module, action = ACTIONS.VIEW, permissions = ROLE_PERMISSIONS) {
   if (!role) return false;
   if (FULL_ACCESS_ROLES.includes(role)) return true;
-  const modulePermissions = ROLE_PERMISSIONS[role]?.[module] ?? [];
+  const modulePermissions = permissions[role]?.[module] ?? [];
   return modulePermissions.includes(action);
 }

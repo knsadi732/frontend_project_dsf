@@ -1,9 +1,24 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { Download, Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
+import { generateRecordPdf } from '@/utils/generateRecordPdf';
+
+function downloadInventoryPdf(row) {
+  generateRecordPdf({
+    title: `Inventory - ${row.productName}`,
+    fields: [
+      { label: 'SKU', value: row.sku },
+      { label: 'Warehouse', value: row.warehouse },
+      { label: 'Quantity', value: row.quantity },
+      { label: 'Reorder Level', value: row.reorderLevel },
+      { label: 'Stock Status', value: row.quantity <= row.reorderLevel ? 'Low stock' : 'In stock' },
+    ],
+    fileName: `${row.sku}-inventory.pdf`,
+  });
+}
 
 export function InventoryTable({ items, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
   const columns = [
@@ -27,8 +42,27 @@ export function InventoryTable({ items, isLoading, page, pageSize, total, onPage
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
+          <AppButton
+            variant="ghost"
+            size="sm"
+            onClick={(event) => {
+              event.stopPropagation();
+              downloadInventoryPdf(row);
+            }}
+            aria-label={`Download ${row.productName}`}
+          >
+            <Download className="size-4" />
+          </AppButton>
           <Can module={MODULES.INVENTORY} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={() => onEdit(row)} aria-label={`Edit ${row.productName}`}>
+            <AppButton
+              variant="ghost"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit(row);
+              }}
+              aria-label={`Edit ${row.productName}`}
+            >
               <Pencil className="size-4" />
             </AppButton>
           </Can>
@@ -36,7 +70,10 @@ export function InventoryTable({ items, isLoading, page, pageSize, total, onPage
             <AppButton
               variant="ghost"
               size="sm"
-              onClick={() => onDelete(row)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete(row);
+              }}
               aria-label={`Delete ${row.productName}`}
               className="text-danger hover:bg-danger/10"
             >
@@ -57,6 +94,7 @@ export function InventoryTable({ items, isLoading, page, pageSize, total, onPage
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onRowClick={onEdit}
       emptyMessage="No inventory items yet"
     />
   );

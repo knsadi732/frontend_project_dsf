@@ -10,6 +10,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -27,7 +28,7 @@ export function InventoryPage() {
     [debouncedSearch, page],
   );
 
-  const { data, isLoading } = useInventoryListQuery(filters);
+  const { data, isLoading, isFetching, refetch } = useInventoryListQuery(filters);
   const createInventoryItem = useCreateInventoryItem();
   const updateInventoryItem = useUpdateInventoryItem();
   const deleteInventoryItem = useDeleteInventoryItem();
@@ -45,7 +46,7 @@ export function InventoryPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-text">Inventory</h1>
@@ -60,7 +61,16 @@ export function InventoryPage() {
       </div>
 
       <FilterBar>
-        <SearchInput value={search} onChange={setSearch} placeholder="Search inventory…" className="w-72" />
+        <SearchInput
+          value={search}
+          onChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          placeholder="Search inventory…"
+          className="w-72"
+        />
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
 
       <InventoryTable

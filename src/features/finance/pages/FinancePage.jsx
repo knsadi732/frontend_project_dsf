@@ -10,24 +10,40 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { AppSelect } from '@/components/ui/AppSelect';
+import { AppInput } from '@/components/ui/AppInput';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
+import { PAYMENT_STATUS, toStatusOptions } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+
+const STATUS_OPTIONS = toStatusOptions(PAYMENT_STATUS);
 
 export function FinancePage() {
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
   const [page, setPage] = useState(1);
   const [formState, setFormState] = useState({ open: false, invoice: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
-    () => ({ search: debouncedSearch, page, pageSize: DEFAULT_PAGE_SIZE }),
-    [debouncedSearch, page],
+    () => ({
+      search: debouncedSearch,
+      status,
+      dateFrom: appliedDateFrom,
+      dateTo: appliedDateTo,
+      page,
+      pageSize: DEFAULT_PAGE_SIZE,
+    }),
+    [debouncedSearch, status, appliedDateFrom, appliedDateTo, page],
   );
 
-  const { data, isLoading } = useInvoicesQuery(filters);
+  const { data, isLoading, isFetching, refetch } = useInvoicesQuery(filters);
   const createInvoice = useCreateInvoice();
   const updateInvoice = useUpdateInvoice();
   const deleteInvoice = useDeleteInvoice();
@@ -45,7 +61,7 @@ export function FinancePage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-text">Finance</h1>
@@ -60,7 +76,47 @@ export function FinancePage() {
       </div>
 
       <FilterBar>
-        <SearchInput value={search} onChange={setSearch} placeholder="Search invoices…" className="w-72" />
+        <SearchInput
+          value={search}
+          onChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          placeholder="Search invoices…"
+          className="w-72"
+        />
+        <AppSelect
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value);
+            setPage(1);
+          }}
+          options={STATUS_OPTIONS}
+          placeholder="All statuses"
+          className="w-40"
+          aria-label="Filter by status"
+        />
+        <AppInput
+          type="date"
+          value={dateFrom}
+          onChange={(event) => {
+            setDateFrom(event.target.value);
+            setPage(1);
+          }}
+          className="w-36"
+          aria-label="Due date from"
+        />
+        <AppInput
+          type="date"
+          value={dateTo}
+          onChange={(event) => {
+            setDateTo(event.target.value);
+            setPage(1);
+          }}
+          className="w-36"
+          aria-label="Due date to"
+        />
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
 
       <InvoiceTable

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Sun, Moon, LogOut, ChevronDown } from 'lucide-react';
+import { Menu, Sun, Moon, LogOut, ChevronDown, UserCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useThemeStore } from '@/store/themeStore';
 import { useLayoutStore } from '@/store/layoutStore';
@@ -78,6 +78,18 @@ export function Header() {
                 <p className="text-sm font-medium text-text">{user?.name}</p>
                 <p className="truncate text-xs text-text-muted">{user?.email}</p>
               </div>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setMenuOpen(false);
+                  navigate('/profile');
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text hover:bg-surface-hover"
+              >
+                <UserCircle className="size-4" />
+                My profile
+              </button>
               <button
                 type="button"
                 role="menuitem"

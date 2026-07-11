@@ -1,10 +1,36 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { Download, Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
+import { generateRecordPdf } from '@/utils/generateRecordPdf';
+
+function downloadPurchasePdf(row) {
+  generateRecordPdf({
+    title: `Purchase Order - ${row.poNumber}`,
+    fields: [
+      { label: 'Supplier', value: row.supplier },
+      { label: 'Order Date', value: row.orderDate },
+      { label: 'Status', value: row.status },
+    ],
+    items: row.items,
+    itemsColumns: [
+      { key: 'product', label: 'Product', width: 80 },
+      { key: 'quantity', label: 'Qty', width: 25 },
+      { key: 'rate', label: 'Rate', width: 30, format: (v) => `Rs.${Number(v).toLocaleString('en-IN')}` },
+      {
+        key: 'amount',
+        label: 'Amount',
+        width: 35,
+        format: (_v, item) => `Rs.${(Number(item.quantity) * Number(item.rate)).toLocaleString('en-IN')}`,
+      },
+    ],
+    total: `Total: Rs.${Number(row.total).toLocaleString('en-IN')}`,
+    fileName: `${row.poNumber}.pdf`,
+  });
+}
 
 export function PurchaseTable({ purchases, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
   const columns = [
@@ -28,8 +54,27 @@ export function PurchaseTable({ purchases, isLoading, page, pageSize, total, onP
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
+          <AppButton
+            variant="ghost"
+            size="sm"
+            onClick={(event) => {
+              event.stopPropagation();
+              downloadPurchasePdf(row);
+            }}
+            aria-label={`Download ${row.poNumber}`}
+          >
+            <Download className="size-4" />
+          </AppButton>
           <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={() => onEdit(row)} aria-label={`Edit ${row.poNumber}`}>
+            <AppButton
+              variant="ghost"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit(row);
+              }}
+              aria-label={`Edit ${row.poNumber}`}
+            >
               <Pencil className="size-4" />
             </AppButton>
           </Can>
@@ -37,7 +82,10 @@ export function PurchaseTable({ purchases, isLoading, page, pageSize, total, onP
             <AppButton
               variant="ghost"
               size="sm"
-              onClick={() => onDelete(row)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete(row);
+              }}
               aria-label={`Delete ${row.poNumber}`}
               className="text-danger hover:bg-danger/10"
             >
@@ -58,6 +106,7 @@ export function PurchaseTable({ purchases, isLoading, page, pageSize, total, onP
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onRowClick={onEdit}
       emptyMessage="No purchase orders yet"
     />
   );

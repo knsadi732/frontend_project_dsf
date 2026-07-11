@@ -19,6 +19,8 @@ export const useAuthStore = create(
 
       setAccessToken: (accessToken) => set({ accessToken }),
 
+      updateUser: (patch) => set((state) => ({ user: { ...state.user, ...patch } })),
+
       logout: () =>
         set({
           user: null,

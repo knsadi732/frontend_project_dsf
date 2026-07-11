@@ -1,10 +1,24 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { Download, Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
+import { generateRecordPdf } from '@/utils/generateRecordPdf';
+
+function downloadSalesOrderPdf(row) {
+  generateRecordPdf({
+    title: `Sales Order - ${row.soNumber}`,
+    fields: [
+      { label: 'Customer', value: row.customer },
+      { label: 'Order Date', value: row.orderDate },
+      { label: 'Total', value: `Rs.${Number(row.total).toLocaleString('en-IN')}` },
+      { label: 'Status', value: row.status },
+    ],
+    fileName: `${row.soNumber}.pdf`,
+  });
+}
 
 export function SalesOrderTable({ salesOrders, isLoading, page, pageSize, total, onPageChange, onEdit, onDelete }) {
   const columns = [
@@ -24,12 +38,48 @@ export function SalesOrderTable({ salesOrders, isLoading, page, pageSize, total,
       ),
     },
     {
+      key: 'linked',
+      header: 'Linked',
+      render: (row) => (
+        <div className="flex flex-wrap gap-1">
+          {row.linkedWorkOrders?.map((wo) => (
+            <BaseBadge key={wo} variant="info">
+              {wo}
+            </BaseBadge>
+          ))}
+          {row.invoiceNumber && <BaseBadge variant="success">{row.invoiceNumber}</BaseBadge>}
+          {!row.linkedWorkOrders?.length && !row.invoiceNumber && (
+            <span className="text-xs text-text-muted">—</span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'actions',
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
+          <AppButton
+            variant="ghost"
+            size="sm"
+            onClick={(event) => {
+              event.stopPropagation();
+              downloadSalesOrderPdf(row);
+            }}
+            aria-label={`Download ${row.soNumber}`}
+          >
+            <Download className="size-4" />
+          </AppButton>
           <Can module={MODULES.SALES} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={() => onEdit(row)} aria-label={`Edit ${row.soNumber}`}>
+            <AppButton
+              variant="ghost"
+              size="sm"
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit(row);
+              }}
+              aria-label={`Edit ${row.soNumber}`}
+            >
               <Pencil className="size-4" />
             </AppButton>
           </Can>
@@ -37,7 +87,10 @@ export function SalesOrderTable({ salesOrders, isLoading, page, pageSize, total,
             <AppButton
               variant="ghost"
               size="sm"
-              onClick={() => onDelete(row)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete(row);
+              }}
               aria-label={`Delete ${row.soNumber}`}
               className="text-danger hover:bg-danger/10"
             >
@@ -58,6 +111,7 @@ export function SalesOrderTable({ salesOrders, isLoading, page, pageSize, total,
       pageSize={pageSize}
       total={total}
       onPageChange={onPageChange}
+      onRowClick={onEdit}
       emptyMessage="No sales orders yet"
     />
   );

@@ -11,6 +11,11 @@ export function useUpdateSalesOrder() {
     mutationFn: ({ id, payload }) => salesApi.update(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.production.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.finance.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       pushToast('success', TOAST_MESSAGES.UPDATE_SUCCESS('Sales order'));
     },
   });

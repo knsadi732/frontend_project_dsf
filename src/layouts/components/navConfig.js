@@ -22,5 +22,5 @@ export const NAV_ITEMS = [
   { module: MODULES.FINANCE, label: 'Finance', to: '/finance', icon: Wallet },
   { module: MODULES.NOTIFICATIONS, label: 'Notifications', to: '/notifications', icon: Bell },
   { module: MODULES.REPORTS, label: 'Reports', to: '/reports', icon: FileBarChart },
-  { module: MODULES.USERS, label: 'Users', to: '/users', icon: Users },
+  { module: MODULES.USERS, label: 'Employees', to: '/users', icon: Users },
 ];

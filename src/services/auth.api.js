@@ -1,14 +1,23 @@
 import { apiClient } from '@/services/api/axios';
 import { env } from '@/config/env';
-import { ROLES } from '@/constants/roles';
+import { findEmployeeByPhone } from '@/services/user.api';
+import { getEmployeeFullName } from '@/utils/employeeName';
 
-function mockLogin({ email }) {
+/**
+ * Mock Login Flow (plan.md Chapter 9): Phone → Employee Table → Password
+ * Verify → Role → Permission → JWT → Dashboard. There's no real backend in
+ * mock mode, so any password is accepted once the phone matches a record.
+ */
+function mockLogin({ phone }) {
+  const employee = findEmployeeByPhone(phone) ?? findEmployeeByPhone('9000000001');
+
   return Promise.resolve({
     user: {
-      id: 'mock-user-1',
-      name: email?.split('@')[0] || 'Demo User',
-      email: email || 'demo@dsfootwear.com',
-      role: ROLES.SUPER_ADMIN,
+      id: employee.id,
+      name: getEmployeeFullName(employee),
+      email: employee.email,
+      phone: employee.phone,
+      role: employee.role,
     },
     accessToken: 'mock-access-token',
     refreshToken: 'mock-refresh-token',

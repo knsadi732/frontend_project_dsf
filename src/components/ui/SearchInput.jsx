@@ -12,7 +12,7 @@ export function SearchInput({ value, onChange, placeholder = 'Search…', classN
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="h-9 border-border pl-9 text-text placeholder:text-text-muted focus-visible:border-primary"
+        className="h-8 border-border bg-gradient-to-b from-surface to-primary/10 pl-9 text-text placeholder:text-text-muted focus-visible:border-primary"
       />
     </div>
   );

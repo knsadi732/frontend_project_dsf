@@ -4,16 +4,19 @@ import { BaseButton } from '@/components/ui/BaseButton';
 import { cn } from '@/utils/cn';
 
 const VARIANTS = {
-  primary: 'bg-primary text-primary-fg hover:bg-primary-hover',
-  secondary: 'bg-surface text-text border border-border hover:bg-surface-hover',
+  primary:
+    'bg-gradient-to-br from-primary to-primary-hover text-primary-fg shadow-md shadow-primary/20 hover:brightness-110 hover:shadow-lg hover:shadow-primary/25 active:brightness-95',
+  secondary:
+    'bg-gradient-to-b from-surface to-primary/10 text-text border border-border shadow-sm hover:brightness-95 hover:shadow active:brightness-90',
   ghost: 'bg-transparent text-text hover:bg-surface-hover',
-  danger: 'bg-danger text-white hover:opacity-90',
+  danger:
+    'bg-gradient-to-br from-danger to-red-700 text-white shadow-md shadow-danger/20 hover:brightness-110 hover:shadow-lg hover:shadow-danger/25 active:brightness-95',
 };
 
 const SIZES = {
-  sm: 'h-8 px-3 text-sm',
-  md: 'h-9 px-4 text-sm',
-  lg: 'h-11 px-5 text-base',
+  sm: 'h-7 px-2.5 text-xs',
+  md: 'h-8 px-3.5 text-sm',
+  lg: 'h-10 px-5 text-base',
 };
 
 export const AppButton = forwardRef(function AppButton(

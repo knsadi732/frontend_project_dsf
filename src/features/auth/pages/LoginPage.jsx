@@ -17,7 +17,7 @@ export function LoginPage() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { phone: '', password: '' },
   });
 
   const onSubmit = (values) => {
@@ -36,12 +36,12 @@ export function LoginPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
         <AppInput
-          label="Email"
-          type="email"
-          autoComplete="email"
+          label="Phone"
+          type="tel"
+          autoComplete="tel"
           required
-          error={errors.email?.message}
-          {...register('email')}
+          error={errors.phone?.message}
+          {...register('phone')}
         />
         <AppInput
           label="Password"

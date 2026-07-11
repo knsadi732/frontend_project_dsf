@@ -491,3 +491,87 @@ Volume-13 Report Service
 Volume-14 API Integration
 Volume-15 UI Component Library
 Volume-16 Security & Performance
+Chapter-9
+Employee Data Model (Authoritative — supersedes Chapter-3 Service-03 field list)
+
+Employee
+├── Login Credentials
+├── Role
+├── Permissions
+├── Department
+├── Designation
+├── Documents
+├── Salary
+├── Attendance
+├── Leave
+├── Assets
+└── Audit Logs
+
+employees table
+
+id (UUID)
+employee_code
+first_name
+middle_name
+last_name
+phone
+email
+password_hash
+role_id
+department_id
+designation_id
+branch_id
+warehouse_id
+joining_date
+employment_status
+photo
+aadhaar_number
+pan_number
+bank_account
+ifsc
+salary_structure
+address
+documents
+last_login
+created_at
+updated_at
+
+Plus separate tables: roles, permissions, role_permissions (normalized RBAC — role_permissions is a join table, not an inline matrix)
+
+Login Flow
+Phone
+↓
+Employee Table
+↓
+Password Verify
+↓
+Role
+↓
+Permission
+↓
+JWT
+↓
+Dashboard
+
+Note: login is by phone, not email.
+
+Employee Create Flow
+Create Employee
+↓
+Assign Department
+↓
+Assign Designation
+↓
+Assign Role
+↓
+Generate Employee Code
+↓
+Generate Temporary Password
+↓
+Send SMS
+↓
+Employee Login
+
+Documents
+Employee uploads once: Aadhaar, PAN, Bank, Photo, Signature, Qualification, Experience.
+HR, Accounts, Payroll, Finance, Dispatch, Admin all reuse this same stored data — documents are not re-uploaded per module.

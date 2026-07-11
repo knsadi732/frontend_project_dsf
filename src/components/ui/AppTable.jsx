@@ -4,10 +4,10 @@ import { BasePagination } from '@/components/ui/BasePagination';
 
 export function AppTable({ page, pageSize, total, onPageChange, ...tableProps }) {
   return (
-    <BaseCard>
+    <BaseCard className="overflow-hidden">
       <BaseTable {...tableProps} />
       {typeof total === 'number' && (
-        <div className="border-t border-border px-3 py-3">
+        <div className="border-t border-border px-3 py-2">
           <BasePagination page={page} pageSize={pageSize} total={total} onPageChange={onPageChange} />
         </div>
       )}

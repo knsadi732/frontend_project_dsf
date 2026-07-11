@@ -17,13 +17,13 @@ export function BaseTable({
     <div className={cn('overflow-x-auto', className)}>
       <table className="w-full border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-border text-xs uppercase tracking-wide text-text-muted">
+          <tr className="border-b border-border bg-surface-hover/60 text-xs uppercase tracking-wide text-text-muted">
             {columns.map((column) => {
               const isSorted = sort?.key === column.key;
               const SortIcon = isSorted ? (sort.direction === 'asc' ? ArrowUp : ArrowDown) : ChevronsUpDown;
 
               return (
-                <th key={column.key} scope="col" className="px-3 py-2 font-medium">
+                <th key={column.key} scope="col" className="px-3 py-1.5 font-medium">
                   {column.sortable ? (
                     <button
                       type="button"
@@ -60,17 +60,18 @@ export function BaseTable({
               </td>
             </tr>
           ) : (
-            data.map((row) => (
+            data.map((row, index) => (
               <tr
                 key={rowKey(row)}
                 onClick={() => onRowClick?.(row)}
                 className={cn(
                   'border-b border-border last:border-0',
+                  index % 2 === 1 && 'bg-surface-hover/40',
                   onRowClick && 'cursor-pointer hover:bg-surface-hover',
                 )}
               >
                 {columns.map((column) => (
-                  <td key={column.key} className="px-3 py-2.5 text-text">
+                  <td key={column.key} className="px-3 py-2 text-text">
                     {column.render ? column.render(row) : row[column.key]}
                   </td>
                 ))}

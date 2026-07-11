@@ -10,24 +10,30 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { AppSelect } from '@/components/ui/AppSelect';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
+import { RECORD_STATUS, toStatusOptions } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
+const STATUS_OPTIONS = toStatusOptions(RECORD_STATUS);
+
 export function ProductsPage() {
   const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [formState, setFormState] = useState({ open: false, product: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
-    () => ({ search: debouncedSearch, page, pageSize: DEFAULT_PAGE_SIZE }),
-    [debouncedSearch, page],
+    () => ({ search: debouncedSearch, status, page, pageSize: DEFAULT_PAGE_SIZE }),
+    [debouncedSearch, status, page],
   );
 
-  const { data, isLoading } = useProductsQuery(filters);
+  const { data, isLoading, isFetching, refetch } = useProductsQuery(filters);
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
@@ -45,7 +51,7 @@ export function ProductsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-text">Products</h1>
@@ -60,7 +66,27 @@ export function ProductsPage() {
       </div>
 
       <FilterBar>
-        <SearchInput value={search} onChange={setSearch} placeholder="Search products…" className="w-72" />
+        <SearchInput
+          value={search}
+          onChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          placeholder="Search products…"
+          className="w-72"
+        />
+        <AppSelect
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value);
+            setPage(1);
+          }}
+          options={STATUS_OPTIONS}
+          placeholder="All statuses"
+          className="w-40"
+          aria-label="Filter by status"
+        />
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
 
       <ProductTable

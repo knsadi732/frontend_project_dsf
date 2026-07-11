@@ -1,23 +1,29 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { Plus, Trash2 } from 'lucide-react';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { purchaseSchema } from '@/features/purchases/validators/purchase.schema';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
-import { ORDER_STATUS } from '@/constants/statusEnums';
+import { ORDER_STATUS, toStatusOptions } from '@/constants/statusEnums';
 
-const DEFAULT_VALUES = { poNumber: '', supplier: '', orderDate: '', total: '', status: ORDER_STATUS.DRAFT };
+const EMPTY_ITEM = { product: '', quantity: '', rate: '' };
+const DEFAULT_VALUES = {
+  poNumber: '',
+  supplier: '',
+  orderDate: '',
+  status: ORDER_STATUS.DRAFT,
+  items: [EMPTY_ITEM],
+};
 
-const STATUS_OPTIONS = Object.values(ORDER_STATUS).map((value) => ({
-  value,
-  label: value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' '),
-}));
+const STATUS_OPTIONS = toStatusOptions(ORDER_STATUS);
 
 export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -26,15 +32,25 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
     defaultValues: DEFAULT_VALUES,
   });
 
+  const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+  const items = useWatch({ control, name: 'items' });
+  const total = (items ?? []).reduce(
+    (sum, item) => sum + (Number(item?.quantity) || 0) * (Number(item?.rate) || 0),
+    0,
+  );
+
   useEffect(() => {
     if (open) reset(initialValues ?? DEFAULT_VALUES);
   }, [open, initialValues, reset]);
+
+  const submitWithTotal = (values) => onSubmit({ ...values, total });
 
   return (
     <AppModal
       open={open}
       onClose={onClose}
       title={initialValues ? 'Edit purchase order' : 'New purchase order'}
+      className="max-w-2xl"
       footer={
         <>
           <AppButton variant="secondary" onClick={onClose}>
@@ -46,7 +62,7 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
         </>
       }
     >
-      <form id="purchase-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
+      <form id="purchase-form" onSubmit={handleSubmit(submitWithTotal)} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-2 gap-4">
           <AppInput label="PO Number" required error={errors.poNumber?.message} {...register('poNumber')} />
           <AppInput label="Supplier" required error={errors.supplier?.message} {...register('supplier')} />
@@ -59,16 +75,71 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
             error={errors.orderDate?.message}
             {...register('orderDate')}
           />
-          <AppInput
-            label="Total"
-            type="number"
-            step="0.01"
-            required
-            error={errors.total?.message}
-            {...register('total')}
-          />
+          <AppSelect label="Status" error={errors.status?.message} options={STATUS_OPTIONS} {...register('status')} />
         </div>
-        <AppSelect label="Status" error={errors.status?.message} options={STATUS_OPTIONS} {...register('status')} />
+
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-text">Items ordered</span>
+            <AppButton type="button" variant="secondary" size="sm" onClick={() => append(EMPTY_ITEM)}>
+              <Plus className="size-4" />
+              Add item
+            </AppButton>
+          </div>
+
+          {errors.items?.message && <p className="text-xs text-danger">{errors.items.message}</p>}
+
+          <div className="grid grid-cols-[1fr_6rem_7rem_7rem_2rem] gap-2 px-0.5 text-xs font-medium text-text-muted">
+            <span>Product</span>
+            <span>Qty</span>
+            <span>Rate (₹/unit)</span>
+            <span className="text-right">Amount</span>
+            <span />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {fields.map((field, index) => (
+              <div key={field.id} className="grid grid-cols-[1fr_6rem_7rem_7rem_2rem] items-start gap-2">
+                <AppInput
+                  placeholder="Product / material"
+                  error={errors.items?.[index]?.product?.message}
+                  {...register(`items.${index}.product`)}
+                />
+                <AppInput
+                  type="number"
+                  placeholder="Qty"
+                  error={errors.items?.[index]?.quantity?.message}
+                  {...register(`items.${index}.quantity`)}
+                />
+                <AppInput
+                  type="number"
+                  step="0.01"
+                  placeholder="Rate"
+                  error={errors.items?.[index]?.rate?.message}
+                  {...register(`items.${index}.rate`)}
+                />
+                <div className="flex h-9 items-center justify-end text-sm text-text-muted">
+                  ₹{((Number(items?.[index]?.quantity) || 0) * (Number(items?.[index]?.rate) || 0)).toLocaleString('en-IN')}
+                </div>
+                <AppButton
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => remove(index)}
+                  disabled={fields.length === 1}
+                  aria-label="Remove item"
+                  className="text-danger hover:bg-danger/10"
+                >
+                  <Trash2 className="size-4" />
+                </AppButton>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end border-t border-border pt-2 text-sm font-semibold text-text">
+            Total: ₹{total.toLocaleString('en-IN')}
+          </div>
+        </div>
       </form>
     </AppModal>
   );
