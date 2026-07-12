@@ -6,10 +6,17 @@ import { useUpdateUser } from '@/features/users/mutations/useUpdateUser';
 import { useDeleteUser } from '@/features/users/mutations/useDeleteUser';
 import { useDepartmentsQuery } from '@/features/departments/queries/useDepartmentsQuery';
 import { useDesignationsQuery } from '@/features/designations/queries/useDesignationsQuery';
-import { useBranchesQuery } from '@/features/users/queries/useBranchesQuery';
-import { useWarehousesQuery } from '@/features/users/queries/useWarehousesQuery';
+import { useBranchesQuery } from '@/features/branches/queries/useBranchesQuery';
+import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
 import { DepartmentsPanel } from '@/features/departments';
 import { DesignationsPanel } from '@/features/designations';
+import { CompanyPanel } from '@/features/company';
+import { BranchesPanel } from '@/features/branches';
+import { WarehousesPanel } from '@/features/warehouses';
+import { AttendancePanel } from '@/features/attendance';
+import { LeavesPanel } from '@/features/leaves';
+import { AssetsPanel } from '@/features/assets';
+import { AuditLogsPanel } from '@/features/auditLogs';
 import { UserTable } from '@/features/users/components/UserTable';
 import { UserFormModal } from '@/features/users/components/UserFormModal';
 import { UserDetailModal } from '@/features/users/components/UserDetailModal';
@@ -35,6 +42,13 @@ const TABS = [
   { key: 'users', label: 'Employees' },
   { key: 'departments', label: 'Departments' },
   { key: 'designations', label: 'Designations' },
+  { key: 'company', label: 'Company' },
+  { key: 'branches', label: 'Branches' },
+  { key: 'warehouses', label: 'Warehouses' },
+  { key: 'attendance', label: 'Attendance' },
+  { key: 'leaves', label: 'Leave' },
+  { key: 'assets', label: 'Assets' },
+  { key: 'audit-logs', label: 'Audit Logs' },
   { key: 'roles', label: 'Roles & Permissions' },
 ];
 
@@ -55,10 +69,11 @@ export function UsersPage() {
   );
 
   const { data, isLoading, isFetching, refetch } = useUsersQuery(filters);
+  const { data: allUsersData } = useUsersQuery({ pageSize: 100 });
   const { data: departmentsData } = useDepartmentsQuery({ pageSize: 100 });
   const { data: designationsData } = useDesignationsQuery({ pageSize: 100 });
-  const { data: branchesData } = useBranchesQuery();
-  const { data: warehousesData } = useWarehousesQuery();
+  const { data: branchesData } = useBranchesQuery({ pageSize: 100 });
+  const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
@@ -81,11 +96,16 @@ export function UsersPage() {
     () => Object.fromEntries(warehouses.map((warehouse) => [warehouse.id, warehouse])),
     [warehouses],
   );
+  const allUsers = useMemo(() => allUsersData?.data ?? [], [allUsersData]);
+  const employeesById = useMemo(() => Object.fromEntries(allUsers.map((user) => [user.id, user])), [allUsers]);
 
   const departmentOptions = departments.map((department) => ({ value: department.id, label: department.name }));
   const designationOptions = designations.map((designation) => ({ value: designation.id, label: designation.title }));
   const branchOptions = branches.map((branch) => ({ value: branch.id, label: branch.name }));
   const warehouseOptions = warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }));
+  const employeeOptions = allUsers
+    .filter((user) => user.id !== formState.user?.id)
+    .map((user) => ({ value: user.id, label: getEmployeeFullName(user) }));
 
   const handleSubmit = (values) => {
     const action = formState.user
@@ -107,7 +127,8 @@ export function UsersPage() {
         { key: 'name', label: 'Name', format: (_, row) => getEmployeeFullName(row) },
         { key: 'phone', label: 'Phone' },
         { key: 'email', label: 'Email' },
-        { key: 'role', label: 'Role' },
+        { key: 'primaryRole', label: 'Primary role' },
+        { key: 'additionalRoles', label: 'Additional roles', format: (_, row) => (row.additionalRoles ?? []).join(', ') },
         { key: 'department', label: 'Department', format: (_, row) => departmentsById[row.departmentId]?.name ?? '' },
         { key: 'designation', label: 'Designation', format: (_, row) => designationsById[row.designationId]?.title ?? '' },
         { key: 'branch', label: 'Branch', format: (_, row) => branchesById[row.branchId]?.name ?? '' },
@@ -191,6 +212,13 @@ export function UsersPage() {
 
       {activeTab === 'departments' && <DepartmentsPanel />}
       {activeTab === 'designations' && <DesignationsPanel />}
+      {activeTab === 'company' && <CompanyPanel />}
+      {activeTab === 'branches' && <BranchesPanel />}
+      {activeTab === 'warehouses' && <WarehousesPanel />}
+      {activeTab === 'attendance' && <AttendancePanel employeesById={employeesById} employeeOptions={employeeOptions} />}
+      {activeTab === 'leaves' && <LeavesPanel employeesById={employeesById} employeeOptions={employeeOptions} />}
+      {activeTab === 'assets' && <AssetsPanel employeesById={employeesById} employeeOptions={employeeOptions} />}
+      {activeTab === 'audit-logs' && <AuditLogsPanel employeesById={employeesById} />}
       {activeTab === 'roles' && <RolePermissionsPanel />}
 
       <UserFormModal
@@ -201,6 +229,7 @@ export function UsersPage() {
         designationOptions={designationOptions}
         branchOptions={branchOptions}
         warehouseOptions={warehouseOptions}
+        employeeOptions={employeeOptions}
         onClose={() => setFormState({ open: false, user: null })}
         onSubmit={handleSubmit}
         isSubmitting={createUser.isPending || updateUser.isPending}
@@ -214,6 +243,7 @@ export function UsersPage() {
         designationsById={designationsById}
         branchesById={branchesById}
         warehousesById={warehousesById}
+        employeesById={employeesById}
       />
 
       <AppModal

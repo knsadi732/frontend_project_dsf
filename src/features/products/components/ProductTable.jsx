@@ -7,12 +7,15 @@ import { MODULES, ACTIONS } from '@/constants/roles';
 import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
-function downloadProductPdf(row) {
+function downloadProductPdf(row, categoriesById, brandsById) {
   generateRecordPdf({
     title: `Product - ${row.name}`,
     fields: [
       { label: 'SKU', value: row.sku },
-      { label: 'Category', value: row.category },
+      { label: 'Category', value: categoriesById?.[row.categoryId]?.name },
+      { label: 'Brand', value: brandsById?.[row.brandId]?.name },
+      { label: 'HSN code', value: row.hsnCode },
+      { label: 'GST %', value: row.gstPercent },
       { label: 'Price', value: `Rs.${Number(row.price).toLocaleString('en-IN')}` },
       { label: 'Stock', value: row.stock },
       { label: 'Status', value: row.status },
@@ -23,6 +26,8 @@ function downloadProductPdf(row) {
 
 export function ProductTable({
   products,
+  categoriesById,
+  brandsById,
   isLoading,
   page,
   pageSize,
@@ -35,7 +40,8 @@ export function ProductTable({
   const columns = [
     { key: 'name', header: 'Name' },
     { key: 'sku', header: 'SKU' },
-    { key: 'category', header: 'Category' },
+    { key: 'category', header: 'Category', render: (row) => categoriesById?.[row.categoryId]?.name ?? '—' },
+    { key: 'brand', header: 'Brand', render: (row) => brandsById?.[row.brandId]?.name ?? '—' },
     {
       key: 'price',
       header: 'Price',
@@ -59,7 +65,7 @@ export function ProductTable({
             size="sm"
             onClick={(event) => {
               event.stopPropagation();
-              downloadProductPdf(row);
+              downloadProductPdf(row, categoriesById, brandsById);
             }}
             aria-label={`Download ${row.name}`}
           >

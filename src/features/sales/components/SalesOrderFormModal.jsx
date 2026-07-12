@@ -4,6 +4,7 @@ import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { salesOrderSchema } from '@/features/sales/validators/salesOrder.schema';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
+import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -13,6 +14,7 @@ import { ORDER_STATUS, toStatusOptions } from '@/constants/statusEnums';
 const EMPTY_ITEM = { productId: '', quantity: '', rate: '' };
 const DEFAULT_VALUES = {
   soNumber: '',
+  customerId: '',
   customer: '',
   orderDate: '',
   status: ORDER_STATUS.DRAFT,
@@ -29,6 +31,10 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
     label: `${product.name} (₹${product.price})`,
   }));
 
+  const { data: customersData } = useCustomersQuery({ pageSize: 100 });
+  const customers = customersData?.data ?? [];
+  const customerOptions = customers.map((customer) => ({ value: customer.id, label: customer.name }));
+
   const {
     register,
     control,
@@ -40,6 +46,11 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
     resolver: zodResolver(salesOrderSchema),
     defaultValues: DEFAULT_VALUES,
   });
+
+  const handleCustomerChange = (customerId) => {
+    const customer = customers.find((item) => item.id === customerId);
+    if (customer) setValue('customer', customer.name);
+  };
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const items = useWatch({ control, name: 'items' });
@@ -79,7 +90,14 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
       <form id="sales-order-form" onSubmit={handleSubmit(submitWithTotal)} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-2 gap-4">
           <AppInput label="SO Number" required error={errors.soNumber?.message} {...register('soNumber')} />
-          <AppInput label="Customer" required error={errors.customer?.message} {...register('customer')} />
+          <AppSelect
+            label="Customer"
+            placeholder="Select customer"
+            required
+            options={customerOptions}
+            error={errors.customerId?.message}
+            {...register('customerId', { onChange: (event) => handleCustomerChange(event.target.value) })}
+          />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <AppInput

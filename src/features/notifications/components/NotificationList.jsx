@@ -14,7 +14,7 @@ const SALES_REVIEW_ROLES = [ROLES.SALES, ROLES.OWNER, ROLES.SUPER_ADMIN];
 const WAREHOUSE_PACK_ROLES = [ROLES.INVENTORY, ROLES.DISPATCH, ROLES.OWNER, ROLES.SUPER_ADMIN];
 
 export function NotificationList({ notifications, isLoading, onMarkRead, markingId }) {
-  const { role } = useAuth();
+  const { roles } = useAuth();
   const updateSalesOrder = useUpdateSalesOrder();
   const [detailSalesOrderId, setDetailSalesOrderId] = useState(null);
 
@@ -58,7 +58,7 @@ export function NotificationList({ notifications, isLoading, onMarkRead, marking
               <p className="text-sm text-text-muted">{item.message}</p>
               <p className="mt-1 text-xs text-text-muted">{new Date(item.createdAt).toLocaleString()}</p>
             </div>
-            {!item.read && item.type === 'sales_order_review' && SALES_REVIEW_ROLES.includes(role) && (
+            {!item.read && item.type === 'sales_order_review' && roles.some((role) => SALES_REVIEW_ROLES.includes(role)) && (
               <div className="flex shrink-0 gap-1">
                 <AppButton variant="ghost" size="sm" onClick={() => setDetailSalesOrderId(item.entityId)}>
                   View details
@@ -83,7 +83,7 @@ export function NotificationList({ notifications, isLoading, onMarkRead, marking
               </div>
             )}
 
-            {!item.read && item.type === 'sales_order_packing' && WAREHOUSE_PACK_ROLES.includes(role) && (
+            {!item.read && item.type === 'sales_order_packing' && roles.some((role) => WAREHOUSE_PACK_ROLES.includes(role)) && (
               <div className="flex shrink-0 gap-1">
                 <AppButton variant="ghost" size="sm" onClick={() => setDetailSalesOrderId(item.entityId)}>
                   View details

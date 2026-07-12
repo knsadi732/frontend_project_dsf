@@ -9,6 +9,7 @@ export const salesOrderItemSchema = z.object({
 
 export const salesOrderSchema = z.object({
   soNumber: z.string().min(1, 'SO number is required'),
+  customerId: z.string().min(1, 'Customer is required'),
   customer: z.string().min(1, 'Customer is required'),
   orderDate: z.string().min(1, 'Order date is required'),
   status: z.enum(Object.values(ORDER_STATUS)).default(ORDER_STATUS.DRAFT),

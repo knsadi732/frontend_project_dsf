@@ -28,13 +28,24 @@ const DEFAULT_VALUES = {
   lastName: '',
   phone: '',
   email: '',
-  role: 'EMPLOYEE',
+  primaryRole: 'EMPLOYEE',
+  additionalRoles: [],
   departmentId: '',
   designationId: '',
   branchId: '',
   warehouseId: '',
+  reportingManagerId: '',
   joiningDate: '',
   employmentStatus: 'probation',
+  dob: '',
+  gender: '',
+  bloodGroup: '',
+  maritalStatus: '',
+  nationality: '',
+  passportNumber: '',
+  drivingLicense: '',
+  emergencyContactName: '',
+  emergencyContactNumber: '',
   aadhaarNumber: '',
   panNumber: '',
   bankAccount: '',
@@ -51,6 +62,7 @@ export function UserFormModal({
   designationOptions,
   branchOptions,
   warehouseOptions,
+  employeeOptions,
   onSubmit,
   isSubmitting,
 }) {
@@ -105,6 +117,44 @@ export function UserFormModal({
             <AppInput label="Email" type="email" error={errors.email?.message} {...register('email')} />
           </div>
           <AppInput label="Address" error={errors.address?.message} {...register('address')} />
+          <div className="grid grid-cols-3 gap-4">
+            <AppInput label="Date of birth" type="date" error={errors.dob?.message} {...register('dob')} />
+            <AppSelect
+              label="Gender"
+              placeholder="Select gender"
+              options={[
+                { value: 'male', label: 'Male' },
+                { value: 'female', label: 'Female' },
+                { value: 'other', label: 'Other' },
+              ]}
+              error={errors.gender?.message}
+              {...register('gender')}
+            />
+            <AppInput label="Blood group" error={errors.bloodGroup?.message} {...register('bloodGroup')} />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <AppSelect
+              label="Marital status"
+              placeholder="Select status"
+              options={[
+                { value: 'single', label: 'Single' },
+                { value: 'married', label: 'Married' },
+              ]}
+              error={errors.maritalStatus?.message}
+              {...register('maritalStatus')}
+            />
+            <AppInput label="Nationality" error={errors.nationality?.message} {...register('nationality')} />
+            <AppInput label="Passport number" error={errors.passportNumber?.message} {...register('passportNumber')} />
+          </div>
+          <AppInput label="Driving license" error={errors.drivingLicense?.message} {...register('drivingLicense')} />
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Emergency contact</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <AppInput label="Name" error={errors.emergencyContactName?.message} {...register('emergencyContactName')} />
+            <AppInput label="Number" error={errors.emergencyContactNumber?.message} {...register('emergencyContactNumber')} />
+          </div>
         </section>
 
         <section className="flex flex-col gap-3">
@@ -117,8 +167,25 @@ export function UserFormModal({
             <AppSelect label="Branch" error={errors.branchId?.message} options={branchOptions} placeholder="Select branch" {...register('branchId')} />
             <AppSelect label="Warehouse" error={errors.warehouseId?.message} options={warehouseOptions} placeholder="Select warehouse" {...register('warehouseId')} />
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <AppSelect label="Role" error={errors.role?.message} options={ROLE_OPTIONS} {...register('role')} />
+          <AppSelect
+            label="Reporting manager"
+            placeholder="Select reporting manager"
+            options={employeeOptions}
+            error={errors.reportingManagerId?.message}
+            {...register('reportingManagerId')}
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <AppSelect label="Primary role" error={errors.primaryRole?.message} options={ROLE_OPTIONS} {...register('primaryRole')} />
+            <AppSelect
+              label="Additional roles"
+              multiple
+              helperText="Ctrl/Cmd-click to select more than one"
+              error={errors.additionalRoles?.message}
+              options={ROLE_OPTIONS}
+              {...register('additionalRoles')}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <AppInput label="Joining date" type="date" error={errors.joiningDate?.message} {...register('joiningDate')} />
             <AppSelect
               label="Employment status"

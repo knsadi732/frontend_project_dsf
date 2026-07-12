@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { purchaseSchema } from '@/features/purchases/validators/purchase.schema';
+import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -12,6 +13,7 @@ import { ORDER_STATUS, toStatusOptions } from '@/constants/statusEnums';
 const EMPTY_ITEM = { product: '', quantity: '', rate: '' };
 const DEFAULT_VALUES = {
   poNumber: '',
+  vendorId: '',
   supplier: '',
   orderDate: '',
   status: ORDER_STATUS.DRAFT,
@@ -21,16 +23,26 @@ const DEFAULT_VALUES = {
 const STATUS_OPTIONS = toStatusOptions(ORDER_STATUS);
 
 export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
+  const { data: vendorsData } = useVendorsQuery({ pageSize: 100 });
+  const vendors = vendorsData?.data ?? [];
+  const vendorOptions = vendors.map((vendor) => ({ value: vendor.id, label: vendor.name }));
+
   const {
     register,
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(purchaseSchema),
     defaultValues: DEFAULT_VALUES,
   });
+
+  const handleVendorChange = (vendorId) => {
+    const vendor = vendors.find((item) => item.id === vendorId);
+    if (vendor) setValue('supplier', vendor.name);
+  };
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const items = useWatch({ control, name: 'items' });
@@ -65,7 +77,14 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
       <form id="purchase-form" onSubmit={handleSubmit(submitWithTotal)} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-2 gap-4">
           <AppInput label="PO Number" required error={errors.poNumber?.message} {...register('poNumber')} />
-          <AppInput label="Supplier" required error={errors.supplier?.message} {...register('supplier')} />
+          <AppSelect
+            label="Vendor"
+            placeholder="Select vendor"
+            required
+            options={vendorOptions}
+            error={errors.vendorId?.message}
+            {...register('vendorId', { onChange: (event) => handleVendorChange(event.target.value) })}
+          />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <AppInput

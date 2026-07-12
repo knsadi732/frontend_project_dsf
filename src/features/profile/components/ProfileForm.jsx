@@ -56,8 +56,13 @@ export function ProfileForm({ user, departmentName, designationTitle, onSubmit, 
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-text">Role</span>
-          <div>
-            <BaseBadge variant="info">{user.role}</BaseBadge>
+          <div className="flex flex-wrap gap-1">
+            <BaseBadge variant="info">{user.primaryRole}</BaseBadge>
+            {user.additionalRoles?.map((role) => (
+              <BaseBadge key={role} variant="default">
+                {role}
+              </BaseBadge>
+            ))}
           </div>
         </div>
       </div>

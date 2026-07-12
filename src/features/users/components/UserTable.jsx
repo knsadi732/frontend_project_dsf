@@ -48,7 +48,16 @@ export function UserTable({
     {
       key: 'role',
       header: 'Role',
-      render: (row) => <BaseBadge variant="info">{row.role}</BaseBadge>,
+      render: (row) => (
+        <div className="flex flex-wrap gap-1">
+          <BaseBadge variant="info">{row.primaryRole}</BaseBadge>
+          {row.additionalRoles?.map((role) => (
+            <BaseBadge key={role} variant="default">
+              {role}
+            </BaseBadge>
+          ))}
+        </div>
+      ),
     },
     {
       key: 'status',

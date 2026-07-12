@@ -2,6 +2,7 @@ import { apiClient } from '@/services/api/axios';
 import { env } from '@/config/env';
 import { findEmployeeByPhone } from '@/services/user.api';
 import { getEmployeeFullName } from '@/utils/employeeName';
+import { addAuditLog } from '@/services/auditLog.api';
 
 function toSessionUser(employee) {
   return {
@@ -9,7 +10,8 @@ function toSessionUser(employee) {
     name: getEmployeeFullName(employee),
     email: employee.email,
     phone: employee.phone,
-    role: employee.role,
+    primaryRole: employee.primaryRole,
+    additionalRoles: employee.additionalRoles ?? [],
   };
 }
 
@@ -25,8 +27,19 @@ function mockLogin({ phone, password }) {
   const employee = findEmployeeByPhone(phone);
 
   if (!employee || employee.tempPassword !== password) {
+    addAuditLog({
+      employeeId: employee?.id,
+      action: 'login_failed',
+      description: `Failed login attempt for phone ${phone}`,
+    });
     return Promise.reject(new Error('Invalid phone number or password. Please enter the correct credentials.'));
   }
+
+  addAuditLog({
+    employeeId: employee.id,
+    action: 'login_success',
+    description: `${getEmployeeFullName(employee)} signed in`,
+  });
 
   return Promise.resolve({
     user: toSessionUser(employee),

@@ -62,8 +62,7 @@ function buildStats() {
   const partialTotal = partialInvoices.reduce((sum, inv) => sum + Number(inv.balanceDue ?? inv.amount), 0);
   const pendingTotal = pendingInvoices.reduce((sum, inv) => sum + Number(inv.amount), 0);
 
-  const categories = new Set(products.map((p) => p.category)).size;
-  const subCategories = new Set(products.map((p) => p.subCategory).filter(Boolean)).size;
+  const categoriesUsed = new Set(products.map((p) => p.categoryId).filter(Boolean)).size;
 
   return [
     { key: 'inventoryQty', label: 'Inventory Quantity', value: totalInventoryQty.toLocaleString('en-IN') },
@@ -95,8 +94,8 @@ function buildStats() {
     { key: 'totalSkus', label: 'Total SKUs', value: String(products.length) },
     {
       key: 'categories',
-      label: 'Categories / Sub-categories',
-      value: `${categories} / ${subCategories}`,
+      label: 'Product Categories',
+      value: String(categoriesUsed),
     },
   ];
 }

@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { addAuditLog } from '@/services/auditLog.api';
 
 export const useAuthStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       accessToken: null,
       refreshToken: null,
@@ -21,13 +22,18 @@ export const useAuthStore = create(
 
       updateUser: (patch) => set((state) => ({ user: { ...state.user, ...patch } })),
 
-      logout: () =>
+      logout: () => {
+        const currentUser = get().user;
+        if (currentUser) {
+          addAuditLog({ employeeId: currentUser.id, action: 'logout', description: `${currentUser.name} signed out` });
+        }
         set({
           user: null,
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
-        }),
+        });
+      },
     }),
     {
       name: 'ds-erp-auth',
@@ -40,5 +46,3 @@ export const useAuthStore = create(
     },
   ),
 );
-
-export const selectRole = (state) => state.user?.role ?? null;

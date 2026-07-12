@@ -2,6 +2,8 @@ import {
   LayoutDashboard,
   Users,
   Package,
+  Contact,
+  Truck,
   ShoppingCart,
   Warehouse,
   Factory,
@@ -16,6 +18,8 @@ import { MODULES } from '@/constants/roles';
 export const NAV_ITEMS = [
   { module: MODULES.DASHBOARD, label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
   { module: MODULES.PRODUCTS, label: 'Products', to: '/products', icon: Package },
+  { module: MODULES.CUSTOMERS, label: 'Customers', to: '/customers', icon: Contact },
+  { module: MODULES.VENDORS, label: 'Vendors', to: '/vendors', icon: Truck },
   { module: MODULES.PURCHASES, label: 'Purchases', to: '/purchases', icon: ShoppingCart },
   { module: MODULES.INVENTORY, label: 'Inventory', to: '/inventory', icon: Warehouse },
   { module: MODULES.PRODUCTION, label: 'Production', to: '/production', icon: Factory },

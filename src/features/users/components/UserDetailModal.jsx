@@ -24,7 +24,7 @@ function DetailRow({ label, value }) {
   );
 }
 
-export function UserDetailModal({ open, onClose, user, departmentsById, designationsById, branchesById, warehousesById }) {
+export function UserDetailModal({ open, onClose, user, departmentsById, designationsById, branchesById, warehousesById, employeesById }) {
   if (!user) return null;
 
   return (
@@ -43,6 +43,19 @@ export function UserDetailModal({ open, onClose, user, departmentsById, designat
           <DetailRow label="Phone" value={user.phone} />
           <DetailRow label="Email" value={user.email} />
           <DetailRow label="Address" value={user.address} />
+          <DetailRow label="Date of birth" value={user.dob} />
+          <DetailRow label="Gender" value={user.gender} />
+          <DetailRow label="Blood group" value={user.bloodGroup} />
+          <DetailRow label="Marital status" value={user.maritalStatus} />
+          <DetailRow label="Nationality" value={user.nationality} />
+          <DetailRow label="Passport number" value={user.passportNumber} />
+          <DetailRow label="Driving license" value={user.drivingLicense} />
+        </div>
+
+        <div className="flex flex-col">
+          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">Emergency contact</h3>
+          <DetailRow label="Name" value={user.emergencyContactName} />
+          <DetailRow label="Number" value={user.emergencyContactNumber} />
         </div>
 
         <div className="flex flex-col">
@@ -51,7 +64,20 @@ export function UserDetailModal({ open, onClose, user, departmentsById, designat
           <DetailRow label="Designation" value={designationsById?.[user.designationId]?.title} />
           <DetailRow label="Branch" value={branchesById?.[user.branchId]?.name} />
           <DetailRow label="Warehouse" value={warehousesById?.[user.warehouseId]?.name} />
-          <DetailRow label="Role" value={<BaseBadge variant="info">{user.role}</BaseBadge>} />
+          <DetailRow label="Reporting manager" value={employeesById?.[user.reportingManagerId] ? getEmployeeFullName(employeesById[user.reportingManagerId]) : undefined} />
+          <DetailRow
+            label="Role"
+            value={
+              <div className="flex flex-wrap justify-end gap-1">
+                <BaseBadge variant="info">{user.primaryRole}</BaseBadge>
+                {user.additionalRoles?.map((role) => (
+                  <BaseBadge key={role} variant="default">
+                    {role}
+                  </BaseBadge>
+                ))}
+              </div>
+            }
+          />
           <DetailRow label="Joining date" value={user.joiningDate} />
           <DetailRow
             label="Employment status"

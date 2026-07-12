@@ -9,6 +9,8 @@ const MODULE_LABELS = {
   [MODULES.DASHBOARD]: 'Dashboard',
   [MODULES.USERS]: 'Employees',
   [MODULES.PRODUCTS]: 'Products',
+  [MODULES.CUSTOMERS]: 'Customers',
+  [MODULES.VENDORS]: 'Vendors',
   [MODULES.PURCHASES]: 'Purchases',
   [MODULES.INVENTORY]: 'Inventory',
   [MODULES.PRODUCTION]: 'Production',

@@ -1,15 +1,27 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { productSchema } from '@/features/products/validators/product.schema';
+import { productSchema, PRODUCT_TYPE_OPTIONS } from '@/features/products/validators/product.schema';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
 
-const DEFAULT_VALUES = { name: '', sku: '', category: '', price: '', stock: '', status: 'active' };
+const DEFAULT_VALUES = {
+  name: '',
+  sku: '',
+  categoryId: '',
+  brandId: '',
+  productType: 'finished_goods',
+  hsnCode: '',
+  gstPercent: '',
+  unitOfMeasure: '',
+  price: '',
+  stock: '',
+  status: 'active',
+};
 
-export function ProductFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
+export function ProductFormModal({ open, onClose, initialValues, categoryOptions, brandOptions, onSubmit, isSubmitting }) {
   const {
     register,
     handleSubmit,
@@ -29,6 +41,7 @@ export function ProductFormModal({ open, onClose, initialValues, onSubmit, isSub
       open={open}
       onClose={onClose}
       title={initialValues ? 'Edit product' : 'New product'}
+      className="max-w-xl"
       footer={
         <>
           <AppButton variant="secondary" onClick={onClose}>
@@ -44,7 +57,35 @@ export function ProductFormModal({ open, onClose, initialValues, onSubmit, isSub
         <AppInput label="Name" required error={errors.name?.message} {...register('name')} />
         <div className="grid grid-cols-2 gap-4">
           <AppInput label="SKU" required error={errors.sku?.message} {...register('sku')} />
-          <AppInput label="Category" required error={errors.category?.message} {...register('category')} />
+          <AppSelect
+            label="Category"
+            placeholder="Select category"
+            required
+            options={categoryOptions}
+            error={errors.categoryId?.message}
+            {...register('categoryId')}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <AppSelect
+            label="Brand"
+            placeholder="Select brand"
+            required
+            options={brandOptions}
+            error={errors.brandId?.message}
+            {...register('brandId')}
+          />
+          <AppSelect
+            label="Product type"
+            options={PRODUCT_TYPE_OPTIONS}
+            error={errors.productType?.message}
+            {...register('productType')}
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <AppInput label="HSN code" error={errors.hsnCode?.message} {...register('hsnCode')} />
+          <AppInput label="GST %" type="number" step="0.01" error={errors.gstPercent?.message} {...register('gstPercent')} />
+          <AppInput label="Unit of measure" placeholder="e.g. PAIR" error={errors.unitOfMeasure?.message} {...register('unitOfMeasure')} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <AppInput

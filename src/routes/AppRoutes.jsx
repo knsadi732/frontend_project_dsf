@@ -14,6 +14,8 @@ const DashboardPage = lazy(() =>
   import('@/features/dashboard/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
 );
 const ProductsPage = lazy(() => import('@/features/products').then((m) => ({ default: m.ProductsPage })));
+const CustomersPage = lazy(() => import('@/features/customers').then((m) => ({ default: m.CustomersPage })));
+const VendorsPage = lazy(() => import('@/features/vendors').then((m) => ({ default: m.VendorsPage })));
 const PurchasesPage = lazy(() => import('@/features/purchases').then((m) => ({ default: m.PurchasesPage })));
 const InventoryPage = lazy(() => import('@/features/inventory').then((m) => ({ default: m.InventoryPage })));
 const ProductionPage = lazy(() => import('@/features/production').then((m) => ({ default: m.ProductionPage })));
@@ -51,6 +53,14 @@ export function AppRoutes() {
 
           <Route element={<PermissionGuard module={MODULES.PRODUCTS} action={ACTIONS.VIEW} />}>
             <Route path="/products" element={<SuspenseOutlet><ProductsPage /></SuspenseOutlet>} />
+          </Route>
+
+          <Route element={<PermissionGuard module={MODULES.CUSTOMERS} action={ACTIONS.VIEW} />}>
+            <Route path="/customers" element={<SuspenseOutlet><CustomersPage /></SuspenseOutlet>} />
+          </Route>
+
+          <Route element={<PermissionGuard module={MODULES.VENDORS} action={ACTIONS.VIEW} />}>
+            <Route path="/vendors" element={<SuspenseOutlet><VendorsPage /></SuspenseOutlet>} />
           </Route>
 
           <Route element={<PermissionGuard module={MODULES.PURCHASES} action={ACTIONS.VIEW} />}>

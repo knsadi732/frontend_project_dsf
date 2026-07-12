@@ -9,6 +9,7 @@ export const purchaseItemSchema = z.object({
 
 export const purchaseSchema = z.object({
   poNumber: z.string().min(1, 'PO number is required'),
+  vendorId: z.string().min(1, 'Vendor is required'),
   supplier: z.string().min(1, 'Supplier is required'),
   orderDate: z.string().min(1, 'Order date is required'),
   status: z.enum(Object.values(ORDER_STATUS)).default(ORDER_STATUS.DRAFT),
