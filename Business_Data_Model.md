@@ -287,41 +287,29 @@ Inventory
 Finance
 
 Chapter 17
-Notification Domain
+Communication, Notification & Workflow Automation Domain
 System Event
-
 ↓
-
 Notification
-
 ↓
-
 SMS
-
 ↓
-
 Email
-
 ↓
-
 Socket.IO
+
 Chapter 18
-Reporting Domain
+Reporting & Business Intelligence (BI) Domain
 Sales
-
 Inventory
-
 Purchase
-
 Production
-
 Finance
-
 Customer
-
 Vendor
+
 Chapter 19
-Business Rules
+Enterprise Business Rules
 
 Examples
 
@@ -334,8 +322,9 @@ SO created only after Sales approval
 Stock is Reserved before Dispatch
 Invoice generated after Dispatch
 Finance updates Ledger after Invoice
+
 Chapter 20
-Domain Relationship Diagram
+Enterprise Domain Relationship Diagram
 Company
    │
    ├── Branch

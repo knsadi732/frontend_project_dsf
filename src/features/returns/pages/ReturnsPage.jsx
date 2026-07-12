@@ -6,12 +6,16 @@ import { useUpdateReturn } from '@/features/returns/mutations/useUpdateReturn';
 import { useDeleteReturn } from '@/features/returns/mutations/useDeleteReturn';
 import { ReturnTable } from '@/features/returns/components/ReturnTable';
 import { ReturnFormModal } from '@/features/returns/components/ReturnFormModal';
+import { SalesOrderFormModal } from '@/features/sales/components/SalesOrderFormModal';
+import { useCreateSalesOrder } from '@/features/sales/mutations/useCreateSalesOrder';
+import { StatCard } from '@/features/dashboard/components/StatCard';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
+import { ORDER_STATUS } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
@@ -21,6 +25,7 @@ export function ReturnsPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, returnItem: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [replacementState, setReplacementState] = useState({ open: false, returnId: null, initialValues: null });
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
@@ -32,6 +37,23 @@ export function ReturnsPage() {
   const createReturn = useCreateReturn();
   const updateReturn = useUpdateReturn();
   const deleteReturn = useDeleteReturn();
+  const createSalesOrder = useCreateSalesOrder();
+
+  const returnsList = data?.data ?? [];
+
+  const stats = useMemo(() => {
+    const totalReturns = returnsList.length;
+    const resolved = returnsList.filter((item) => item.status === 'resolved').length;
+    const refundAmount = returnsList.reduce(
+      (sum, item) => sum + (item.resolutionType === 'refund' ? Number(item.refundAmount || 0) : 0),
+      0,
+    );
+    const replacementOrders = returnsList.filter((item) => item.resolutionType === 'replacement').length;
+    const scrapped = returnsList.filter((item) => item.decision === 'scrap').length;
+    const returnRate = totalReturns ? Math.round((resolved / totalReturns) * 100) : 0;
+    const damagePct = totalReturns ? Math.round((scrapped / totalReturns) * 100) : 0;
+    return { totalReturns, returnRate, refundAmount, replacementOrders, damagePct };
+  }, [returnsList]);
 
   const handleSubmit = (values) => {
     const action = formState.returnItem
@@ -43,6 +65,29 @@ export function ReturnsPage() {
 
   const handleConfirmDelete = () => {
     deleteReturn.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
+  };
+
+  const handleConvertToReplacement = (returnItem) => {
+    setReplacementState({
+      open: true,
+      returnId: returnItem.id,
+      initialValues: {
+        soNumber: '',
+        customerId: '',
+        customer: returnItem.customer ?? '',
+        salesChannel: 'manual',
+        orderDate: new Date().toISOString().slice(0, 10),
+        status: ORDER_STATUS.DRAFT,
+        items: [{ productId: returnItem.productId, quantity: returnItem.quantity, rate: '' }],
+      },
+    });
+  };
+
+  const handleReplacementSubmit = (values) => {
+    createSalesOrder.mutateAsync(values).then((result) => {
+      updateReturn.mutate({ id: replacementState.returnId, payload: { replacementOrderId: result.id } });
+      setReplacementState({ open: false, returnId: null, initialValues: null });
+    });
   };
 
   return (
@@ -60,12 +105,20 @@ export function ReturnsPage() {
         </Can>
       </div>
 
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <StatCard label="Total returns" value={stats.totalReturns} />
+        <StatCard label="Return rate" value={`${stats.returnRate}%`} />
+        <StatCard label="Refund amount" value={`₹${stats.refundAmount.toLocaleString('en-IN')}`} />
+        <StatCard label="Replacement orders" value={stats.replacementOrders} />
+        <StatCard label="Damage %" value={`${stats.damagePct}%`} />
+      </div>
+
       <FilterBar>
         <SearchInput value={search} onChange={setSearch} placeholder="Search returns…" className="w-72" />
       </FilterBar>
 
       <ReturnTable
-        returns={data?.data ?? []}
+        returns={returnsList}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -77,6 +130,7 @@ export function ReturnsPage() {
         }}
         onEdit={(returnItem) => setFormState({ open: true, returnItem })}
         onDelete={setDeleteTarget}
+        onConvertToReplacement={handleConvertToReplacement}
       />
 
       <ReturnFormModal
@@ -85,6 +139,14 @@ export function ReturnsPage() {
         onClose={() => setFormState({ open: false, returnItem: null })}
         onSubmit={handleSubmit}
         isSubmitting={createReturn.isPending || updateReturn.isPending}
+      />
+
+      <SalesOrderFormModal
+        open={replacementState.open}
+        initialValues={replacementState.initialValues}
+        onClose={() => setReplacementState({ open: false, returnId: null, initialValues: null })}
+        onSubmit={handleReplacementSubmit}
+        isSubmitting={createSalesOrder.isPending}
       />
 
       <AppModal

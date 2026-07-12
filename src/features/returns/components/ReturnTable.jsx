@@ -1,10 +1,14 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Repeat } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
+import { STATUS_BADGE_VARIANT, RETURN_REASON_OPTIONS, RETURN_STATUS } from '@/constants/statusEnums';
+
+function reasonLabel(reason) {
+  return RETURN_REASON_OPTIONS.find((option) => option.value === reason)?.label ?? reason;
+}
 
 export function ReturnTable({
   returns,
@@ -16,6 +20,7 @@ export function ReturnTable({
   onPageSizeChange,
   onEdit,
   onDelete,
+  onConvertToReplacement,
 }) {
   const columns = [
     { key: 'returnNumber', header: 'Return #' },
@@ -33,7 +38,7 @@ export function ReturnTable({
       header: 'Amount',
       render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}`,
     },
-    { key: 'reason', header: 'Reason' },
+    { key: 'reason', header: 'Reason', render: (row) => reasonLabel(row.reason) },
     { key: 'createdDate', header: 'Date' },
     {
       key: 'status',
@@ -47,6 +52,21 @@ export function ReturnTable({
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
+          {row.status === RETURN_STATUS.RESOLVED && row.resolutionType === 'replacement' && !row.replacementOrderId && (
+            <Can module={MODULES.RETURNS} action={ACTIONS.EDIT}>
+              <AppButton
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onConvertToReplacement(row);
+                }}
+                aria-label={`Convert ${row.returnNumber} to replacement order`}
+              >
+                <Repeat className="size-4" />
+              </AppButton>
+            </Can>
+          )}
           <Can module={MODULES.RETURNS} action={ACTIONS.EDIT}>
             <AppButton
               variant="ghost"

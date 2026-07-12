@@ -6,6 +6,9 @@ import { useUpdateInvoice } from '@/features/finance/mutations/useUpdateInvoice'
 import { useDeleteInvoice } from '@/features/finance/mutations/useDeleteInvoice';
 import { InvoiceTable } from '@/features/finance/components/InvoiceTable';
 import { InvoiceFormModal } from '@/features/finance/components/InvoiceFormModal';
+import { PaymentsPanel } from '@/features/payments';
+import { VendorBillsPanel } from '@/features/vendorBills';
+import { CreditNotesPanel } from '@/features/creditNotes';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
@@ -13,6 +16,7 @@ import { AppModal } from '@/components/ui/AppModal';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
+import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { PAYMENT_STATUS, toStatusOptions } from '@/constants/statusEnums';
@@ -22,7 +26,15 @@ import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 const STATUS_OPTIONS = toStatusOptions(PAYMENT_STATUS);
 
+const TABS = [
+  { key: 'invoices', label: 'Invoices' },
+  { key: 'payments', label: 'Customer Payments' },
+  { key: 'vendorBills', label: 'Vendor Bills' },
+  { key: 'creditNotes', label: 'Credit Notes' },
+];
+
 export function FinancePage() {
+  const [activeTab, setActiveTab] = useState('invoices');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
@@ -66,16 +78,22 @@ export function FinancePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-text">Finance</h1>
-          <p className="text-sm text-text-muted">Manage your invoices.</p>
+          <p className="text-sm text-text-muted">Invoices, customer payments and vendor bills.</p>
         </div>
-        <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, invoice: null })}>
-            <Plus className="size-4" />
-            New invoice
-          </AppButton>
-        </Can>
+        {activeTab === 'invoices' && (
+          <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
+            <AppButton onClick={() => setFormState({ open: true, invoice: null })}>
+              <Plus className="size-4" />
+              New invoice
+            </AppButton>
+          </Can>
+        )}
       </div>
 
+      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
+
+      {activeTab === 'invoices' && (
+        <>
       <FilterBar>
         <SearchInput
           value={search}
@@ -164,6 +182,12 @@ export function FinancePage() {
           ? This action cannot be undone.
         </p>
       </AppModal>
+        </>
+      )}
+
+      {activeTab === 'payments' && <PaymentsPanel />}
+      {activeTab === 'vendorBills' && <VendorBillsPanel />}
+      {activeTab === 'creditNotes' && <CreditNotesPanel />}
     </div>
   );
 }

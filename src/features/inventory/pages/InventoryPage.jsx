@@ -4,19 +4,36 @@ import { useInventoryListQuery } from '@/features/inventory/queries/useInventory
 import { useCreateInventoryItem } from '@/features/inventory/mutations/useCreateInventoryItem';
 import { useUpdateInventoryItem } from '@/features/inventory/mutations/useUpdateInventoryItem';
 import { useDeleteInventoryItem } from '@/features/inventory/mutations/useDeleteInventoryItem';
+import { useBinsQuery } from '@/features/bins/queries/useBinsQuery';
 import { InventoryTable } from '@/features/inventory/components/InventoryTable';
 import { InventoryFormModal } from '@/features/inventory/components/InventoryFormModal';
+import { WarehouseZonesPanel } from '@/features/warehouseZones';
+import { RacksPanel } from '@/features/racks';
+import { ShelvesPanel } from '@/features/shelves';
+import { BinsPanel } from '@/features/bins';
+import { InventoryMovementsPanel } from '@/features/inventoryMovements';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { RefreshButton } from '@/components/ui/RefreshButton';
+import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
+const TABS = [
+  { key: 'inventory', label: 'Inventory' },
+  { key: 'zones', label: 'Zones' },
+  { key: 'racks', label: 'Racks' },
+  { key: 'shelves', label: 'Shelves' },
+  { key: 'bins', label: 'Bins' },
+  { key: 'movements', label: 'Movements' },
+];
+
 export function InventoryPage() {
+  const [activeTab, setActiveTab] = useState('inventory');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -30,6 +47,11 @@ export function InventoryPage() {
   );
 
   const { data, isLoading, isFetching, refetch } = useInventoryListQuery(filters);
+  const { data: binsData } = useBinsQuery({ pageSize: 100 });
+  const bins = binsData?.data ?? [];
+  const binsById = Object.fromEntries(bins.map((bin) => [bin.id, bin]));
+  const binOptions = bins.map((bin) => ({ value: bin.id, label: bin.code }));
+
   const createInventoryItem = useCreateInventoryItem();
   const updateInventoryItem = useUpdateInventoryItem();
   const deleteInventoryItem = useDeleteInventoryItem();
@@ -51,73 +73,89 @@ export function InventoryPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-text">Inventory</h1>
-          <p className="text-sm text-text-muted">Manage your stock ledger.</p>
+          <p className="text-sm text-text-muted">Manage your stock ledger and warehouse locations.</p>
         </div>
-        <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, item: null })}>
-            <Plus className="size-4" />
-            New inventory item
-          </AppButton>
-        </Can>
+        {activeTab === 'inventory' && (
+          <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
+            <AppButton onClick={() => setFormState({ open: true, item: null })}>
+              <Plus className="size-4" />
+              New inventory item
+            </AppButton>
+          </Can>
+        )}
       </div>
 
-      <FilterBar>
-        <SearchInput
-          value={search}
-          onChange={(value) => {
-            setSearch(value);
-            setPage(1);
-          }}
-          placeholder="Search inventory…"
-          className="w-72"
-        />
-        <RefreshButton onClick={refetch} isFetching={isFetching} />
-      </FilterBar>
+      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
-      <InventoryTable
-        items={data?.data ?? []}
-        total={data?.total ?? 0}
-        page={page}
-        pageSize={pageSize}
-        isLoading={isLoading}
-        onPageChange={setPage}
-        onPageSizeChange={(size) => {
-          setPageSize(size);
-          setPage(1);
-        }}
-        onEdit={(item) => setFormState({ open: true, item })}
-        onDelete={setDeleteTarget}
-      />
+      {activeTab === 'inventory' && (
+        <>
+          <FilterBar>
+            <SearchInput
+              value={search}
+              onChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              placeholder="Search inventory…"
+              className="w-72"
+            />
+            <RefreshButton onClick={refetch} isFetching={isFetching} />
+          </FilterBar>
 
-      <InventoryFormModal
-        open={formState.open}
-        initialValues={formState.item}
-        onClose={() => setFormState({ open: false, item: null })}
-        onSubmit={handleSubmit}
-        isSubmitting={createInventoryItem.isPending || updateInventoryItem.isPending}
-      />
+          <InventoryTable
+            items={data?.data ?? []}
+            binsById={binsById}
+            total={data?.total ?? 0}
+            page={page}
+            pageSize={pageSize}
+            isLoading={isLoading}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+            onEdit={(item) => setFormState({ open: true, item })}
+            onDelete={setDeleteTarget}
+          />
 
-      <AppModal
-        open={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title="Delete inventory item"
-        footer={
-          <>
-            <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </AppButton>
-            <AppButton variant="danger" loading={deleteInventoryItem.isPending} onClick={handleConfirmDelete}>
-              Delete
-            </AppButton>
-          </>
-        }
-      >
-        <p className="text-sm text-text-muted">
-          Are you sure you want to delete{' '}
-          <span className="font-medium text-text">{deleteTarget?.productName}</span>? This action cannot be
-          undone.
-        </p>
-      </AppModal>
+          <InventoryFormModal
+            open={formState.open}
+            initialValues={formState.item}
+            binOptions={binOptions}
+            onClose={() => setFormState({ open: false, item: null })}
+            onSubmit={handleSubmit}
+            isSubmitting={createInventoryItem.isPending || updateInventoryItem.isPending}
+          />
+
+          <AppModal
+            open={Boolean(deleteTarget)}
+            onClose={() => setDeleteTarget(null)}
+            title="Delete inventory item"
+            footer={
+              <>
+                <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
+                  Cancel
+                </AppButton>
+                <AppButton variant="danger" loading={deleteInventoryItem.isPending} onClick={handleConfirmDelete}>
+                  Delete
+                </AppButton>
+              </>
+            }
+          >
+            <p className="text-sm text-text-muted">
+              Are you sure you want to delete{' '}
+              <span className="font-medium text-text">{deleteTarget?.productName}</span>? This action cannot be
+              undone.
+            </p>
+          </AppModal>
+        </>
+      )}
+
+      {activeTab === 'zones' && <WarehouseZonesPanel />}
+      {activeTab === 'racks' && <RacksPanel />}
+      {activeTab === 'shelves' && <ShelvesPanel />}
+      {activeTab === 'bins' && <BinsPanel />}
+      {activeTab === 'movements' && <InventoryMovementsPanel />}
     </div>
   );
 }

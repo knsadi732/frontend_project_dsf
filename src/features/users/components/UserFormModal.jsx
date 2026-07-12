@@ -52,6 +52,9 @@ const DEFAULT_VALUES = {
   ifsc: '',
   salaryStructure: '',
   address: '',
+  emailNotifications: true,
+  smsNotifications: true,
+  inAppNotifications: true,
 };
 
 export function UserFormModal({
@@ -207,6 +210,24 @@ export function UserFormModal({
             <AppInput label="IFSC code" error={errors.ifsc?.message} {...register('ifsc')} />
           </div>
           <AppInput label="Salary structure" helperText="e.g. 25000 fixed + incentives" error={errors.salaryStructure?.message} {...register('salaryStructure')} />
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Notification preferences</h3>
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 text-sm text-text">
+              <input type="checkbox" className="size-4" {...register('emailNotifications')} />
+              Email
+            </label>
+            <label className="flex items-center gap-2 text-sm text-text">
+              <input type="checkbox" className="size-4" {...register('smsNotifications')} />
+              SMS
+            </label>
+            <label className="flex items-center gap-2 text-sm text-text">
+              <input type="checkbox" className="size-4" {...register('inAppNotifications')} />
+              In-app
+            </label>
+          </div>
         </section>
 
         <section className="flex flex-col gap-3">

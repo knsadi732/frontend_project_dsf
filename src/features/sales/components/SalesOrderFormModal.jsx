@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { salesOrderSchema } from '@/features/sales/validators/salesOrder.schema';
+import { salesOrderSchema, SALES_CHANNEL_OPTIONS } from '@/features/sales/validators/salesOrder.schema';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { AppModal } from '@/components/ui/AppModal';
@@ -16,6 +16,7 @@ const DEFAULT_VALUES = {
   soNumber: '',
   customerId: '',
   customer: '',
+  salesChannel: 'manual',
   orderDate: '',
   status: ORDER_STATUS.DRAFT,
   items: [EMPTY_ITEM],
@@ -74,7 +75,7 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
     <AppModal
       open={open}
       onClose={onClose}
-      title={initialValues ? 'Edit sales order' : 'New sales order'}
+      title={initialValues?.id ? 'Edit sales order' : 'New sales order'}
       className="max-w-2xl"
       footer={
         <>
@@ -109,6 +110,7 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
           />
           <AppSelect label="Status" error={errors.status?.message} options={STATUS_OPTIONS} {...register('status')} />
         </div>
+        <AppSelect label="Sales channel" error={errors.salesChannel?.message} options={SALES_CHANNEL_OPTIONS} {...register('salesChannel')} />
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">

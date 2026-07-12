@@ -9,7 +9,19 @@ import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
 import { WORK_ORDER_STAGE_OPTIONS } from '@/constants/statusEnums';
 
-const DEFAULT_VALUES = { workOrderNumber: '', productId: '', quantity: '', stage: 'pending', dueDate: '' };
+const DEFAULT_VALUES = {
+  workOrderNumber: '',
+  productId: '',
+  quantity: '',
+  stage: 'pending',
+  dueDate: '',
+  rawMaterialCost: 0,
+  labourCost: 0,
+  machineCost: 0,
+  electricityCost: 0,
+  packagingCost: 0,
+  overheadCost: 0,
+};
 
 export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
@@ -33,7 +45,7 @@ export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isS
     <AppModal
       open={open}
       onClose={onClose}
-      title={initialValues ? 'Edit work order' : 'New work order'}
+      title={initialValues?.id ? 'Edit work order' : 'New work order'}
       footer={
         <>
           <AppButton variant="secondary" onClick={onClose}>
@@ -84,6 +96,20 @@ export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isS
             {...register('stage')}
           />
         </div>
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium text-text">Production costing</span>
+          <div className="grid grid-cols-3 gap-4">
+            <AppInput label="Raw material (₹)" type="number" error={errors.rawMaterialCost?.message} {...register('rawMaterialCost')} />
+            <AppInput label="Labour (₹)" type="number" error={errors.labourCost?.message} {...register('labourCost')} />
+            <AppInput label="Machine (₹)" type="number" error={errors.machineCost?.message} {...register('machineCost')} />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <AppInput label="Electricity (₹)" type="number" error={errors.electricityCost?.message} {...register('electricityCost')} />
+            <AppInput label="Packaging (₹)" type="number" error={errors.packagingCost?.message} {...register('packagingCost')} />
+            <AppInput label="Overhead (₹)" type="number" error={errors.overheadCost?.message} {...register('overheadCost')} />
+          </div>
+        </div>
+
         {initialValues?.salesOrderNumber && (
           <p className="text-xs text-text-muted">
             Linked Sales Order: <span className="font-medium text-text">{initialValues.salesOrderNumber}</span>{' '}

@@ -8,20 +8,57 @@ import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
-import { RETURN_STATUS, RETURN_STATUS_OPTIONS } from '@/constants/statusEnums';
+import {
+  RETURN_STATUS,
+  RETURN_STATUS_OPTIONS,
+  RETURN_REASON_OPTIONS,
+  INSPECTION_RESULT_OPTIONS,
+  RETURN_DECISION_OPTIONS,
+  RESOLUTION_TYPE_OPTIONS,
+  REFUND_METHOD_OPTIONS,
+} from '@/constants/statusEnums';
 
 const DEFAULT_VALUES = {
   returnNumber: '',
   salesOrderId: '',
   soNumber: '',
+  customer: '',
   productId: '',
   quantity: '',
   type: 'customer',
   reason: '',
   amount: 0,
   createdDate: '',
-  status: RETURN_STATUS.REPORTED,
+  status: RETURN_STATUS.REQUESTED,
+  courierPartner: '',
+  pickupDate: '',
+  trackingNumber: '',
+  inspectionResult: '',
+  inspectionNotes: '',
+  decision: '',
+  resolutionType: 'none',
+  refundAmount: 0,
+  refundMethod: 'upi',
+  refundReference: '',
+  refundDate: '',
+  refundStatus: 'pending',
+  replacementOrderId: null,
 };
+
+const PICKUP_VISIBLE_STATUSES = [
+  RETURN_STATUS.APPROVED,
+  RETURN_STATUS.PARTIALLY_APPROVED,
+  RETURN_STATUS.PICKUP_SCHEDULED,
+  RETURN_STATUS.WAREHOUSE_RECEIVED,
+  RETURN_STATUS.INSPECTION_COMPLETED,
+  RETURN_STATUS.RESOLVED,
+];
+const INSPECTION_VISIBLE_STATUSES = [
+  RETURN_STATUS.WAREHOUSE_RECEIVED,
+  RETURN_STATUS.INSPECTION_COMPLETED,
+  RETURN_STATUS.RESOLVED,
+];
+const DECISION_VISIBLE_STATUSES = [RETURN_STATUS.INSPECTION_COMPLETED, RETURN_STATUS.RESOLVED];
 
 export function ReturnFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
   const { data: salesData } = useSalesOrdersQuery({ pageSize: 100 });
@@ -46,6 +83,8 @@ export function ReturnFormModal({ open, onClose, initialValues, onSubmit, isSubm
 
   const quantity = useWatch({ control, name: 'quantity' });
   const productId = useWatch({ control, name: 'productId' });
+  const status = useWatch({ control, name: 'status' });
+  const resolutionType = useWatch({ control, name: 'resolutionType' });
 
   useEffect(() => {
     if (open) reset(initialValues ?? DEFAULT_VALUES);
@@ -61,13 +100,18 @@ export function ReturnFormModal({ open, onClose, initialValues, onSubmit, isSubm
   const handleSalesOrderChange = (salesOrderId) => {
     const so = salesOrders.find((item) => item.id === salesOrderId);
     setValue('soNumber', so?.soNumber ?? '');
+    setValue('customer', so?.customer ?? '');
   };
+
+  const showPickup = PICKUP_VISIBLE_STATUSES.includes(status);
+  const showInspection = INSPECTION_VISIBLE_STATUSES.includes(status);
+  const showDecision = DECISION_VISIBLE_STATUSES.includes(status);
 
   return (
     <AppModal
       open={open}
       onClose={onClose}
-      title={initialValues ? 'Edit return' : 'New return'}
+      title={initialValues?.id ? 'Edit return' : 'New return'}
       footer={
         <>
           <AppButton variant="secondary" onClick={onClose}>
@@ -79,7 +123,7 @@ export function ReturnFormModal({ open, onClose, initialValues, onSubmit, isSubm
         </>
       }
     >
-      <form id="return-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
+      <form id="return-form" onSubmit={handleSubmit(onSubmit)} className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1" noValidate>
         <div className="grid grid-cols-2 gap-4">
           <AppInput
             label="Return Number"
@@ -146,10 +190,15 @@ export function ReturnFormModal({ open, onClose, initialValues, onSubmit, isSubm
           />
         </div>
 
-        <AppInput label="Reason" required error={errors.reason?.message} {...register('reason')} />
-
         <div className="grid grid-cols-2 gap-4">
-          <AppInput label="Amount (₹)" type="number" readOnly error={errors.amount?.message} {...register('amount')} />
+          <AppSelect
+            label="Reason"
+            required
+            placeholder="Select reason"
+            options={RETURN_REASON_OPTIONS}
+            error={errors.reason?.message}
+            {...register('reason')}
+          />
           <AppSelect
             label="Status"
             error={errors.status?.message}
@@ -157,6 +206,65 @@ export function ReturnFormModal({ open, onClose, initialValues, onSubmit, isSubm
             {...register('status')}
           />
         </div>
+
+        <AppInput label="Amount (₹)" type="number" readOnly error={errors.amount?.message} {...register('amount')} />
+
+        {showPickup && (
+          <div className="flex flex-col gap-4 rounded-lg border border-border p-3">
+            <p className="text-xs font-medium uppercase text-text-muted">Pickup</p>
+            <div className="grid grid-cols-3 gap-4">
+              <AppInput label="Courier partner" error={errors.courierPartner?.message} {...register('courierPartner')} />
+              <AppInput label="Pickup date" type="date" error={errors.pickupDate?.message} {...register('pickupDate')} />
+              <AppInput label="Tracking number" error={errors.trackingNumber?.message} {...register('trackingNumber')} />
+            </div>
+          </div>
+        )}
+
+        {showInspection && (
+          <div className="flex flex-col gap-4 rounded-lg border border-border p-3">
+            <p className="text-xs font-medium uppercase text-text-muted">Quality inspection</p>
+            <div className="grid grid-cols-2 gap-4">
+              <AppSelect
+                label="Inspection result"
+                placeholder="Select result"
+                options={INSPECTION_RESULT_OPTIONS}
+                error={errors.inspectionResult?.message}
+                {...register('inspectionResult')}
+              />
+              <AppInput label="Inspection notes" error={errors.inspectionNotes?.message} {...register('inspectionNotes')} />
+            </div>
+          </div>
+        )}
+
+        {showDecision && (
+          <div className="flex flex-col gap-4 rounded-lg border border-border p-3">
+            <p className="text-xs font-medium uppercase text-text-muted">Decision & resolution</p>
+            <div className="grid grid-cols-2 gap-4">
+              <AppSelect
+                label="Decision"
+                placeholder="Select decision"
+                options={RETURN_DECISION_OPTIONS}
+                error={errors.decision?.message}
+                {...register('decision')}
+              />
+              <AppSelect
+                label="Resolution type"
+                options={RESOLUTION_TYPE_OPTIONS}
+                error={errors.resolutionType?.message}
+                {...register('resolutionType')}
+              />
+            </div>
+
+            {resolutionType === 'refund' && (
+              <div className="grid grid-cols-2 gap-4">
+                <AppInput label="Refund amount (₹)" type="number" error={errors.refundAmount?.message} {...register('refundAmount')} />
+                <AppSelect label="Refund method" options={REFUND_METHOD_OPTIONS} error={errors.refundMethod?.message} {...register('refundMethod')} />
+                <AppInput label="Refund reference" error={errors.refundReference?.message} {...register('refundReference')} />
+                <AppInput label="Refund date" type="date" error={errors.refundDate?.message} {...register('refundDate')} />
+              </div>
+            )}
+          </div>
+        )}
       </form>
     </AppModal>
   );

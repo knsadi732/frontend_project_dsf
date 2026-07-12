@@ -5,6 +5,7 @@
  * the same records — that's what makes cross-module business rules (see
  * businessRules.js) possible without a real backend.
  */
+import { addInventoryMovement } from '@/services/inventoryMovement.api';
 
 // Documented assumption (no cost data exists anywhere in the app): monthly
 // fixed overhead used only for the dashboard's break-even chart.
@@ -84,10 +85,13 @@ products.forEach((product) => {
   product.effectiveCost = product.baseCost + product.returnSurcharge + product.damageCost;
 });
 
+// `quantity` keeps meaning "available quantity" (every existing stock call
+// below reads/writes this field unchanged); the typed fields below are
+// additive tracking alongside it. Total = quantity + reserved + damaged + inTransit.
 export const inventory = [
-  { id: '1', productId: '1', sku: 'DSF-LTH-101', productName: 'Classic Leather Loafer', warehouse: 'Main Warehouse - Agra', quantity: 120, reorderLevel: 30 },
-  { id: '2', productId: '2', sku: 'DSF-RUN-42', productName: 'Running Sport Shoe', warehouse: 'Main Warehouse - Agra', quantity: 8, reorderLevel: 25 },
-  { id: '3', productId: '3', sku: 'DSF-CAS-77', productName: 'Casual Canvas Sneaker', warehouse: 'Delhi Distribution Center', quantity: 60, reorderLevel: 20 },
+  { id: '1', productId: '1', sku: 'DSF-LTH-101', productName: 'Classic Leather Loafer', warehouse: 'Main Warehouse - Agra', quantity: 120, reorderLevel: 30, reservedQuantity: 0, damagedQuantity: 0, returnedQuantity: 0, inTransitQuantity: 0, repairQuantity: 0, binLocationId: '1' },
+  { id: '2', productId: '2', sku: 'DSF-RUN-42', productName: 'Running Sport Shoe', warehouse: 'Main Warehouse - Agra', quantity: 8, reorderLevel: 25, reservedQuantity: 0, damagedQuantity: 0, returnedQuantity: 0, inTransitQuantity: 0, repairQuantity: 0, binLocationId: '2' },
+  { id: '3', productId: '3', sku: 'DSF-CAS-77', productName: 'Casual Canvas Sneaker', warehouse: 'Delhi Distribution Center', quantity: 60, reorderLevel: 20, reservedQuantity: 0, damagedQuantity: 0, returnedQuantity: 0, inTransitQuantity: 0, repairQuantity: 0, binLocationId: '3' },
 ];
 
 // Raw materials feeding Production's bill of materials. `defaultSupplier`
@@ -178,10 +182,10 @@ export const workOrders = [
 ];
 
 export const invoices = [
-  { id: '1', invoiceNumber: 'INV-2201', party: 'Metro Footwear', amount: 245000, dueDate: '2026-07-20', status: 'unpaid', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: null },
-  { id: '2', invoiceNumber: 'INV-2202', party: 'Leo Leathers', amount: 185000, dueDate: '2026-07-15', status: 'partial', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: null },
-  { id: '3', invoiceNumber: 'INV-2203', party: 'City Shoe Mart', amount: 98000, dueDate: '2026-06-30', status: 'paid', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: null },
-  { id: '4', invoiceNumber: 'INV-2204', party: 'Sole Components Pvt Ltd', amount: 34200, dueDate: '2026-06-25', status: 'overdue', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: null },
+  { id: '1', invoiceNumber: 'INV-2201', party: 'Metro Footwear', amount: 245000, dueDate: '2026-07-20', status: 'unpaid', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: 245000, paidAmount: 0 },
+  { id: '2', invoiceNumber: 'INV-2202', party: 'Leo Leathers', amount: 185000, dueDate: '2026-07-15', status: 'partial', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: 92500, paidAmount: 92500 },
+  { id: '3', invoiceNumber: 'INV-2203', party: 'City Shoe Mart', amount: 98000, dueDate: '2026-06-30', status: 'paid', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: 0, paidAmount: 98000 },
+  { id: '4', invoiceNumber: 'INV-2204', party: 'Sole Components Pvt Ltd', amount: 34200, dueDate: '2026-06-25', status: 'overdue', salesOrderId: null, salesOrderNumber: null, orderDate: null, items: [], taxableAmount: null, gstRate: null, gstAmount: null, advanceAmount: null, balanceDue: 34200, paidAmount: 0 },
 ];
 
 export const purchases = [
@@ -238,28 +242,58 @@ export const returns = [
     returnNumber: 'RET-101',
     salesOrderId: '1',
     soNumber: 'SO-1042',
+    customer: 'Metro Footwear',
     productId: '2',
     quantity: 3,
     type: 'customer',
-    reason: 'Size mismatch',
-    status: 'processed',
+    reason: 'wrong_size',
+    status: 'resolved',
     amount: 3 * 1899,
     createdDate: '2026-06-15',
+    courierPartner: 'Delhivery',
+    pickupDate: '2026-06-16',
+    trackingNumber: 'DLV-88213',
+    inspectionResult: 'passed',
+    inspectionNotes: 'Unused, original packaging intact',
+    decision: 'restock',
+    resolutionType: 'refund',
+    refundAmount: 3 * 1899,
+    refundMethod: 'upi',
+    refundReference: 'UPI-REF-77410',
+    refundDate: '2026-06-18',
+    refundStatus: 'completed',
+    replacementOrderId: null,
   },
   {
     id: '2',
     returnNumber: 'RET-102',
     salesOrderId: '1',
     soNumber: 'SO-1042',
+    customer: 'Metro Footwear',
     productId: '1',
     quantity: 2,
     type: 'courier',
-    reason: 'Damaged in transit',
-    status: 'reported',
+    reason: 'damaged_in_transit',
+    status: 'requested',
     amount: 2 * 2499,
     createdDate: '2026-07-09',
+    courierPartner: '',
+    pickupDate: '',
+    trackingNumber: '',
+    inspectionResult: '',
+    inspectionNotes: '',
+    decision: '',
+    resolutionType: 'none',
+    refundAmount: 0,
+    refundMethod: 'original_method',
+    refundReference: '',
+    refundDate: '',
+    refundStatus: 'pending',
+    replacementOrderId: null,
   },
 ];
+
+export const creditNotes = [];
 
 export function nextId(records) {
   return String(records.reduce((max, record) => Math.max(max, Number(record.id) || 0), 0) + 1);
@@ -303,6 +337,12 @@ export function adjustStock(productId, delta) {
       warehouse: 'Main Warehouse - Agra',
       quantity: 0,
       reorderLevel: 10,
+      reservedQuantity: 0,
+      damagedQuantity: 0,
+      returnedQuantity: 0,
+      inTransitQuantity: 0,
+      repairQuantity: 0,
+      binLocationId: null,
     };
     inventory.unshift(row);
   }
@@ -310,11 +350,63 @@ export function adjustStock(productId, delta) {
 
   const product = getProductById(productId);
   if (product) product.stock = getStockQuantity(productId);
+
+  addInventoryMovement({
+    productId,
+    warehouse: row.warehouse,
+    movementType: delta >= 0 ? 'stock_in' : 'stock_out',
+    quantity: Math.abs(delta),
+    reference: product?.sku ?? productId,
+  });
+}
+
+// Increments a typed inventory bucket other than the default "available"
+// quantity (e.g. repairQuantity/damagedQuantity from a return inspection
+// decision) without touching `quantity`/stock-availability logic.
+export function adjustInventoryBucket(productId, field, delta) {
+  let row = inventory.find((item) => item.productId === productId);
+  if (!row) {
+    const product = getProductById(productId);
+    row = {
+      id: nextId(inventory),
+      productId,
+      sku: product?.sku ?? '',
+      productName: product?.name ?? '',
+      warehouse: 'Main Warehouse - Agra',
+      quantity: 0,
+      reorderLevel: 10,
+      reservedQuantity: 0,
+      damagedQuantity: 0,
+      returnedQuantity: 0,
+      inTransitQuantity: 0,
+      repairQuantity: 0,
+      binLocationId: null,
+    };
+    inventory.unshift(row);
+  }
+  row[field] = Math.max(0, Number(row[field] ?? 0) + delta);
+
+  addInventoryMovement({
+    productId,
+    warehouse: row.warehouse,
+    movementType: field,
+    quantity: Math.abs(delta),
+    reference: row.sku ?? productId,
+  });
 }
 
 export function adjustRawMaterial(rawMaterialId, delta) {
   const row = getRawMaterialById(rawMaterialId);
-  if (row) row.quantity = Math.max(0, Number(row.quantity) + delta);
+  if (row) {
+    row.quantity = Math.max(0, Number(row.quantity) + delta);
+    addInventoryMovement({
+      productId: rawMaterialId,
+      warehouse: 'Raw Material Store',
+      movementType: delta >= 0 ? 'material_in' : 'material_out',
+      quantity: Math.abs(delta),
+      reference: row.name,
+    });
+  }
 }
 
 // Checks whether making `quantity` units of `productId` is possible with

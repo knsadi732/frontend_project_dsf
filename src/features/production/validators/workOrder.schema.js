@@ -8,4 +8,10 @@ export const workOrderSchema = z.object({
   dueDate: z.string().min(1, 'Due date is required'),
   salesOrderId: z.string().optional().nullable(),
   salesOrderNumber: z.string().optional().nullable(),
+  rawMaterialCost: z.coerce.number().nonnegative().default(0),
+  labourCost: z.coerce.number().nonnegative().default(0),
+  machineCost: z.coerce.number().nonnegative().default(0),
+  electricityCost: z.coerce.number().nonnegative().default(0),
+  packagingCost: z.coerce.number().nonnegative().default(0),
+  overheadCost: z.coerce.number().nonnegative().default(0),
 });

@@ -32,4 +32,7 @@ export const userSchema = z.object({
   ifsc: z.string().optional(),
   salaryStructure: z.string().optional(),
   address: z.string().optional(),
+  emailNotifications: z.boolean().default(true),
+  smsNotifications: z.boolean().default(true),
+  inAppNotifications: z.boolean().default(true),
 });

@@ -13,11 +13,13 @@ import {
   workOrders,
   invoices,
   purchases,
+  creditNotes,
   getProductById,
   getRawMaterialById,
   getRawMaterialByName,
   getStockQuantity,
   adjustStock,
+  adjustInventoryBucket,
   adjustRawMaterial,
   checkBomAvailability,
   consumeBom,
@@ -108,6 +110,7 @@ function generateInvoiceForOrder(order) {
     message: isHeavyOrder
       ? `${invoice.invoiceNumber} generated for ${order.soNumber} — heavy order, advance ₹${advanceAmount.toLocaleString('en-IN')} due`
       : `${invoice.invoiceNumber} generated for ${order.soNumber}`,
+    type: 'success',
   });
 
   return invoice;
@@ -117,7 +120,8 @@ export function onSalesOrderCreate(record) {
   addNotification({
     title: 'New sales order',
     message: `${record.soNumber} from ${record.customer} needs review`,
-    type: 'sales_order_review',
+    type: 'approval',
+    category: 'sales_order_review',
     entityId: record.id,
   });
   return record;
@@ -127,7 +131,8 @@ function notifyWarehousePacking(order) {
   addNotification({
     title: 'Order ready for packing',
     message: `${order.soNumber} accepted — pack & prepare for dispatch`,
-    type: 'sales_order_packing',
+    type: 'approval',
+    category: 'sales_order_packing',
     entityId: order.id,
   });
 }
@@ -158,6 +163,7 @@ function createUrgentPurchaseOrder(shortages, workOrder, order) {
   addNotification({
     title: 'Urgent purchase order raised',
     message: `${po.poNumber} (URGENT) raised with ${supplier} — ${order.soNumber} production blocked on raw material`,
+    type: 'warning',
   });
 
   return po;
@@ -190,11 +196,13 @@ function createWorkOrdersForShortfall(order) {
       addNotification({
         title: 'Work order created',
         message: `Insufficient stock for ${order.soNumber} — ${workOrder.workOrderNumber} created for ${shortfall} × ${product?.name ?? item.productId}, expected ${workOrder.dueDate}`,
+        type: 'information',
       });
     } else {
       addNotification({
         title: 'Production blocked on raw material',
         message: `${workOrder.workOrderNumber} (${shortfall} × ${product?.name ?? item.productId}) can't start — raw material short`,
+        type: 'warning',
       });
       createUrgentPurchaseOrder(bomCheck.shortages, workOrder, order);
     }
@@ -212,6 +220,7 @@ export function onSalesOrderStatusChange(previous, next) {
       addNotification({
         title: 'Stock reserved',
         message: `Stock reserved for ${next.soNumber} — dispatch by ${dispatchDate}`,
+        type: 'success',
       });
       let updated = { ...next, _stockReserved: true, dispatchDate, productionEta: null };
       if (!updated.invoiceNumber) {
@@ -242,6 +251,7 @@ export function onSalesOrderStatusChange(previous, next) {
         addNotification({
           title: 'Cannot complete order',
           message: `${next.soNumber} is still waiting on stock — not completed`,
+          type: 'error',
         });
         return { ...next, status: previous.status };
       }
@@ -249,7 +259,7 @@ export function onSalesOrderStatusChange(previous, next) {
     }
 
     if (next.invoiceNumber) {
-      addNotification({ title: 'Order dispatched', message: `${next.soNumber} marked completed — ${next.invoiceNumber} already on file` });
+      addNotification({ title: 'Order dispatched', message: `${next.soNumber} marked completed — ${next.invoiceNumber} already on file`, type: 'success' });
       return { ...next, _stockReserved: true };
     }
 
@@ -269,6 +279,7 @@ export function onSalesOrderStatusChange(previous, next) {
     addNotification({
       title: 'Order cancelled',
       message: `${next.soNumber} cancelled${previous._stockReserved ? ' — reserved stock released' : ''}`,
+      type: 'warning',
     });
     return { ...next, _stockReserved: false };
   }
@@ -279,6 +290,7 @@ export function onSalesOrderStatusChange(previous, next) {
     addNotification({
       title: 'Order rejected',
       message: `${next.soNumber} rejected`,
+      type: 'error',
     });
     return { ...next, _stockReserved: false };
   }
@@ -294,6 +306,7 @@ export function onWorkOrderStageChange(previous, next) {
       addNotification({
         title: 'Cannot complete work order',
         message: `${next.workOrderNumber} is still blocked on raw material — not completed`,
+        type: 'error',
       });
       return { ...next, stage: previous.stage };
     }
@@ -303,6 +316,7 @@ export function onWorkOrderStageChange(previous, next) {
     addNotification({
       title: 'Production completed',
       message: `${next.workOrderNumber} added ${next.quantity} × ${product?.name ?? next.productId} to inventory`,
+      type: 'success',
     });
 
     if (next.salesOrderId) {
@@ -315,6 +329,7 @@ export function onWorkOrderStageChange(previous, next) {
           addNotification({
             title: 'Order ready',
             message: `${so.soNumber} stock fulfilled — ready to mark completed`,
+            type: 'success',
           });
           if (!updated.invoiceNumber) {
             const invoice = generateInvoiceForOrder(updated);
@@ -330,22 +345,44 @@ export function onWorkOrderStageChange(previous, next) {
   return next;
 }
 
+/**
+ * Purchase Order Chapter 11.16: "Inventory quantities increase only after
+ * GRN approval" — completing a PO is just a status milestone now; the
+ * actual raw-material increment moved to `onGrnStatusChange` below, fired
+ * when a Goods Receipt Note against this PO is approved.
+ */
 export function onPurchaseOrderStatusChange(previous, next) {
   if (next.status === previous.status) return next;
 
   if (next.status === 'completed') {
+    addNotification({
+      title: 'Purchase order completed',
+      message: `${next.poNumber} marked completed — awaiting GRN for inventory update`,
+      type: 'information',
+    });
+  }
+
+  return next;
+}
+
+export function onGrnStatusChange(previous, next) {
+  if (next.status === previous.status) return next;
+
+  if (next.status === 'approved') {
     next.items.forEach((item) => {
       const material = getRawMaterialByName(item.product);
-      if (material) adjustRawMaterial(material.id, Number(item.quantity));
+      if (material) adjustRawMaterial(material.id, Number(item.acceptedQty));
     });
 
     addNotification({
-      title: 'Materials received',
-      message: `${next.poNumber} received from ${next.supplier}`,
+      title: 'GRN approved — materials received',
+      message: `${next.grnNumber} approved, inventory updated`,
+      type: 'success',
     });
 
-    if (next.linkedWorkOrderId) {
-      const woIndex = workOrders.findIndex((wo) => wo.id === next.linkedWorkOrderId);
+    const po = next.purchaseOrderId ? purchases.find((purchase) => purchase.id === next.purchaseOrderId) : null;
+    if (po?.linkedWorkOrderId) {
+      const woIndex = workOrders.findIndex((wo) => wo.id === po.linkedWorkOrderId);
       if (woIndex !== -1) {
         const wo = workOrders[woIndex];
         if (wo.stage === 'blocked_on_material') {
@@ -356,11 +393,13 @@ export function onPurchaseOrderStatusChange(previous, next) {
             addNotification({
               title: 'Work order unblocked',
               message: `${wo.workOrderNumber} — materials arrived, ready for production`,
+              type: 'success',
             });
           } else {
             addNotification({
               title: 'Still short on material',
               message: `${wo.workOrderNumber} received partial materials — still blocked`,
+              type: 'warning',
             });
           }
         }
@@ -371,45 +410,135 @@ export function onPurchaseOrderStatusChange(previous, next) {
   return next;
 }
 
+// Return & Reverse Logistics Domain (Ch16): Requested -> Sales Review
+// (Approved/Partially Approved/Rejected) -> Pickup -> Warehouse Receipt ->
+// Quality Inspection -> Decision (restock/repair/scrap) -> Inventory Update
+// -> Resolution (Refund generates a Credit Note / Replacement is created via
+// the "Convert to Replacement Order" action) -> Resolved.
+function createCreditNoteForReturn(record) {
+  const invoice = invoices.find((inv) => inv.salesOrderId === record.salesOrderId);
+  const gstAmount = invoice ? Math.round(Number(record.refundAmount) * (Number(invoice.gstRate ?? 0) / 100)) : 0;
+
+  const creditNote = {
+    id: nextId(creditNotes),
+    creditNoteNumber: nextDocNumber(creditNotes, 'creditNoteNumber', 'CN'),
+    returnId: record.id,
+    invoiceId: invoice?.id ?? null,
+    invoiceNumber: invoice?.invoiceNumber ?? null,
+    customer: record.customer,
+    amount: Number(record.refundAmount),
+    gstAmount,
+    createdDate: new Date().toISOString().slice(0, 10),
+  };
+  creditNotes.unshift(creditNote);
+
+  addNotification({
+    title: 'Credit note issued',
+    message: `${creditNote.creditNoteNumber} issued for ${record.returnNumber} — ₹${creditNote.amount.toLocaleString('en-IN')}`,
+    type: 'success',
+  });
+
+  return creditNote;
+}
+
 export function onReturnStatusChange(previous, next) {
   if (next.status === previous.status) return next;
 
-  if (next.status === 'warehouse_verification') {
+  if (next.status === 'approved' || next.status === 'partially_approved') {
     addNotification({
-      title: 'Return sent to warehouse',
-      message: `${next.returnNumber} (${next.soNumber}) awaiting warehouse verification`,
+      title: 'Return approved',
+      message: `${next.returnNumber} (${next.soNumber}) ${next.status === 'partially_approved' ? 'partially approved' : 'approved'} — awaiting pickup`,
+      type: 'success',
     });
-  }
-
-  if (next.status === 'verified') {
-    adjustStock(next.productId, Number(next.quantity));
-    addNotification({
-      title: 'Return verified',
-      message: `${next.returnNumber} verified by warehouse — ${next.quantity} unit(s) restocked`,
-    });
-  }
-
-  if (next.status === 'processed') {
-    const product = getProductById(next.productId);
-    if (product) {
-      if (next.type === 'customer') {
-        product.returnSurcharge += 180 * Number(next.quantity);
-      }
-      product.damageCost += Math.round(Number(next.amount) * 0.1);
-      recomputeProductCost(product);
-      addNotification({
-        title: 'Return processed',
-        message: `${next.returnNumber} processed — ${product.name} cost updated to ₹${product.effectiveCost.toLocaleString('en-IN')}`,
-      });
-    }
   }
 
   if (next.status === 'rejected') {
     addNotification({
       title: 'Return rejected',
       message: `${next.returnNumber} rejected`,
+      type: 'error',
+    });
+  }
+
+  if (next.status === 'pickup_scheduled') {
+    addNotification({
+      title: 'Return pickup scheduled',
+      message: `${next.returnNumber} — pickup via ${next.courierPartner || 'courier'} on ${next.pickupDate}`,
+      type: 'information',
+    });
+  }
+
+  if (next.status === 'warehouse_received') {
+    addNotification({
+      title: 'Return received at warehouse',
+      message: `${next.returnNumber} received — awaiting quality inspection`,
+      type: 'information',
+    });
+  }
+
+  if (next.status === 'inspection_completed') {
+    if (next.decision === 'restock') {
+      adjustStock(next.productId, Number(next.quantity));
+      addNotification({
+        title: 'Return restocked',
+        message: `${next.returnNumber} passed inspection — ${next.quantity} unit(s) restocked to Finished Goods`,
+        type: 'success',
+      });
+    } else if (next.decision === 'repair') {
+      adjustInventoryBucket(next.productId, 'repairQuantity', Number(next.quantity));
+      addNotification({
+        title: 'Return sent for repair',
+        message: `${next.returnNumber} — ${next.quantity} unit(s) moved to Repair Inventory`,
+        type: 'warning',
+      });
+    } else if (next.decision === 'scrap') {
+      adjustInventoryBucket(next.productId, 'damagedQuantity', Number(next.quantity));
+      const product = getProductById(next.productId);
+      if (product) {
+        product.damageCost += Math.round(Number(next.amount) * 0.1);
+        recomputeProductCost(product);
+      }
+      addNotification({
+        title: 'Return scrapped',
+        message: `${next.returnNumber} failed inspection — ${next.quantity} unit(s) moved to Scrap/Damaged Inventory`,
+        type: 'warning',
+      });
+    }
+  }
+
+  if (next.status === 'resolved') {
+    if (next.resolutionType === 'refund') {
+      createCreditNoteForReturn(next);
+      return { ...next, refundStatus: 'completed' };
+    }
+    addNotification({
+      title: 'Return resolved',
+      message: `${next.returnNumber} resolved`,
+      type: 'success',
     });
   }
 
   return next;
+}
+
+/**
+ * Finance Chapter 15.11: a Customer Payment updates Accounts Receivable —
+ * here, the linked invoice's paidAmount/balanceDue/status directly, since
+ * this mock has no separate ledger to post to.
+ */
+export function onPaymentCreate(record) {
+  const invoice = invoices.find((inv) => inv.id === record.invoiceId);
+  if (invoice) {
+    invoice.paidAmount = Number(invoice.paidAmount ?? 0) + Number(record.amount);
+    invoice.balanceDue = Math.max(0, Number(invoice.amount) - invoice.paidAmount);
+    invoice.status = invoice.balanceDue <= 0 ? 'paid' : 'partial';
+
+    addNotification({
+      title: 'Payment received',
+      message: `₹${Number(record.amount).toLocaleString('en-IN')} received against ${invoice.invoiceNumber} — ${invoice.status}`,
+      type: 'success',
+    });
+  }
+
+  return record;
 }

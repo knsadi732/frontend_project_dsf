@@ -14,6 +14,7 @@ export function useUpdateReturn() {
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.creditNotes.all });
       pushToast('success', TOAST_MESSAGES.UPDATE_SUCCESS('Return'));
     },
   });

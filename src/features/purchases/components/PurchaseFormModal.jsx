@@ -61,7 +61,7 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
     <AppModal
       open={open}
       onClose={onClose}
-      title={initialValues ? 'Edit purchase order' : 'New purchase order'}
+      title={initialValues?.id ? 'Edit purchase order' : 'New purchase order'}
       className="max-w-2xl"
       footer={
         <>

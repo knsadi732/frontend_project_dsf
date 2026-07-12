@@ -8,6 +8,17 @@ import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 import { generateRecordPdf } from '@/utils/generateRecordPdf';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 
+function totalCost(row) {
+  return (
+    Number(row.rawMaterialCost || 0) +
+    Number(row.labourCost || 0) +
+    Number(row.machineCost || 0) +
+    Number(row.electricityCost || 0) +
+    Number(row.packagingCost || 0) +
+    Number(row.overheadCost || 0)
+  );
+}
+
 function downloadWorkOrderPdf(row, productName) {
   generateRecordPdf({
     title: `Work Order - ${row.workOrderNumber}`,
@@ -16,6 +27,7 @@ function downloadWorkOrderPdf(row, productName) {
       { label: 'Quantity', value: row.quantity },
       { label: 'Due Date', value: row.dueDate },
       { label: 'Stage', value: row.stage },
+      { label: 'Total Production Cost', value: `Rs.${totalCost(row).toLocaleString('en-IN')}` },
     ],
     fileName: `${row.workOrderNumber}.pdf`,
   });
@@ -40,6 +52,7 @@ export function WorkOrderTable({
     { key: 'product', header: 'Product', render: (row) => productNameById.get(row.productId) ?? row.productId },
     { key: 'quantity', header: 'Quantity' },
     { key: 'dueDate', header: 'Due Date' },
+    { key: 'totalCost', header: 'Total Cost', render: (row) => `₹${totalCost(row).toLocaleString('en-IN')}` },
     {
       key: 'stage',
       header: 'Stage',

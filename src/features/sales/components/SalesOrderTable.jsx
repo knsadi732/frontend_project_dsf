@@ -34,6 +34,7 @@ export function SalesOrderTable({
   const columns = [
     { key: 'soNumber', header: 'SO Number' },
     { key: 'customer', header: 'Customer' },
+    { key: 'salesChannel', header: 'Channel', render: (row) => <span className="capitalize">{row.salesChannel ?? 'manual'}</span> },
     { key: 'orderDate', header: 'Order Date' },
     {
       key: 'total',
