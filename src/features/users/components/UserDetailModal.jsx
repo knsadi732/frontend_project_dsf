@@ -42,7 +42,10 @@ export function UserDetailModal({ open, onClose, user, departmentsById, designat
           <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">Personal</h3>
           <DetailRow label="Phone" value={user.phone} />
           <DetailRow label="Email" value={user.email} />
-          <DetailRow label="Address" value={user.address} />
+          <DetailRow label="Permanent address" value={user.permanentAddress} />
+          <DetailRow label="Current address" value={user.currentAddress} />
+          <DetailRow label="City / State" value={[user.city, user.state].filter(Boolean).join(', ')} />
+          <DetailRow label="Country / Postal code" value={[user.country, user.postalCode].filter(Boolean).join(' - ')} />
           <DetailRow label="Date of birth" value={user.dob} />
           <DetailRow label="Gender" value={user.gender} />
           <DetailRow label="Blood group" value={user.bloodGroup} />
@@ -93,9 +96,18 @@ export function UserDetailModal({ open, onClose, user, departmentsById, designat
           <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">Government ID &amp; bank</h3>
           <DetailRow label="Aadhaar number" value={user.aadhaarNumber} />
           <DetailRow label="PAN number" value={user.panNumber} />
+          <DetailRow label="Bank name" value={user.bankName} />
+          <DetailRow label="Account holder name" value={user.accountHolderName} />
           <DetailRow label="Bank account" value={user.bankAccount} />
           <DetailRow label="IFSC" value={user.ifsc} />
+          <DetailRow label="UPI ID" value={user.upiId} />
           <DetailRow label="Salary structure" value={user.salaryStructure} />
+        </div>
+
+        <div className="flex flex-col">
+          <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">System</h3>
+          <DetailRow label="Last login" value={user.lastLogin ? new Date(user.lastLogin).toLocaleString() : undefined} />
+          <DetailRow label="Password last changed" value={user.passwordChangedAt ? new Date(user.passwordChangedAt).toLocaleString() : undefined} />
         </div>
 
         <div className="flex flex-col">

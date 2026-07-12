@@ -41,5 +41,6 @@ export const vendorSchema = z.object({
   creditLimit: z.coerce.number().nonnegative().optional(),
   creditDays: z.coerce.number().int().nonnegative().optional(),
   addresses: z.array(vendorAddressSchema).default([]),
+  qualityRating: z.coerce.number().min(1).max(5).default(3),
   status: z.enum(['active', 'inactive']).default('active'),
 });

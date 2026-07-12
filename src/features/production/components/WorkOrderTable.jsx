@@ -1,4 +1,4 @@
-import { Download, Pencil, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Download, Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
@@ -43,6 +43,7 @@ export function WorkOrderTable({
   onPageSizeChange,
   onEdit,
   onDelete,
+  onRecordInspection,
 }) {
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
   const productNameById = new Map((productsData?.data ?? []).map((product) => [product.id, product.name]));
@@ -86,6 +87,21 @@ export function WorkOrderTable({
           >
             <Download className="size-4" />
           </AppButton>
+          {row.stage !== 'completed' && row.stage !== 'cancelled' && (
+            <Can module={MODULES.PRODUCTION} action={ACTIONS.EDIT}>
+              <AppButton
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRecordInspection(row);
+                }}
+                aria-label={`Record inspection for ${row.workOrderNumber}`}
+              >
+                <ClipboardCheck className="size-4" />
+              </AppButton>
+            </Can>
+          )}
           <Can module={MODULES.PRODUCTION} action={ACTIONS.EDIT}>
             <AppButton
               variant="ghost"

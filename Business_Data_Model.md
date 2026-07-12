@@ -59,39 +59,117 @@ Entities
 Chapter 3
 Employee Domain
 Employee
-
-├── Login
-├── Role
-├── Permission
-├── Department
-├── Designation
-├── Salary
+│
+├── Employee Profile
+├── Login & Authentication
+├── Roles
+├── Permissions
+├── Departments
+├── Designations
+├── Reporting Manager
+├── Branch Assignment
+├── Warehouse Assignment
+├── Salary & Payroll
 ├── Attendance
-├── Leave
+├── Shift Management
+├── Leave Management
 ├── Documents
 ├── Assets
-└── Audit Logs
-
+├── Performance (Future)
+├── Training (Future)
+├── Audit Logs
+└── Employment Lifecycle
 Employee Fields
-
-    Employee Code
-    Name
-    Phone
-    Email
-    Aadhaar
-    PAN
-    Bank
-    Salary
-    Documents
-    Role
-    Department
-    Designation
-
-Business Rule
-
-Employee = ERP User
-
+Basic Information
+Employee Code
+First Name
+Middle Name
+Last Name
+Gender
+Date of Birth
+Blood Group
+Marital Status
+Photo
+Contact Information
+Mobile Number
+Alternate Mobile
+Email
+Emergency Contact
+Address
+City
+State
+Country
+PIN Code
+Employment Information
+Employee Code
+Joining Date
+Employment Type
+Employment Status
+Probation Period
+Confirmation Date
+Organization Information
+Company
+Branch
+Warehouse
+Department
+Designation
+Reporting Manager
+ERP Access
+Login Phone
+Password
+Roles (Multiple)
+Permissions
+Last Login
+Account Status
+Government Information
+Aadhaar
+PAN
+UAN (Optional)
+ESIC (Optional)
+Banking Information
+Bank Name
+Account Number
+IFSC Code
+Account Holder Name
+Salary Information
+Salary Structure
+Basic Salary
+Allowances
+Deductions
+Documents
+Aadhaar
+PAN
+Photograph
+Signature
+Bank Passbook
+Educational Certificates
+Experience Certificates
+Offer Letter
+Appointment Letter
+Other Documents
+Operational Information
+Assigned Branches
+Assigned Warehouses
+Assigned Departments
+Assigned Roles
+Audit Information
+Created By
+Updated By
+Created At
+Updated At
+Business Rules
+Employee = ERP User.
 No separate User table.
+Every Employee has a unique Employee Code.
+Phone Number must be unique.
+One Employee may belong to one primary Department.
+One Employee has one Designation.
+One Employee may be assigned to multiple ERP Roles.
+ERP Permissions are derived from assigned Roles.
+Every Employee belongs to one Company and one primary Branch.
+Employee documents are uploaded only once and reused across all ERP modules.
+Employee records are soft deleted.
+Every Employee activity is recorded in Audit Logs.
 
 Chapter 4
 RBAC Domain

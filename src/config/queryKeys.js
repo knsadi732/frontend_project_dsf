@@ -43,6 +43,8 @@ export const queryKeys = {
   vendorBills: resourceKeys('vendorBills'),
   vendorPayments: resourceKeys('vendorPayments'),
   creditNotes: resourceKeys('creditNotes'),
+  customerCommunications: resourceKeys('customerCommunications'),
+  qualityInspections: resourceKeys('qualityInspections'),
   notifications: resourceKeys('notifications'),
   communicationLogs: resourceKeys('communicationLogs'),
   reports: resourceKeys('reports'),

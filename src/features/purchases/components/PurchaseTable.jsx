@@ -32,6 +32,8 @@ function downloadPurchasePdf(row) {
   });
 }
 
+const EDIT_LOCKED_STATUSES = ['approved', 'completed'];
+
 export function PurchaseTable({
   purchases,
   isLoading,
@@ -43,6 +45,10 @@ export function PurchaseTable({
   onEdit,
   onDelete,
 }) {
+  const handleRowClick = (row) => {
+    if (!EDIT_LOCKED_STATUSES.includes(row.status)) onEdit(row);
+  };
+
   const columns = [
     { key: 'poNumber', header: 'PO Number' },
     { key: 'supplier', header: 'Supplier' },
@@ -85,19 +91,21 @@ export function PurchaseTable({
           >
             <Download className="size-4" />
           </AppButton>
-          <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onEdit(row);
-              }}
-              aria-label={`Edit ${row.poNumber}`}
-            >
-              <Pencil className="size-4" />
-            </AppButton>
-          </Can>
+          {!EDIT_LOCKED_STATUSES.includes(row.status) && (
+            <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
+              <AppButton
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onEdit(row);
+                }}
+                aria-label={`Edit ${row.poNumber}`}
+              >
+                <Pencil className="size-4" />
+              </AppButton>
+            </Can>
+          )}
           <Can module={MODULES.PURCHASES} action={ACTIONS.DELETE}>
             <AppButton
               variant="ghost"
@@ -127,7 +135,7 @@ export function PurchaseTable({
       total={total}
       onPageChange={onPageChange}
       onPageSizeChange={onPageSizeChange}
-      onRowClick={onEdit}
+      onRowClick={handleRowClick}
       emptyMessage="No purchase orders yet"
     />
   );

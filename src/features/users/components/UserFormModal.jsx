@@ -48,10 +48,18 @@ const DEFAULT_VALUES = {
   emergencyContactNumber: '',
   aadhaarNumber: '',
   panNumber: '',
+  bankName: '',
+  accountHolderName: '',
   bankAccount: '',
   ifsc: '',
+  upiId: '',
   salaryStructure: '',
-  address: '',
+  permanentAddress: '',
+  currentAddress: '',
+  city: '',
+  state: '',
+  country: '',
+  postalCode: '',
   emailNotifications: true,
   smsNotifications: true,
   inAppNotifications: true,
@@ -119,7 +127,16 @@ export function UserFormModal({
             <AppInput label="Phone" required error={errors.phone?.message} {...register('phone')} />
             <AppInput label="Email" type="email" error={errors.email?.message} {...register('email')} />
           </div>
-          <AppInput label="Address" error={errors.address?.message} {...register('address')} />
+          <div className="grid grid-cols-2 gap-4">
+            <AppInput label="Permanent address" error={errors.permanentAddress?.message} {...register('permanentAddress')} />
+            <AppInput label="Current address" error={errors.currentAddress?.message} {...register('currentAddress')} />
+          </div>
+          <div className="grid grid-cols-4 gap-4">
+            <AppInput label="City" error={errors.city?.message} {...register('city')} />
+            <AppInput label="State" error={errors.state?.message} {...register('state')} />
+            <AppInput label="Country" error={errors.country?.message} {...register('country')} />
+            <AppInput label="Postal code" error={errors.postalCode?.message} {...register('postalCode')} />
+          </div>
           <div className="grid grid-cols-3 gap-4">
             <AppInput label="Date of birth" type="date" error={errors.dob?.message} {...register('dob')} />
             <AppSelect
@@ -206,8 +223,13 @@ export function UserFormModal({
             <AppInput label="PAN number" error={errors.panNumber?.message} {...register('panNumber')} />
           </div>
           <div className="grid grid-cols-2 gap-4">
+            <AppInput label="Bank name" error={errors.bankName?.message} {...register('bankName')} />
+            <AppInput label="Account holder name" error={errors.accountHolderName?.message} {...register('accountHolderName')} />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
             <AppInput label="Bank account number" error={errors.bankAccount?.message} {...register('bankAccount')} />
             <AppInput label="IFSC code" error={errors.ifsc?.message} {...register('ifsc')} />
+            <AppInput label="UPI ID" error={errors.upiId?.message} {...register('upiId')} />
           </div>
           <AppInput label="Salary structure" helperText="e.g. 25000 fixed + incentives" error={errors.salaryStructure?.message} {...register('salaryStructure')} />
         </section>

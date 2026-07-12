@@ -3,7 +3,6 @@ import { Download, Plus } from 'lucide-react';
 import { useUsersQuery } from '@/features/users/queries/useUsersQuery';
 import { useCreateUser } from '@/features/users/mutations/useCreateUser';
 import { useUpdateUser } from '@/features/users/mutations/useUpdateUser';
-import { useDeleteUser } from '@/features/users/mutations/useDeleteUser';
 import { useDepartmentsQuery } from '@/features/departments/queries/useDepartmentsQuery';
 import { useDesignationsQuery } from '@/features/designations/queries/useDesignationsQuery';
 import { useBranchesQuery } from '@/features/branches/queries/useBranchesQuery';
@@ -35,6 +34,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 import { downloadCsv } from '@/utils/downloadCsv';
 import { getEmployeeFullName } from '@/utils/employeeName';
+import { pushToast } from '@/utils/toastBus';
 
 const STATUS_OPTIONS = toStatusOptions(EMPLOYMENT_STATUS);
 
@@ -76,7 +76,6 @@ export function UsersPage() {
   const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
-  const deleteUser = useDeleteUser();
 
   const departments = useMemo(() => departmentsData?.data ?? [], [departmentsData]);
   const designations = useMemo(() => designationsData?.data ?? [], [designationsData]);
@@ -108,6 +107,13 @@ export function UsersPage() {
     .map((user) => ({ value: user.id, label: getEmployeeFullName(user) }));
 
   const handleSubmit = (values) => {
+    // Ch19.3 "Phone Number must be unique"
+    const phoneTaken = allUsers.some((user) => user.phone === values.phone && user.id !== formState.user?.id);
+    if (phoneTaken) {
+      pushToast('error', 'Another employee already uses this phone number');
+      return;
+    }
+
     const action = formState.user
       ? updateUser.mutateAsync({ id: formState.user.id, payload: values })
       : createUser.mutateAsync(values);
@@ -116,7 +122,12 @@ export function UsersPage() {
   };
 
   const handleConfirmDelete = () => {
-    deleteUser.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
+    // Ch19.3 "Deleted Employees are soft deleted" — deactivate instead of
+    // removing the record, so the employee stays visible/auditable.
+    updateUser.mutate(
+      { id: deleteTarget.id, payload: { employmentStatus: 'terminated' } },
+      { onSettled: () => setDeleteTarget(null) },
+    );
   };
 
   const handleDownloadList = () => {
@@ -249,22 +260,22 @@ export function UsersPage() {
       <AppModal
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
-        title="Delete employee"
+        title="Deactivate employee"
         footer={
           <>
             <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
               Cancel
             </AppButton>
-            <AppButton variant="danger" loading={deleteUser.isPending} onClick={handleConfirmDelete}>
-              Delete
+            <AppButton variant="danger" loading={updateUser.isPending} onClick={handleConfirmDelete}>
+              Deactivate
             </AppButton>
           </>
         }
       >
         <p className="text-sm text-text-muted">
-          Are you sure you want to delete{' '}
-          <span className="font-medium text-text">{deleteTarget ? getEmployeeFullName(deleteTarget) : ''}</span>? This
-          action cannot be undone.
+          Are you sure you want to deactivate{' '}
+          <span className="font-medium text-text">{deleteTarget ? getEmployeeFullName(deleteTarget) : ''}</span>? Their
+          record is kept for audit purposes and marked Terminated instead of being removed.
         </p>
       </AppModal>
     </div>

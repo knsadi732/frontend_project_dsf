@@ -21,4 +21,6 @@ export const productSchema = z.object({
   price: z.coerce.number().positive('Price must be greater than 0'),
   stock: z.coerce.number().int().nonnegative('Stock cannot be negative'),
   status: z.enum(['active', 'inactive']).default('active'),
+  thumbnailUrl: z.string().optional(),
+  galleryUrls: z.array(z.string()).default([]),
 });

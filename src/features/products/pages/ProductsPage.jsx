@@ -23,6 +23,7 @@ import { MODULES, ACTIONS } from '@/constants/roles';
 import { RECORD_STATUS, toStatusOptions } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+import { pushToast } from '@/utils/toastBus';
 
 const STATUS_OPTIONS = toStatusOptions(RECORD_STATUS);
 
@@ -59,11 +60,22 @@ export function ProductsPage() {
   );
 
   const { data, isLoading, isFetching, refetch } = useProductsQuery(filters);
+  const { data: allProductsData } = useProductsQuery({ pageSize: 200 });
+  const allProducts = allProductsData?.data ?? [];
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
   const handleSubmit = (values) => {
+    // Ch19.5 "Product Code must be unique" (SKU is the product code here)
+    const skuTaken = allProducts.some(
+      (product) => product.sku.toLowerCase() === values.sku.toLowerCase() && product.id !== formState.product?.id,
+    );
+    if (skuTaken) {
+      pushToast('error', 'Another product already uses this SKU');
+      return;
+    }
+
     const action = formState.product
       ? updateProduct.mutateAsync({ id: formState.product.id, payload: values })
       : createProduct.mutateAsync(values);

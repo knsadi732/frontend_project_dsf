@@ -38,7 +38,20 @@ export function ProductTable({
   onDelete,
 }) {
   const columns = [
-    { key: 'name', header: 'Name' },
+    {
+      key: 'name',
+      header: 'Name',
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          {row.thumbnailUrl ? (
+            <img src={row.thumbnailUrl} alt={row.name} className="size-8 rounded border border-border object-cover" />
+          ) : (
+            <div className="size-8 rounded border border-dashed border-border" />
+          )}
+          <span>{row.name}</span>
+        </div>
+      ),
+    },
     { key: 'sku', header: 'SKU' },
     { key: 'category', header: 'Category', render: (row) => categoriesById?.[row.categoryId]?.name ?? '—' },
     { key: 'brand', header: 'Brand', render: (row) => brandsById?.[row.brandId]?.name ?? '—' },

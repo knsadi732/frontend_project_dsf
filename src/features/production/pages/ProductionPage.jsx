@@ -8,6 +8,8 @@ import { useUpdateProductionRequest } from '@/features/productionRequests/mutati
 import { WorkOrderTable } from '@/features/production/components/WorkOrderTable';
 import { WorkOrderFormModal } from '@/features/production/components/WorkOrderFormModal';
 import { ProductionRequestsPanel } from '@/features/productionRequests';
+import { QualityInspectionFormModal } from '@/features/qualityInspections';
+import { useCreateQualityInspection } from '@/features/qualityInspections/mutations/useCreateQualityInspection';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
@@ -38,6 +40,7 @@ export function ProductionPage() {
   const [formState, setFormState] = useState({ open: false, workOrder: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [convertingRequestId, setConvertingRequestId] = useState(null);
+  const [inspectionTarget, setInspectionTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
@@ -57,6 +60,7 @@ export function ProductionPage() {
   const updateWorkOrder = useUpdateWorkOrder();
   const deleteWorkOrder = useDeleteWorkOrder();
   const updateProductionRequest = useUpdateProductionRequest();
+  const createQualityInspection = useCreateQualityInspection();
 
   const handleSubmit = (values) => {
     const action = formState.workOrder?.id
@@ -172,6 +176,15 @@ export function ProductionPage() {
             }}
             onEdit={(workOrder) => setFormState({ open: true, workOrder })}
             onDelete={setDeleteTarget}
+            onRecordInspection={setInspectionTarget}
+          />
+
+          <QualityInspectionFormModal
+            open={Boolean(inspectionTarget)}
+            workOrder={inspectionTarget}
+            onClose={() => setInspectionTarget(null)}
+            onSubmit={(values) => createQualityInspection.mutateAsync(values).then(() => setInspectionTarget(null))}
+            isSubmitting={createQualityInspection.isPending}
           />
 
           <WorkOrderFormModal

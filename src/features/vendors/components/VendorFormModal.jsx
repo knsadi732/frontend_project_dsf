@@ -20,6 +20,7 @@ const DEFAULT_VALUES = {
   creditLimit: '',
   creditDays: '',
   addresses: [],
+  qualityRating: 3,
   status: 'active',
 };
 
@@ -72,9 +73,15 @@ export function VendorFormModal({ open, onClose, initialValues, onSubmit, isSubm
           <AppInput label="GST Number" error={errors.gstNumber?.message} {...register('gstNumber')} />
           <AppInput label="Payment terms" placeholder="e.g. Net 30" error={errors.paymentTerms?.message} {...register('paymentTerms')} />
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <AppInput label="Credit limit (₹)" type="number" error={errors.creditLimit?.message} {...register('creditLimit')} />
           <AppInput label="Credit days" type="number" error={errors.creditDays?.message} {...register('creditDays')} />
+          <AppSelect
+            label="Quality rating"
+            error={errors.qualityRating?.message}
+            options={[1, 2, 3, 4, 5].map((n) => ({ value: n, label: `${n} star${n > 1 ? 's' : ''}` }))}
+            {...register('qualityRating')}
+          />
           <AppSelect
             label="Status"
             error={errors.status?.message}

@@ -23,6 +23,7 @@ export function VendorTable({
     { key: 'phone', header: 'Phone' },
     { key: 'email', header: 'Email' },
     { key: 'gstNumber', header: 'GST Number' },
+    { key: 'qualityRating', header: 'Quality Rating', render: (row) => (row.qualityRating ? '★'.repeat(row.qualityRating) : '—') },
     {
       key: 'status',
       header: 'Status',

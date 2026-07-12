@@ -147,6 +147,10 @@ export const salesOrders = [
     _stockReserved: true,
     dispatchDate: '2026-07-06',
     productionEta: null,
+    pickListGeneratedAt: '2026-07-05T10:00:00.000Z',
+    packedAt: '2026-07-06T09:00:00.000Z',
+    dispatchNoteNumber: 'DN-1',
+    dispatchNoteGeneratedAt: '2026-07-06T09:30:00.000Z',
   },
   {
     id: '2',
@@ -160,6 +164,10 @@ export const salesOrders = [
     linkedWorkOrders: ['WO-502'],
     dispatchDate: null,
     productionEta: '2026-07-25',
+    pickListGeneratedAt: null,
+    packedAt: null,
+    dispatchNoteNumber: null,
+    dispatchNoteGeneratedAt: null,
   },
   {
     id: '3',
@@ -172,6 +180,10 @@ export const salesOrders = [
     _stockReserved: false,
     dispatchDate: null,
     productionEta: null,
+    pickListGeneratedAt: null,
+    packedAt: null,
+    dispatchNoteNumber: null,
+    dispatchNoteGeneratedAt: null,
   },
 ];
 
@@ -294,6 +306,10 @@ export const returns = [
 ];
 
 export const creditNotes = [];
+
+export const customerCommunications = [];
+
+export const qualityInspections = [];
 
 export function nextId(records) {
   return String(records.reduce((max, record) => Math.max(max, Number(record.id) || 0), 0) + 1);

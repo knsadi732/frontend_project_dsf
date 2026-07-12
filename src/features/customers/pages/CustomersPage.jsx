@@ -6,17 +6,25 @@ import { useUpdateCustomer } from '@/features/customers/mutations/useUpdateCusto
 import { useDeleteCustomer } from '@/features/customers/mutations/useDeleteCustomer';
 import { CustomerTable } from '@/features/customers/components/CustomerTable';
 import { CustomerFormModal } from '@/features/customers/components/CustomerFormModal';
+import { CustomerCommunicationsPanel } from '@/features/customerCommunications';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { RefreshButton } from '@/components/ui/RefreshButton';
+import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
+const TABS = [
+  { key: 'customers', label: 'Customers' },
+  { key: 'communications', label: 'Communication History' },
+];
+
 export function CustomersPage() {
+  const [activeTab, setActiveTab] = useState('customers');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -50,14 +58,20 @@ export function CustomersPage() {
           <h1 className="text-xl font-semibold text-text">Customers</h1>
           <p className="text-sm text-text-muted">Manage your customer accounts.</p>
         </div>
-        <Can module={MODULES.CUSTOMERS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, customer: null })}>
-            <Plus className="size-4" />
-            New customer
-          </AppButton>
-        </Can>
+        {activeTab === 'customers' && (
+          <Can module={MODULES.CUSTOMERS} action={ACTIONS.CREATE}>
+            <AppButton onClick={() => setFormState({ open: true, customer: null })}>
+              <Plus className="size-4" />
+              New customer
+            </AppButton>
+          </Can>
+        )}
       </div>
 
+      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
+
+      {activeTab === 'customers' && (
+        <>
       <FilterBar>
         <SearchInput
           value={search}
@@ -114,6 +128,10 @@ export function CustomersPage() {
           action cannot be undone.
         </p>
       </AppModal>
+        </>
+      )}
+
+      {activeTab === 'communications' && <CustomerCommunicationsPanel />}
     </div>
   );
 }

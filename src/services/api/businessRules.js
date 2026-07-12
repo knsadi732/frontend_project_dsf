@@ -14,6 +14,7 @@ import {
   invoices,
   purchases,
   creditNotes,
+  qualityInspections,
   getProductById,
   getRawMaterialById,
   getRawMaterialByName,
@@ -222,7 +223,13 @@ export function onSalesOrderStatusChange(previous, next) {
         message: `Stock reserved for ${next.soNumber} — dispatch by ${dispatchDate}`,
         type: 'success',
       });
-      let updated = { ...next, _stockReserved: true, dispatchDate, productionEta: null };
+      let updated = {
+        ...next,
+        _stockReserved: true,
+        dispatchDate,
+        productionEta: null,
+        pickListGeneratedAt: next.pickListGeneratedAt ?? new Date().toISOString(),
+      };
       if (!updated.invoiceNumber) {
         const invoice = generateInvoiceForOrder(updated);
         updated = { ...updated, invoiceNumber: invoice.invoiceNumber };
@@ -258,13 +265,22 @@ export function onSalesOrderStatusChange(previous, next) {
       reserveStockForItems(next.items);
     }
 
+    // Ch14.15-16 Packing / Dispatch Preparation: literal timestamp + document
+    // number stamped on the Sales Order once it's ready to leave the
+    // warehouse (Pick List was already stamped at approval/reservation time).
+    const dispatchStamp = {
+      packedAt: next.packedAt ?? new Date().toISOString(),
+      dispatchNoteNumber: next.dispatchNoteNumber ?? nextDocNumber(salesOrders, 'dispatchNoteNumber', 'DN'),
+      dispatchNoteGeneratedAt: next.dispatchNoteGeneratedAt ?? new Date().toISOString(),
+    };
+
     if (next.invoiceNumber) {
       addNotification({ title: 'Order dispatched', message: `${next.soNumber} marked completed — ${next.invoiceNumber} already on file`, type: 'success' });
-      return { ...next, _stockReserved: true };
+      return { ...next, _stockReserved: true, ...dispatchStamp };
     }
 
     const invoice = generateInvoiceForOrder(next);
-    return { ...next, _stockReserved: true, invoiceNumber: invoice.invoiceNumber };
+    return { ...next, _stockReserved: true, invoiceNumber: invoice.invoiceNumber, ...dispatchStamp };
   }
 
   if (next.status === ORDER_STATUS.CANCELLED) {
@@ -311,6 +327,21 @@ export function onWorkOrderStageChange(previous, next) {
       return { ...next, stage: previous.stage };
     }
 
+    // Ch12.17 Quality Inspection: only accepted products proceed to Finished
+    // Goods Inventory — a work order can't be marked completed without an
+    // accepted inspection on file.
+    const hasAcceptedInspection = qualityInspections.some(
+      (qc) => qc.workOrderId === next.id && qc.result === 'accepted',
+    );
+    if (!hasAcceptedInspection) {
+      addNotification({
+        title: 'Cannot complete work order',
+        message: `${next.workOrderNumber} has no accepted quality inspection on file — not completed`,
+        type: 'error',
+      });
+      return { ...next, stage: previous.stage };
+    }
+
     adjustStock(next.productId, Number(next.quantity));
     const product = getProductById(next.productId);
     addNotification({
@@ -325,7 +356,12 @@ export function onWorkOrderStageChange(previous, next) {
         const so = salesOrders[soIndex];
         if (so.status === ORDER_STATUS.IN_PROGRESS && checkStockForItems(so.items)) {
           reserveStockForItems(so.items);
-          let updated = { ...so, status: ORDER_STATUS.APPROVED, _stockReserved: true };
+          let updated = {
+            ...so,
+            status: ORDER_STATUS.APPROVED,
+            _stockReserved: true,
+            pickListGeneratedAt: so.pickListGeneratedAt ?? new Date().toISOString(),
+          };
           addNotification({
             title: 'Order ready',
             message: `${so.soNumber} stock fulfilled — ready to mark completed`,

@@ -2,13 +2,19 @@ Chapter 3
 Employee Domain
 3.1 Introduction
 
-The Employee Domain represents every individual authorized to access and operate the DS Footwear ERP SaaS platform.
+The Employee Domain represents every individual authorized to access, operate, manage, approve, or monitor business operations within the DS Footwear ERP SaaS platform.
 
-In the DS Footwear ERP, an Employee is the ERP User. The system does not maintain a separate User entity. Every authenticated person performing business operations is managed through the Employee Master.
+In the DS Footwear ERP, an Employee is the ERP User. The system does not maintain a separate User entity. Every authenticated individual—including founders, administrators, managers, supervisors, executives, operators, and support staff—is managed through the centralized Employee Master.
 
-The Employee Domain acts as the central identity and operational domain of the ERP, providing authentication, authorization, organizational assignment, payroll information, attendance tracking, document management, asset allocation, and complete auditability.
+The Employee Domain serves as the single identity management domain for the entire ERP ecosystem. It is responsible for maintaining employee master information, authentication, role-based access control (RBAC), organizational assignments, payroll information, attendance, leave management, document management, asset allocation, and complete auditability of employee activities.
 
-All operational modules—including Sales, Purchase, Inventory, Production, Finance, Dispatch, Customer Support, and Reporting—reference the Employee Domain.
+Each employee belongs to the organizational hierarchy of the company and is associated with a Company, Branch, Department, Designation, and Reporting Manager. An employee may also be assigned multiple ERP Roles, enabling cross-functional responsibilities while maintaining a single employee profile and login account.
+
+Every business transaction performed within the ERP is traceable to the employee who initiated, modified, approved, or completed the action, ensuring complete accountability and operational transparency.
+
+The Employee Domain is referenced by all major ERP modules, including Authentication, RBAC, Organization Management, Sales, Purchase, Inventory, Warehouse, Production Planning & Manufacturing, Finance & Accounting, Dispatch, Customer Support, Reporting & Business Intelligence, Communication & Workflow Automation, and Audit Logs.
+
+The domain is designed to support organizations ranging from small startup teams with multi-role employees to large enterprise organizations with thousands of employees, without requiring changes to the core business architecture.
 
 3.2 Purpose
 
@@ -24,6 +30,7 @@ Maintaining employee documents.
 Tracking company assets assigned to employees.
 Recording audit history of employee activities.
 Serving as the single identity source for the entire ERP.
+
 3.3 Employee Domain Structure
 Employee
 ├── Login & Authentication

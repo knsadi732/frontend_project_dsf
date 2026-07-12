@@ -31,8 +31,15 @@ export const WORK_ORDER_STAGE_OPTIONS = [
   { value: 'pending', label: 'Pending' },
   { value: 'blocked_on_material', label: 'Blocked on material' },
   { value: 'in_progress', label: 'In Progress' },
+  { value: 'quality_check', label: 'Quality check' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
+];
+
+export const QC_RESULT_OPTIONS = [
+  { value: 'accepted', label: 'Accepted' },
+  { value: 'rework_required', label: 'Rework Required' },
+  { value: 'rejected', label: 'Rejected' },
 ];
 
 export const RETURN_STATUS = {
@@ -126,6 +133,10 @@ export const STATUS_BADGE_VARIANT = {
   [PAYMENT_STATUS.PAID]: 'success',
   [PAYMENT_STATUS.OVERDUE]: 'danger',
   blocked_on_material: 'danger',
+  quality_check: 'warning',
+  accepted: 'success',
+  rework_required: 'warning',
+  rejected: 'danger',
   [RETURN_STATUS.REQUESTED]: 'warning',
   [RETURN_STATUS.APPROVED]: 'info',
   [RETURN_STATUS.PARTIALLY_APPROVED]: 'info',

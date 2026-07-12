@@ -15,6 +15,7 @@ const MOCK_VENDORS = [
     addresses: [
       { type: 'registered_office', contactPerson: 'Leo Sales Desk', phone: '9822200001', addressLine: 'Leather Market', city: 'Kanpur', state: 'Uttar Pradesh', country: 'India', postalCode: '208001' },
     ],
+    qualityRating: 4,
     status: 'active',
   },
   {
@@ -29,6 +30,7 @@ const MOCK_VENDORS = [
     creditLimit: 250000,
     creditDays: 15,
     addresses: [],
+    qualityRating: 4,
     status: 'active',
   },
   {
@@ -43,6 +45,7 @@ const MOCK_VENDORS = [
     creditLimit: 150000,
     creditDays: 15,
     addresses: [],
+    qualityRating: 4,
     status: 'active',
   },
   {
@@ -57,6 +60,7 @@ const MOCK_VENDORS = [
     creditLimit: 200000,
     creditDays: 30,
     addresses: [],
+    qualityRating: 4,
     status: 'active',
   },
 ];
