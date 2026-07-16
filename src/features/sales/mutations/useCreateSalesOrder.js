@@ -11,6 +11,8 @@ export function useCreateSalesOrder() {
     mutationFn: salesApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.communicationLogs.all });
       pushToast('success', TOAST_MESSAGES.CREATE_SUCCESS('Sales order'));
     },
   });

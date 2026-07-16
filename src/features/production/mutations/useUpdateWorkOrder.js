@@ -14,6 +14,7 @@ export function useUpdateWorkOrder() {
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.communicationLogs.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       pushToast('success', TOAST_MESSAGES.UPDATE_SUCCESS('Work order'));
     },

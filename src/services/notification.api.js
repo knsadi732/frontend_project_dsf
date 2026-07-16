@@ -6,13 +6,12 @@ import { logNotificationEvent, markCommunicationLogRead } from '@/services/commu
 // notification's display category. `category` is the separate, older
 // action-button routing key (e.g. 'sales_order_review') used by
 // NotificationList to decide which inline actions to render — unrelated to
-// display type.
-let mockNotifications = [
-  { id: '1', title: 'Low stock alert', message: 'SKU DSF-RUN-42 is below reorder level', type: 'warning', status: 'unread', createdAt: '2026-07-11T08:00:00' },
-  { id: '2', title: 'New sales order', message: 'Order SO-1044 received from Sharma Footwear Traders', type: 'approval', category: 'sales_order_review', status: 'unread', createdAt: '2026-07-10T16:45:00' },
-  { id: '3', title: 'Purchase order approved', message: 'PO-1001 approved by Finance', type: 'success', status: 'read', createdAt: '2026-07-08T11:20:00' },
-  { id: '4', title: 'Report ready', message: 'Sales Summary - June 2026 is ready to download', type: 'information', status: 'read', createdAt: '2026-07-01T10:16:00' },
-];
+// display type. `entityId` is exclusively a Sales Order id today (every
+// call site in businessRules.js that sets it refers to a sales order) — the
+// Communication Log's Delivery Status column looks it up as such
+// (CommunicationLogTable.jsx). If entityId is ever used for another entity
+// type, that lookup needs an accompanying `entityType` field to disambiguate.
+let mockNotifications = [];
 
 let nextNotificationId = mockNotifications.length + 1;
 

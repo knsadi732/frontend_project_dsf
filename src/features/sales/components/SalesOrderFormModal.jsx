@@ -5,24 +5,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { salesOrderSchema, SALES_CHANNEL_OPTIONS } from '@/features/sales/validators/salesOrder.schema';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
+import { salesOrders, nextDocNumber } from '@/services/api/mockDb';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
-import { ORDER_STATUS, toStatusOptions } from '@/constants/statusEnums';
+import { ORDER_STATUS } from '@/constants/statusEnums';
 
 const EMPTY_ITEM = { productId: '', quantity: '', rate: '' };
+// Status is never set here — it only moves via the workflow actions
+// (Accept/Reject/Mark-ready from Notifications, GRN/production completion,
+// etc. in businessRules.js). New orders start `pending` (awaiting Sales
+// Review); the table shows the current status read-only.
 const DEFAULT_VALUES = {
   soNumber: '',
   customerId: '',
   customer: '',
   salesChannel: 'manual',
   orderDate: '',
-  status: ORDER_STATUS.DRAFT,
+  status: ORDER_STATUS.PENDING,
   items: [EMPTY_ITEM],
 };
-
-const STATUS_OPTIONS = toStatusOptions(ORDER_STATUS);
 
 export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
@@ -61,7 +64,15 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
   );
 
   useEffect(() => {
-    if (open) reset(initialValues ?? DEFAULT_VALUES);
+    if (!open) return;
+    if (initialValues?.id) {
+      reset(initialValues);
+    } else {
+      // Auto-generate the next SO number (DS-SO-01, DS-SO-02, ...) —
+      // recomputed each time the form opens so it always reflects the
+      // current highest saved number, not reserved until actually saved.
+      reset({ ...DEFAULT_VALUES, ...initialValues, soNumber: nextDocNumber(salesOrders, 'soNumber', 'DS-SO', 2) });
+    }
   }, [open, initialValues, reset]);
 
   const handleProductChange = (index, productId) => {
@@ -90,7 +101,14 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
     >
       <form id="sales-order-form" onSubmit={handleSubmit(submitWithTotal)} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-2 gap-4">
-          <AppInput label="SO Number" required error={errors.soNumber?.message} {...register('soNumber')} />
+          <AppInput
+            label="SO Number"
+            required
+            readOnly
+            helperText="Auto-generated"
+            error={errors.soNumber?.message}
+            {...register('soNumber')}
+          />
           <AppSelect
             label="Customer"
             placeholder="Select customer"
@@ -108,9 +126,8 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
             error={errors.orderDate?.message}
             {...register('orderDate')}
           />
-          <AppSelect label="Status" error={errors.status?.message} options={STATUS_OPTIONS} {...register('status')} />
+          <AppSelect label="Sales channel" error={errors.salesChannel?.message} options={SALES_CHANNEL_OPTIONS} {...register('salesChannel')} />
         </div>
-        <AppSelect label="Sales channel" error={errors.salesChannel?.message} options={SALES_CHANNEL_OPTIONS} {...register('salesChannel')} />
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">

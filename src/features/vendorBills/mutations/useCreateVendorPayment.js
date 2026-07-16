@@ -13,6 +13,7 @@ export function useCreateVendorPayment() {
       queryClient.invalidateQueries({ queryKey: queryKeys.vendorPayments.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.vendorBills.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.communicationLogs.all });
       pushToast('success', TOAST_MESSAGES.CREATE_SUCCESS('Vendor payment'));
     },
   });

@@ -13,6 +13,7 @@ export function useUpdatePurchase() {
       queryClient.invalidateQueries({ queryKey: queryKeys.purchases.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.production.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.communicationLogs.all });
       pushToast('success', TOAST_MESSAGES.UPDATE_SUCCESS('Purchase order'));
     },
   });

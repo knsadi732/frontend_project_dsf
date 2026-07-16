@@ -18,7 +18,7 @@ const EMAIL_SIMULATED_TITLES = [
 let mockCommunicationLogs = [];
 let nextLogId = 1;
 
-export function addCommunicationLog({ businessEvent, channel, template, recipient = 'All', notificationId = null }) {
+export function addCommunicationLog({ businessEvent, channel, template, recipient = 'All', notificationId = null, entityId = null }) {
   if (!env.mockAuth) return;
   mockCommunicationLogs = [
     {
@@ -32,15 +32,16 @@ export function addCommunicationLog({ businessEvent, channel, template, recipien
       readTime: null,
       retryCount: 0,
       notificationId,
+      entityId,
     },
     ...mockCommunicationLogs,
   ];
 }
 
 export function logNotificationEvent(notification) {
-  addCommunicationLog({ businessEvent: notification.title, channel: 'in_app', recipient: 'All', notificationId: notification.id });
+  addCommunicationLog({ businessEvent: notification.title, channel: 'in_app', recipient: 'All', notificationId: notification.id, entityId: notification.entityId });
   if (EMAIL_SIMULATED_TITLES.some((title) => notification.title.startsWith(title))) {
-    addCommunicationLog({ businessEvent: notification.title, channel: 'email', recipient: 'Customer/Vendor', notificationId: notification.id });
+    addCommunicationLog({ businessEvent: notification.title, channel: 'email', recipient: 'Customer/Vendor', notificationId: notification.id, entityId: notification.entityId });
   }
 }
 

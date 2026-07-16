@@ -77,7 +77,7 @@ export function ReturnsPage() {
         customer: returnItem.customer ?? '',
         salesChannel: 'manual',
         orderDate: new Date().toISOString().slice(0, 10),
-        status: ORDER_STATUS.DRAFT,
+        status: ORDER_STATUS.PENDING,
         items: [{ productId: returnItem.productId, quantity: returnItem.quantity, rate: '' }],
       },
     });

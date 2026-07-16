@@ -112,6 +112,7 @@ function generateInvoiceForOrder(order) {
       ? `${invoice.invoiceNumber} generated for ${order.soNumber} — heavy order, advance ₹${advanceAmount.toLocaleString('en-IN')} due`
       : `${invoice.invoiceNumber} generated for ${order.soNumber}`,
     type: 'success',
+    entityId: order.id,
   });
 
   return invoice;
@@ -222,6 +223,7 @@ export function onSalesOrderStatusChange(previous, next) {
         title: 'Stock reserved',
         message: `Stock reserved for ${next.soNumber} — dispatch by ${dispatchDate}`,
         type: 'success',
+        entityId: next.id,
       });
       let updated = {
         ...next,
@@ -259,6 +261,7 @@ export function onSalesOrderStatusChange(previous, next) {
           title: 'Cannot complete order',
           message: `${next.soNumber} is still waiting on stock — not completed`,
           type: 'error',
+          entityId: next.id,
         });
         return { ...next, status: previous.status };
       }
@@ -275,7 +278,7 @@ export function onSalesOrderStatusChange(previous, next) {
     };
 
     if (next.invoiceNumber) {
-      addNotification({ title: 'Order dispatched', message: `${next.soNumber} marked completed — ${next.invoiceNumber} already on file`, type: 'success' });
+      addNotification({ title: 'Order dispatched', message: `${next.soNumber} marked completed — ${next.invoiceNumber} already on file`, type: 'success', entityId: next.id });
       return { ...next, _stockReserved: true, ...dispatchStamp };
     }
 
@@ -296,6 +299,7 @@ export function onSalesOrderStatusChange(previous, next) {
       title: 'Order cancelled',
       message: `${next.soNumber} cancelled${previous._stockReserved ? ' — reserved stock released' : ''}`,
       type: 'warning',
+      entityId: next.id,
     });
     return { ...next, _stockReserved: false };
   }
@@ -307,6 +311,7 @@ export function onSalesOrderStatusChange(previous, next) {
       title: 'Order rejected',
       message: `${next.soNumber} rejected`,
       type: 'error',
+      entityId: next.id,
     });
     return { ...next, _stockReserved: false };
   }
@@ -366,6 +371,7 @@ export function onWorkOrderStageChange(previous, next) {
             title: 'Order ready',
             message: `${so.soNumber} stock fulfilled — ready to mark completed`,
             type: 'success',
+            entityId: so.id,
           });
           if (!updated.invoiceNumber) {
             const invoice = generateInvoiceForOrder(updated);

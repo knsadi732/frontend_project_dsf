@@ -13,6 +13,7 @@ export function useCreatePayment() {
       queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.finance.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.communicationLogs.all });
       pushToast('success', TOAST_MESSAGES.CREATE_SUCCESS('Payment'));
     },
   });

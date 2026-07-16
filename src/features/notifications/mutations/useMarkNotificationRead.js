@@ -10,6 +10,7 @@ export function useMarkNotificationRead() {
     mutationFn: notificationApi.markRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.communicationLogs.all });
       pushToast('success', 'Notification marked as read');
     },
   });

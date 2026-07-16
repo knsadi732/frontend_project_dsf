@@ -1,11 +1,7 @@
 import { apiClient } from '@/services/api/axios';
 import { env } from '@/config/env';
 
-let mockReports = [
-  { id: '1', name: 'Sales Summary - June 2026', type: 'sales', generatedAt: '2026-07-01T10:15:00', status: 'ready' },
-  { id: '2', name: 'Inventory Valuation - Q2', type: 'inventory', generatedAt: '2026-07-03T09:00:00', status: 'ready' },
-  { id: '3', name: 'Finance P&L - June 2026', type: 'finance', generatedAt: '2026-07-05T14:30:00', status: 'pending' },
-];
+let mockReports = [];
 let nextReportId = mockReports.length + 1;
 
 export const reportApi = {

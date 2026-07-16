@@ -61,6 +61,10 @@ export function SalesPage() {
     deleteSalesOrder.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const handleMarkDelivered = (salesOrder) => {
+    updateSalesOrder.mutate({ id: salesOrder.id, payload: { deliveredAt: new Date().toISOString() } });
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -133,6 +137,7 @@ export function SalesPage() {
         }}
         onEdit={(salesOrder) => setFormState({ open: true, salesOrder })}
         onDelete={setDeleteTarget}
+        onMarkDelivered={handleMarkDelivered}
       />
 
       <SalesOrderFormModal

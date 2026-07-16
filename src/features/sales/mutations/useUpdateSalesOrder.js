@@ -15,6 +15,7 @@ export function useUpdateSalesOrder() {
       queryClient.invalidateQueries({ queryKey: queryKeys.production.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.finance.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.communicationLogs.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       pushToast('success', TOAST_MESSAGES.UPDATE_SUCCESS('Sales order'));
     },

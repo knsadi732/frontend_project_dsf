@@ -1,4 +1,4 @@
-import { ClipboardList, Download, Package, Pencil, Trash2 } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Download, Package, Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
@@ -71,6 +71,7 @@ export function SalesOrderTable({
   onPageSizeChange,
   onEdit,
   onDelete,
+  onMarkDelivered,
 }) {
   const { data: productsData } = useProductsQuery({ pageSize: 200 });
   const productsById = Object.fromEntries((productsData?.data ?? []).map((p) => [p.id, p]));
@@ -159,6 +160,22 @@ export function SalesOrderTable({
             >
               <Package className="size-4" />
             </AppButton>
+          )}
+          {row.dispatchNoteGeneratedAt && !row.deliveredAt && (
+            <Can module={MODULES.SALES} action={ACTIONS.EDIT}>
+              <AppButton
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onMarkDelivered(row);
+                }}
+                aria-label={`Mark ${row.soNumber} as delivered`}
+                className="text-success hover:bg-success/10"
+              >
+                <CheckCircle2 className="size-4" />
+              </AppButton>
+            </Can>
           )}
           <Can module={MODULES.SALES} action={ACTIONS.EDIT}>
             <AppButton
