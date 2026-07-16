@@ -89,6 +89,8 @@ export const customerCommunications = [];
 
 export const qualityInspections = [];
 
+export const loanEsignRequests = [];
+
 export function nextId(records) {
   return String(records.reduce((max, record) => Math.max(max, Number(record.id) || 0), 0) + 1);
 }

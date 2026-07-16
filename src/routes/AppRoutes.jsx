@@ -28,6 +28,9 @@ const NotificationsPage = lazy(() =>
   import('@/features/notifications').then((m) => ({ default: m.NotificationsPage })),
 );
 const ReportsPage = lazy(() => import('@/features/reports').then((m) => ({ default: m.ReportsPage })));
+const EsignSigningPage = lazy(() =>
+  import('@/features/loanEsignRequests').then((m) => ({ default: m.EsignSigningPage })),
+);
 
 function SuspenseOutlet({ children }) {
   return <Suspense fallback={<BaseLoader label="Loading page…" />}>{children}</Suspense>;
@@ -46,6 +49,15 @@ export function AppRoutes() {
           }
         />
       </Route>
+
+      <Route
+        path="/esign/:token"
+        element={
+          <SuspenseOutlet>
+            <EsignSigningPage />
+          </SuspenseOutlet>
+        }
+      />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>

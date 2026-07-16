@@ -2,6 +2,7 @@ import { apiClient } from '@/services/api/axios';
 import { env } from '@/config/env';
 import { notificationApi } from '@/services/notification.api';
 import { products, inventory, salesOrders, invoices, returns, MONTHLY_FIXED_COST } from '@/services/api/mockDb';
+import { MODULES } from '@/constants/roles';
 
 // Documented assumption: we only have live July 2026 transactional data, so
 // Jan-Jun is a seeded historical baseline and "last year" is a synthetic
@@ -65,35 +66,40 @@ function buildStats() {
   const categoriesUsed = new Set(products.map((p) => p.categoryId).filter(Boolean)).size;
 
   return [
-    { key: 'inventoryQty', label: 'Inventory Quantity', value: totalInventoryQty.toLocaleString('en-IN') },
-    { key: 'inventoryValue', label: 'Inventory Value', value: `₹${totalInventoryValue.toLocaleString('en-IN')}` },
+    { key: 'inventoryQty', module: MODULES.INVENTORY, label: 'Inventory Quantity', value: totalInventoryQty.toLocaleString('en-IN') },
+    { key: 'inventoryValue', module: MODULES.INVENTORY, label: 'Inventory Value', value: `₹${totalInventoryValue.toLocaleString('en-IN')}` },
     {
       key: 'salesOrders',
+      module: MODULES.SALES,
       label: 'Sales Orders',
       value: String(salesOrders.length),
       delta: `+${soByStatus.pending ?? 0} pending`,
     },
     {
       key: 'invoicesPaid',
+      module: MODULES.FINANCE,
       label: 'Invoices — Paid',
       value: `₹${paidTotal.toLocaleString('en-IN')}`,
       delta: `+${paidInvoices.length} invoices`,
     },
     {
       key: 'invoicesPartial',
+      module: MODULES.FINANCE,
       label: 'Invoices — Part Payment',
       value: `₹${partialTotal.toLocaleString('en-IN')}`,
       delta: `+${partialInvoices.length} invoices`,
     },
     {
       key: 'invoicesPending',
+      module: MODULES.FINANCE,
       label: 'Invoices — Pending',
       value: `₹${pendingTotal.toLocaleString('en-IN')}`,
       delta: `-${pendingInvoices.length} invoices`,
     },
-    { key: 'totalSkus', label: 'Total SKUs', value: String(products.length) },
+    { key: 'totalSkus', module: MODULES.PRODUCTS, label: 'Total SKUs', value: String(products.length) },
     {
       key: 'categories',
+      module: MODULES.PRODUCTS,
       label: 'Product Categories',
       value: String(categoriesUsed),
     },

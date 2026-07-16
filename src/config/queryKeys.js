@@ -45,6 +45,7 @@ export const queryKeys = {
   creditNotes: resourceKeys('creditNotes'),
   customerCommunications: resourceKeys('customerCommunications'),
   qualityInspections: resourceKeys('qualityInspections'),
+  loanEsignRequests: resourceKeys('loanEsignRequests'),
   notifications: resourceKeys('notifications'),
   communicationLogs: resourceKeys('communicationLogs'),
   reports: resourceKeys('reports'),

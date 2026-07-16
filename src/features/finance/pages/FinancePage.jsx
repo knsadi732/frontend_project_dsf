@@ -9,6 +9,7 @@ import { InvoiceFormModal } from '@/features/finance/components/InvoiceFormModal
 import { PaymentsPanel } from '@/features/payments';
 import { VendorBillsPanel } from '@/features/vendorBills';
 import { CreditNotesPanel } from '@/features/creditNotes';
+import { LoanEsignRequestsPanel } from '@/features/loanEsignRequests';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
@@ -31,6 +32,7 @@ const TABS = [
   { key: 'payments', label: 'Customer Payments' },
   { key: 'vendorBills', label: 'Vendor Bills' },
   { key: 'creditNotes', label: 'Credit Notes' },
+  { key: 'loanRequests', label: 'Loan Requests' },
 ];
 
 export function FinancePage() {
@@ -188,6 +190,7 @@ export function FinancePage() {
       {activeTab === 'payments' && <PaymentsPanel />}
       {activeTab === 'vendorBills' && <VendorBillsPanel />}
       {activeTab === 'creditNotes' && <CreditNotesPanel />}
+      {activeTab === 'loanRequests' && <LoanEsignRequestsPanel />}
     </div>
   );
 }
