@@ -20,11 +20,19 @@ export function createCrudApi(resource, mockSeed, mockOptions) {
 
   const base = `/${resource}`;
 
+  // Every backend response is enveloped as `{ success, message, data, meta }`
+  // (backend_project_dsf/src/utils/response.js) — unwrap it here so every
+  // caller keeps getting the same `{ data, total }` / bare-record shapes it
+  // already gets from the mock branch above.
   return {
-    list: (params) => apiClient.get(base, { params }).then((res) => res.data),
-    get: (id) => apiClient.get(`${base}/${id}`).then((res) => res.data),
-    create: (payload) => apiClient.post(base, payload).then((res) => res.data),
-    update: (id, payload) => apiClient.put(`${base}/${id}`, payload).then((res) => res.data),
-    remove: (id) => apiClient.delete(`${base}/${id}`).then((res) => res.data),
+    list: (params) =>
+      apiClient.get(base, { params }).then((res) => ({
+        data: res.data.data,
+        total: res.data.meta?.total_records ?? res.data.data.length,
+      })),
+    get: (id) => apiClient.get(`${base}/${id}`).then((res) => res.data.data),
+    create: (payload) => apiClient.post(base, payload).then((res) => res.data.data),
+    update: (id, payload) => apiClient.patch(`${base}/${id}`, payload).then((res) => res.data.data),
+    remove: (id) => apiClient.delete(`${base}/${id}`).then((res) => res.data.data),
   };
 }

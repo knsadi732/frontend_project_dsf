@@ -14,8 +14,18 @@ export function useLoginMutation() {
       pushToast('success', TOAST_MESSAGES.LOGIN_SUCCESS);
     },
     onError: (error) => {
-      const message = error?.response?.data?.message ?? error?.message ?? TOAST_MESSAGES.INVALID_CREDENTIALS;
-      pushToast('error', message);
+      // If the request never reached the server (backend down, no network),
+      // the axios interceptor already pushed a NETWORK_ERROR toast — showing
+      // "invalid credentials" on top of that would be misleading, since the
+      // credentials were never actually checked.
+      if (error?.response) {
+        // Always the generic phrase, regardless of what the backend/mock
+        // says — never reveal whether the identifier or the password was wrong.
+        pushToast('error', TOAST_MESSAGES.INVALID_CREDENTIALS);
+      } else if (!error?.request) {
+        // Mock-mode rejection (a plain Error, not an axios error at all).
+        pushToast('error', TOAST_MESSAGES.INVALID_CREDENTIALS);
+      }
     },
   });
 }

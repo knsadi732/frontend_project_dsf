@@ -36,9 +36,14 @@ async function refreshAccessToken() {
   const refreshToken = useAuthStore.getState().refreshToken;
   if (!refreshToken) throw new Error('No refresh token');
 
+  // Response is enveloped (`{ success, message, data }`, see
+  // backend_project_dsf/src/utils/response.js) and the backend rotates the
+  // refresh token on every call, so both tokens from `data.data` must be
+  // persisted or the next refresh will be rejected as already-used.
   const { data } = await axios.post(`${env.apiBaseUrl}/auth/refresh`, { refreshToken });
-  useAuthStore.getState().setAccessToken(data.accessToken);
-  return data.accessToken;
+  const { accessToken, refreshToken: nextRefreshToken } = data.data;
+  useAuthStore.getState().setAccessToken(accessToken, nextRefreshToken);
+  return accessToken;
 }
 
 apiClient.interceptors.response.use(

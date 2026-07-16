@@ -18,7 +18,8 @@ export const useAuthStore = create(
           isAuthenticated: true,
         }),
 
-      setAccessToken: (accessToken) => set({ accessToken }),
+      setAccessToken: (accessToken, refreshToken) =>
+        set((state) => ({ accessToken, refreshToken: refreshToken ?? state.refreshToken })),
 
       updateUser: (patch) => set((state) => ({ user: { ...state.user, ...patch } })),
 
