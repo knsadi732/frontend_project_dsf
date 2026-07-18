@@ -1,23 +1,27 @@
-import { createCrudApi } from '@/services/api/createCrudApi';
+import { apiClient } from '@/services/api/axios';
 
-const MOCK_COMPANY = [
-  {
-    id: '1',
-    name: 'DS Footwear Pvt Ltd',
-    gstNumber: '09AABCD1234E1Z5',
-    panNumber: 'AABCD1234E',
-    cin: 'U19201UP2020PTC123456',
-    address: 'Industrial Area, Phase 2',
-    city: 'Agra',
-    state: 'Uttar Pradesh',
-    country: 'India',
-    postalCode: '282006',
-    phone: '9000000001',
-    email: 'info@dsfootwear.example',
-    financialYearStart: '2026-04-01',
-    financialYearEnd: '2027-03-31',
-    status: 'active',
+// Backend's `company` resource is a tenant singleton (GET/PATCH /company,
+// no id/list/create/delete) — unlike createCrudApi's list-shaped wrapper,
+// so this talks to it directly. Only `name`/`gstin` have a backend
+// equivalent (updateCompany validator); other UI fields (panNumber, cin,
+// address block, financial year) have no backend column yet — sent anyway
+// (the validator's `stripUnknown` drops them silently) but won't persist.
+function toBackendPayload(company) {
+  return { name: company.name, gstin: company.gstNumber };
+}
+
+function fromBackendCompany(company) {
+  return { ...company, gstNumber: company.gstin };
+}
+
+export const companyApi = {
+  // `get`/`update` accept and ignore a leading id (the feature layer still
+  // calls `companyApi.get('1')` / `companyApi.update('1', payload)` from
+  // when this was a createCrudApi-shaped resource) since /company is a
+  // tenant singleton with no id in its URL.
+  get: () => apiClient.get('/company').then((res) => fromBackendCompany(res.data.data)),
+  update: (idOrPayload, maybePayload) => {
+    const payload = maybePayload ?? idOrPayload;
+    return apiClient.patch('/company', toBackendPayload(payload)).then((res) => fromBackendCompany(res.data.data));
   },
-];
-
-export const companyApi = createCrudApi('company', MOCK_COMPANY);
+};

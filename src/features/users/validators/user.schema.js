@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { ROLES } from '@/constants/roles';
 import { EMPLOYMENT_STATUS } from '@/constants/statusEnums';
 
 export const userSchema = z.object({
@@ -7,9 +6,16 @@ export const userSchema = z.object({
   middleName: z.string().optional(),
   lastName: z.string().min(1, 'Last name is required'),
   phone: z.string().min(10, 'Enter a valid phone number'),
-  email: z.string().email('Enter a valid email').optional().or(z.literal('')),
-  primaryRole: z.enum(Object.values(ROLES)).default('EMPLOYEE'),
-  additionalRoles: z.array(z.enum(Object.values(ROLES))).default([]),
+  email: z.string().email('Enter a valid email'),
+  // Only shown/used on create (UserFormModal) — left blank and defaulted to
+  // '123456' by UsersPage if HR doesn't set one; not present at all when
+  // editing an existing employee.
+  password: z.union([z.string().min(6, 'Password must be at least 6 characters'), z.literal('')]).optional(),
+  confirmPassword: z.string().optional(),
+  // Real role GUIDs from GET /roles (see UsersPage's useRolesQuery) — not a
+  // fixed enum, since roles are seeded per-tenant on the backend.
+  primaryRole: z.string().min(1, 'Role is required'),
+  additionalRoles: z.array(z.string()).default([]),
   departmentId: z.string().optional(),
   designationId: z.string().optional(),
   branchId: z.string().optional(),
@@ -43,4 +49,7 @@ export const userSchema = z.object({
   emailNotifications: z.boolean().default(true),
   smsNotifications: z.boolean().default(true),
   inAppNotifications: z.boolean().default(true),
+}).refine((data) => !data.password || data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
 });

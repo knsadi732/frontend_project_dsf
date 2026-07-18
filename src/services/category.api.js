@@ -4,4 +4,6 @@ const MOCK_CATEGORIES = [
   { id: '1', name: 'Footwear', categoryCode: 'FOOTWEAR', status: 'active' },
 ];
 
-export const categoryApi = createCrudApi('categories', MOCK_CATEGORIES);
+// Real backend exposes categories nested under /products/categories
+// (product.routes.js), not a bare /categories resource.
+export const categoryApi = createCrudApi('products/categories', MOCK_CATEGORIES);

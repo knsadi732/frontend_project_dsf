@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema } from '@/features/auth/validators/login.schema';
 import { useLoginMutation } from '@/features/auth/mutations/useLoginMutation';
+import { isPendingPasswordChange } from '@/utils/pendingPasswordChange';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppButton } from '@/components/ui/AppButton';
 
@@ -23,6 +24,13 @@ export function LoginPage() {
   const onSubmit = (values) => {
     loginMutation.mutate(values, {
       onSuccess: () => {
+        // Optional, one-time nudge for accounts HR created with a temp
+        // password (see pendingPasswordChange.js) — lands on Profile >
+        // Password, but nothing stops them skipping straight to work.
+        if (isPendingPasswordChange(values.phone)) {
+          navigate('/profile', { replace: true, state: { forcePasswordChange: true } });
+          return;
+        }
         const redirectTo = location.state?.from ?? '/dashboard';
         navigate(redirectTo, { replace: true });
       },

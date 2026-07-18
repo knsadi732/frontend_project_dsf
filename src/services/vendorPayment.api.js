@@ -1,7 +1,7 @@
 import { createCrudApi } from '@/services/api/createCrudApi';
 import { recordVendorBillPayment } from '@/services/vendorBill.api';
 
-const MOCK_VENDOR_PAYMENTS = [];
+export const MOCK_VENDOR_PAYMENTS = [];
 
 function onVendorPaymentCreate(record) {
   recordVendorBillPayment(record.vendorBillId, record.amount);

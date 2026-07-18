@@ -3,6 +3,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { purchaseSchema } from '@/features/purchases/validators/purchase.schema';
+import { purchaseApi } from '@/features/purchases/api';
 import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
@@ -46,14 +47,23 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const items = useWatch({ control, name: 'items' });
+  const poNumber = useWatch({ control, name: 'poNumber' });
+  const isGeneratingNumber = open && !initialValues?.id && !poNumber;
   const total = (items ?? []).reduce(
     (sum, item) => sum + (Number(item?.quantity) || 0) * (Number(item?.rate) || 0),
     0,
   );
 
   useEffect(() => {
-    if (open) reset(initialValues ?? DEFAULT_VALUES);
-  }, [open, initialValues, reset]);
+    if (!open) return;
+    reset(initialValues ?? DEFAULT_VALUES);
+
+    // New PO — the number is server-generated (sequence-backed), not
+    // client-typed, so fetch it as soon as the form opens.
+    if (!initialValues?.id) {
+      purchaseApi.generateNumber().then((generated) => setValue('poNumber', generated));
+    }
+  }, [open, initialValues, reset, setValue]);
 
   const submitWithTotal = (values) => onSubmit({ ...values, total });
 
@@ -76,7 +86,14 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
     >
       <form id="purchase-form" onSubmit={handleSubmit(submitWithTotal)} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-2 gap-4">
-          <AppInput label="PO Number" required error={errors.poNumber?.message} {...register('poNumber')} />
+          <AppInput
+            label="PO Number"
+            required
+            disabled={!initialValues?.id}
+            placeholder={isGeneratingNumber ? 'Generating…' : undefined}
+            error={errors.poNumber?.message}
+            {...register('poNumber')}
+          />
           <AppSelect
             label="Vendor"
             placeholder="Select vendor"

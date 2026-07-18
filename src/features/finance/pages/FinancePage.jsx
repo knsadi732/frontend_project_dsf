@@ -10,6 +10,8 @@ import { PaymentsPanel } from '@/features/payments';
 import { VendorBillsPanel } from '@/features/vendorBills';
 import { CreditNotesPanel } from '@/features/creditNotes';
 import { LoanEsignRequestsPanel } from '@/features/loanEsignRequests';
+import { LedgerPanel } from '@/features/ledger';
+import { CompliancePanel } from '@/features/compliance';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
@@ -33,6 +35,8 @@ const TABS = [
   { key: 'vendorBills', label: 'Vendor Bills' },
   { key: 'creditNotes', label: 'Credit Notes' },
   { key: 'loanRequests', label: 'Loan Requests' },
+  { key: 'ledger', label: 'Ledger' },
+  { key: 'compliance', label: 'Compliance' },
 ];
 
 export function FinancePage() {
@@ -191,6 +195,8 @@ export function FinancePage() {
       {activeTab === 'vendorBills' && <VendorBillsPanel />}
       {activeTab === 'creditNotes' && <CreditNotesPanel />}
       {activeTab === 'loanRequests' && <LoanEsignRequestsPanel />}
+      {activeTab === 'ledger' && <LedgerPanel />}
+      {activeTab === 'compliance' && <CompliancePanel />}
     </div>
   );
 }

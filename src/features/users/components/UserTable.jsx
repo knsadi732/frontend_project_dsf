@@ -11,6 +11,7 @@ import { getEmployeeFullName } from '@/utils/employeeName';
 export function UserTable({
   users,
   departmentsById,
+  rolesById,
   isLoading,
   page,
   pageSize,
@@ -43,17 +44,17 @@ export function UserTable({
     {
       key: 'department',
       header: 'Department',
-      render: (row) => <span className="text-text-muted">{departmentsById?.[row.departmentId]?.name ?? '—'}</span>,
+      render: (row) => <span className="text-text-muted">{departmentsById?.[row.departmentId]?.name ?? row.departmentName ?? '—'}</span>,
     },
     {
       key: 'role',
       header: 'Role',
       render: (row) => (
         <div className="flex flex-wrap gap-1">
-          <BaseBadge variant="info">{row.primaryRole}</BaseBadge>
+          <BaseBadge variant="info">{rolesById?.[row.primaryRole]?.name ?? row.primaryRole}</BaseBadge>
           {row.additionalRoles?.map((role) => (
             <BaseBadge key={role} variant="default">
-              {role}
+              {rolesById?.[role]?.name ?? role}
             </BaseBadge>
           ))}
         </div>

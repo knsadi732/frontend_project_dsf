@@ -1,7 +1,7 @@
 import { createCrudApi } from '@/services/api/createCrudApi';
 import { addNotification } from '@/services/notification.api';
 
-const MOCK_VENDOR_BILLS = [];
+export const MOCK_VENDOR_BILLS = [];
 
 export function recordVendorBillPayment(vendorBillId, amount) {
   const bill = MOCK_VENDOR_BILLS.find((item) => item.id === vendorBillId);

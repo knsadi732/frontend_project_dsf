@@ -7,6 +7,7 @@ import { useDepartmentsQuery } from '@/features/departments/queries/useDepartmen
 import { useDesignationsQuery } from '@/features/designations/queries/useDesignationsQuery';
 import { useBranchesQuery } from '@/features/branches/queries/useBranchesQuery';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
+import { useRolesQuery } from '@/features/roles/queries/useRolesQuery';
 import { DepartmentsPanel } from '@/features/departments';
 import { DesignationsPanel } from '@/features/designations';
 import { CompanyPanel } from '@/features/company';
@@ -34,7 +35,27 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 import { downloadCsv } from '@/utils/downloadCsv';
 import { getEmployeeFullName } from '@/utils/employeeName';
+import { markPendingPasswordChange } from '@/utils/pendingPasswordChange';
 import { pushToast } from '@/utils/toastBus';
+
+const DEFAULT_TEMP_PASSWORD = '123456';
+
+// No real email/SMS gateway is connected, so the login credentials are
+// handed to the employee via Gmail's web compose URL right after creation
+// — opens directly in the browser with the recipient/subject/body already
+// filled in, unlike mailto: which silently does nothing unless the OS has
+// a default mail app registered.
+function buildGmailComposeUrl({ email, phone, password }) {
+  const subject = 'Your DS Footwear ERP login';
+  const body = [
+    `Login ID (phone): ${phone}`,
+    `Temporary password: ${password}`,
+    '',
+    'Sign in and update your password from Profile > Password whenever you like — it is not required before you can start working.',
+  ].join('\n');
+  const params = new URLSearchParams({ view: 'cm', fs: '1', to: email ?? '', su: subject, body });
+  return `https://mail.google.com/mail/?${params.toString()}`;
+}
 
 const STATUS_OPTIONS = toStatusOptions(EMPLOYMENT_STATUS);
 
@@ -74,6 +95,7 @@ export function UsersPage() {
   const { data: designationsData } = useDesignationsQuery({ pageSize: 100 });
   const { data: branchesData } = useBranchesQuery({ pageSize: 100 });
   const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
+  const { data: rolesData } = useRolesQuery({ pageSize: 100 });
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
 
@@ -81,6 +103,7 @@ export function UsersPage() {
   const designations = useMemo(() => designationsData?.data ?? [], [designationsData]);
   const branches = useMemo(() => branchesData?.data ?? [], [branchesData]);
   const warehouses = useMemo(() => warehousesData?.data ?? [], [warehousesData]);
+  const roles = useMemo(() => rolesData?.data ?? [], [rolesData]);
 
   const departmentsById = useMemo(
     () => Object.fromEntries(departments.map((department) => [department.id, department])),
@@ -97,11 +120,13 @@ export function UsersPage() {
   );
   const allUsers = useMemo(() => allUsersData?.data ?? [], [allUsersData]);
   const employeesById = useMemo(() => Object.fromEntries(allUsers.map((user) => [user.id, user])), [allUsers]);
+  const rolesById = useMemo(() => Object.fromEntries(roles.map((role) => [role.id, role])), [roles]);
 
   const departmentOptions = departments.map((department) => ({ value: department.id, label: department.name }));
   const designationOptions = designations.map((designation) => ({ value: designation.id, label: designation.title }));
   const branchOptions = branches.map((branch) => ({ value: branch.id, label: branch.name }));
   const warehouseOptions = warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }));
+  const roleOptions = roles.map((role) => ({ value: role.id, label: role.name }));
   const employeeOptions = allUsers
     .filter((user) => user.id !== formState.user?.id)
     .map((user) => ({ value: user.id, label: getEmployeeFullName(user) }));
@@ -114,11 +139,32 @@ export function UsersPage() {
       return;
     }
 
-    const action = formState.user
-      ? updateUser.mutateAsync({ id: formState.user.id, payload: values })
-      : createUser.mutateAsync(values);
+    if (formState.user) {
+      updateUser.mutateAsync({ id: formState.user.id, payload: values }).then(() => setFormState({ open: false, user: null }));
+      return;
+    }
 
-    action.then(() => setFormState({ open: false, user: null }));
+    // confirmPassword is form-only — user.api.js's toBackendPayload only
+    // picks the fields the backend actually accepts, so it's safe to pass
+    // values through as-is here.
+    const password = values.password || DEFAULT_TEMP_PASSWORD;
+    createUser.mutateAsync({ ...values, password }).then((record) => {
+      setFormState({ open: false, user: null });
+      // Optional, one-time nudge (see pendingPasswordChange.js) — the
+      // employee can skip it and keep working on their temp password.
+      markPendingPasswordChange(record.phone);
+      // Fallback visibility: if there's no default mail app registered on
+      // this machine, mailto: silently does nothing — so the credentials
+      // are always shown here too, not only inside the email draft.
+      pushToast('info', `Login: ${record.phone} — Temp password: ${password}`);
+      // record.email should always equal what was just typed in the form,
+      // but fall back to it explicitly in case the backend ever omits the
+      // field from its response — the "To" field must never end up blank.
+      window.open(
+        buildGmailComposeUrl({ email: record.email || values.email, phone: record.phone, password }),
+        '_blank',
+      );
+    });
   };
 
   const handleConfirmDelete = () => {
@@ -138,10 +184,14 @@ export function UsersPage() {
         { key: 'name', label: 'Name', format: (_, row) => getEmployeeFullName(row) },
         { key: 'phone', label: 'Phone' },
         { key: 'email', label: 'Email' },
-        { key: 'primaryRole', label: 'Primary role' },
-        { key: 'additionalRoles', label: 'Additional roles', format: (_, row) => (row.additionalRoles ?? []).join(', ') },
-        { key: 'department', label: 'Department', format: (_, row) => departmentsById[row.departmentId]?.name ?? '' },
-        { key: 'designation', label: 'Designation', format: (_, row) => designationsById[row.designationId]?.title ?? '' },
+        { key: 'primaryRole', label: 'Primary role', format: (_, row) => rolesById[row.primaryRole]?.name ?? row.primaryRole },
+        {
+          key: 'additionalRoles',
+          label: 'Additional roles',
+          format: (_, row) => (row.additionalRoles ?? []).map((role) => rolesById[role]?.name ?? role).join(', '),
+        },
+        { key: 'department', label: 'Department', format: (_, row) => departmentsById[row.departmentId]?.name ?? row.departmentName ?? '' },
+        { key: 'designation', label: 'Designation', format: (_, row) => designationsById[row.designationId]?.title ?? row.designationTitle ?? '' },
         { key: 'branch', label: 'Branch', format: (_, row) => branchesById[row.branchId]?.name ?? '' },
         { key: 'warehouse', label: 'Warehouse', format: (_, row) => warehousesById[row.warehouseId]?.name ?? '' },
         { key: 'joiningDate', label: 'Joining date' },
@@ -205,6 +255,7 @@ export function UsersPage() {
           <UserTable
             users={data?.data ?? []}
             departmentsById={departmentsById}
+            rolesById={rolesById}
             total={data?.total ?? 0}
             page={page}
             pageSize={pageSize}
@@ -241,6 +292,7 @@ export function UsersPage() {
         branchOptions={branchOptions}
         warehouseOptions={warehouseOptions}
         employeeOptions={employeeOptions}
+        roleOptions={roleOptions}
         onClose={() => setFormState({ open: false, user: null })}
         onSubmit={handleSubmit}
         isSubmitting={createUser.isPending || updateUser.isPending}
@@ -255,6 +307,7 @@ export function UsersPage() {
         branchesById={branchesById}
         warehousesById={warehousesById}
         employeesById={employeesById}
+        rolesById={rolesById}
       />
 
       <AppModal

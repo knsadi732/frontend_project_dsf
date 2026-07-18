@@ -7,10 +7,8 @@ import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
 import { DocumentUploadField } from '@/features/users/components/DocumentUploadField';
-import { ROLES } from '@/constants/roles';
 import { EMPLOYMENT_STATUS, toStatusOptions } from '@/constants/statusEnums';
 
-const ROLE_OPTIONS = Object.values(ROLES).map((role) => ({ value: role, label: role }));
 const EMPLOYMENT_STATUS_OPTIONS = toStatusOptions(EMPLOYMENT_STATUS);
 const DOCUMENT_FIELDS = [
   { key: 'aadhaar', label: 'Aadhaar' },
@@ -28,7 +26,7 @@ const DEFAULT_VALUES = {
   lastName: '',
   phone: '',
   email: '',
-  primaryRole: 'EMPLOYEE',
+  primaryRole: '',
   additionalRoles: [],
   departmentId: '',
   designationId: '',
@@ -74,6 +72,7 @@ export function UserFormModal({
   branchOptions,
   warehouseOptions,
   employeeOptions,
+  roleOptions,
   onSubmit,
   isSubmitting,
 }) {
@@ -125,8 +124,25 @@ export function UserFormModal({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <AppInput label="Phone" required error={errors.phone?.message} {...register('phone')} />
-            <AppInput label="Email" type="email" error={errors.email?.message} {...register('email')} />
+            <AppInput label="Email" type="email" required error={errors.email?.message} {...register('email')} />
           </div>
+          {!initialValues && (
+            <div className="grid grid-cols-2 gap-4">
+              <AppInput
+                label="Password"
+                type="password"
+                helperText="Leave blank to default to 123456"
+                error={errors.password?.message}
+                {...register('password')}
+              />
+              <AppInput
+                label="Confirm password"
+                type="password"
+                error={errors.confirmPassword?.message}
+                {...register('confirmPassword')}
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <AppInput label="Permanent address" error={errors.permanentAddress?.message} {...register('permanentAddress')} />
             <AppInput label="Current address" error={errors.currentAddress?.message} {...register('currentAddress')} />
@@ -195,13 +211,20 @@ export function UserFormModal({
             {...register('reportingManagerId')}
           />
           <div className="grid grid-cols-2 gap-4">
-            <AppSelect label="Primary role" error={errors.primaryRole?.message} options={ROLE_OPTIONS} {...register('primaryRole')} />
+            <AppSelect
+              label="Primary role"
+              required
+              placeholder="Select role"
+              error={errors.primaryRole?.message}
+              options={roleOptions}
+              {...register('primaryRole')}
+            />
             <AppSelect
               label="Additional roles"
               multiple
               helperText="Ctrl/Cmd-click to select more than one"
               error={errors.additionalRoles?.message}
-              options={ROLE_OPTIONS}
+              options={roleOptions}
               {...register('additionalRoles')}
             />
           </div>

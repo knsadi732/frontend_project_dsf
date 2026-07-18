@@ -24,7 +24,7 @@ function DetailRow({ label, value }) {
   );
 }
 
-export function UserDetailModal({ open, onClose, user, departmentsById, designationsById, branchesById, warehousesById, employeesById }) {
+export function UserDetailModal({ open, onClose, user, departmentsById, designationsById, branchesById, warehousesById, employeesById, rolesById }) {
   if (!user) return null;
 
   return (
@@ -63,8 +63,8 @@ export function UserDetailModal({ open, onClose, user, departmentsById, designat
 
         <div className="flex flex-col">
           <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">Employment</h3>
-          <DetailRow label="Department" value={departmentsById?.[user.departmentId]?.name} />
-          <DetailRow label="Designation" value={designationsById?.[user.designationId]?.title} />
+          <DetailRow label="Department" value={departmentsById?.[user.departmentId]?.name ?? user.departmentName} />
+          <DetailRow label="Designation" value={designationsById?.[user.designationId]?.title ?? user.designationTitle} />
           <DetailRow label="Branch" value={branchesById?.[user.branchId]?.name} />
           <DetailRow label="Warehouse" value={warehousesById?.[user.warehouseId]?.name} />
           <DetailRow label="Reporting manager" value={employeesById?.[user.reportingManagerId] ? getEmployeeFullName(employeesById[user.reportingManagerId]) : undefined} />
@@ -72,10 +72,10 @@ export function UserDetailModal({ open, onClose, user, departmentsById, designat
             label="Role"
             value={
               <div className="flex flex-wrap justify-end gap-1">
-                <BaseBadge variant="info">{user.primaryRole}</BaseBadge>
+                <BaseBadge variant="info">{rolesById?.[user.primaryRole]?.name ?? user.primaryRole}</BaseBadge>
                 {user.additionalRoles?.map((role) => (
                   <BaseBadge key={role} variant="default">
-                    {role}
+                    {rolesById?.[role]?.name ?? role}
                   </BaseBadge>
                 ))}
               </div>

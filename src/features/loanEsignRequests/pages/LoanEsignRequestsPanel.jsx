@@ -18,21 +18,21 @@ export function LoanEsignRequestsPanel() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
-  const [activeLink, setActiveLink] = useState(null);
+  const [activeRequest, setActiveRequest] = useState(null);
 
   const { data, isLoading } = useLoanEsignRequestsQuery({ page, pageSize });
   const createRequest = useCreateLoanEsignRequest();
 
   const handleSubmit = (values) => {
     const token = crypto.randomUUID();
-    createRequest.mutateAsync({ ...values, token, status: 'pending', createdDate: new Date().toISOString().slice(0, 10) }).then(() => {
+    createRequest.mutateAsync({ ...values, token, status: 'pending', createdDate: new Date().toISOString().slice(0, 10) }).then((record) => {
       setFormOpen(false);
-      setActiveLink(buildEsignLink(token));
+      setActiveRequest({ ...record, link: buildEsignLink(token) });
     });
   };
 
   const handleRowClick = (row) => {
-    if (row.status === 'pending') setActiveLink(buildEsignLink(row.token));
+    if (row.status === 'pending') setActiveRequest({ ...row, link: buildEsignLink(row.token) });
   };
 
   return (
@@ -68,7 +68,7 @@ export function LoanEsignRequestsPanel() {
         isSubmitting={createRequest.isPending}
       />
 
-      <LoanEsignLinkModal open={Boolean(activeLink)} onClose={() => setActiveLink(null)} link={activeLink} />
+      <LoanEsignLinkModal open={Boolean(activeRequest)} onClose={() => setActiveRequest(null)} request={activeRequest} />
     </div>
   );
 }

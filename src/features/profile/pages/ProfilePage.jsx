@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { clearPendingPasswordChange } from '@/utils/pendingPasswordChange';
+import { pushToast } from '@/utils/toastBus';
 import { useProfileQuery } from '@/features/profile/queries/useProfileQuery';
 import { useLoginHistoryQuery } from '@/features/profile/queries/useLoginHistoryQuery';
 import { useDepartmentsQuery } from '@/features/departments/queries/useDepartmentsQuery';
@@ -21,9 +24,21 @@ const TABS = [
 
 export function ProfilePage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('profile');
+  const location = useLocation();
+  const forcePasswordChange = Boolean(location.state?.forcePasswordChange);
+  const [activeTab, setActiveTab] = useState(forcePasswordChange ? 'password' : 'profile');
   const [loginHistoryPage, setLoginHistoryPage] = useState(1);
   const [loginHistoryPageSize, setLoginHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
+
+  // Shown once (see pendingPasswordChange.js) — clearing here, regardless of
+  // whether they actually change it, means it never nags again on later
+  // logins. Purely a nudge: they can switch tabs and skip it entirely.
+  useEffect(() => {
+    if (!forcePasswordChange) return;
+    clearPendingPasswordChange(user?.phone);
+    pushToast('info', 'You can update your temporary password here — or skip it and keep working.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: profile } = useProfileQuery(user?.id);
   const { data: departmentsData } = useDepartmentsQuery({ pageSize: 100 });

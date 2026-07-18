@@ -1,20 +1,11 @@
 import { apiClient } from '@/services/api/axios';
-import { env } from '@/config/env';
 
-let mockMovements = [];
-let nextMovementId = 1;
-
-export function addInventoryMovement({ productId, warehouse, movementType, quantity, reference }) {
-  if (!env.mockAuth) return;
-  mockMovements = [
-    { id: String(nextMovementId++), productId, warehouse, movementType, quantity, reference, createdAt: new Date().toISOString() },
-    ...mockMovements,
-  ];
-}
+// No backend route exists for inventory movements yet (not in
+// backend_project_dsf/src/routes) — list() will 404 until the backend adds
+// a /inventory-movements service. addInventoryMovement is a no-op kept so
+// existing call sites (businessRules.js) don't need to change.
+export function addInventoryMovement() {}
 
 export const inventoryMovementApi = {
-  list: (params) => {
-    if (env.mockAuth) return Promise.resolve({ data: mockMovements, total: mockMovements.length });
-    return apiClient.get('/inventory-movements', { params }).then((res) => res.data);
-  },
+  list: (params) => apiClient.get('/inventory-movements', { params }).then((res) => res.data),
 };

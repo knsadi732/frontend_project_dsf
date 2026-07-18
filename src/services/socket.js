@@ -9,7 +9,6 @@ export const socket = io(env.socketUrl, {
 });
 
 export function connectSocket() {
-  if (env.mockAuth) return;
   socket.auth = { token: useAuthStore.getState().accessToken };
   if (!socket.connected) socket.connect();
 }

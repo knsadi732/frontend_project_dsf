@@ -190,9 +190,23 @@ export const ROLE_PERMISSIONS = {
 
 export const FULL_ACCESS_ROLES = [ROLES.SUPER_ADMIN, ROLES.OWNER];
 
+// backend_project_dsf seeds its sole full-access system role as 'admin'
+// (lowercase, and named differently from ROLES.SUPER_ADMIN) — normalize
+// role keys to uppercase here, in one place, so callers never have to care
+// whether a role came from the mock data, the real backend, or user input.
+const ROLE_KEY_ALIASES = {
+  ADMIN: ROLES.SUPER_ADMIN,
+};
+
+function normalizeRoleKey(role) {
+  const upper = String(role).toUpperCase();
+  return ROLE_KEY_ALIASES[upper] ?? upper;
+}
+
 export function hasPermission(role, module, action = ACTIONS.VIEW, permissions = ROLE_PERMISSIONS) {
   if (!role) return false;
-  if (FULL_ACCESS_ROLES.includes(role)) return true;
-  const modulePermissions = permissions[role]?.[module] ?? [];
+  const key = normalizeRoleKey(role);
+  if (FULL_ACCESS_ROLES.includes(key)) return true;
+  const modulePermissions = permissions[key]?.[module] ?? [];
   return modulePermissions.includes(action);
 }
