@@ -5,6 +5,7 @@ import { useCreatePurchase } from '@/features/purchases/mutations/useCreatePurch
 import { useUpdatePurchase } from '@/features/purchases/mutations/useUpdatePurchase';
 import { useDeletePurchase } from '@/features/purchases/mutations/useDeletePurchase';
 import { useUpdatePurchaseRequest } from '@/features/purchaseRequests/mutations/useUpdatePurchaseRequest';
+import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { PurchaseTable } from '@/features/purchases/components/PurchaseTable';
 import { PurchaseFormModal } from '@/features/purchases/components/PurchaseFormModal';
 import { PurchaseRequestsPanel } from '@/features/purchaseRequests';
@@ -57,15 +58,27 @@ export function PurchasesPage() {
   );
 
   const { data, isLoading, isFetching, refetch } = usePurchasesQuery(filters);
+  const { data: productsData } = useProductsQuery({ pageSize: 200 });
+  const productsById = useMemo(
+    () => Object.fromEntries((productsData?.data ?? []).map((product) => [product.id, product])),
+    [productsData],
+  );
   const createPurchase = useCreatePurchase();
   const updatePurchase = useUpdatePurchase();
   const deletePurchase = useDeletePurchase();
   const updatePurchaseRequest = useUpdatePurchaseRequest();
 
   const handleSubmit = (values) => {
+    // Only forward `status` when it actually changed — the backend rejects
+    // a "transition" to the PO's current status (assertTransition only
+    // allows moving to the very next pipeline step), so re-submitting the
+    // form without picking "Advance to …" would otherwise 400 for nothing.
+    const statusChanged = values.status !== formState.purchase?.status;
+    const payload = statusChanged ? values : { ...values, status: undefined };
+
     const action = formState.purchase?.id
-      ? updatePurchase.mutateAsync({ id: formState.purchase.id, payload: values })
-      : createPurchase.mutateAsync(values);
+      ? updatePurchase.mutateAsync({ id: formState.purchase.id, payload })
+      : createPurchase.mutateAsync(payload);
 
     action.then((result) => {
       if (convertingRequestId) {
@@ -92,9 +105,12 @@ export function PurchasesPage() {
         poNumber: '',
         vendorId: '',
         supplier: '',
+        warehouseId: request.warehouseId ?? '',
         orderDate: new Date().toISOString().slice(0, 10),
         status: ORDER_STATUS.DRAFT,
-        items: request.items.map((item) => ({ product: item.product, quantity: item.quantity, rate: '' })),
+        // Purchase requests only carry a free-text product name, not a real
+        // product GUID, so productId is left blank for the user to pick.
+        items: request.items.map((item) => ({ productId: '', quantity: item.quantity, rate: '' })),
       },
     });
   };
@@ -166,6 +182,7 @@ export function PurchasesPage() {
 
           <PurchaseTable
             purchases={data?.data ?? []}
+            productsById={productsById}
             total={data?.total ?? 0}
             page={page}
             pageSize={pageSize}

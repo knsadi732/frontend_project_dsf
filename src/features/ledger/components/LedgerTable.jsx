@@ -14,14 +14,14 @@ export function LedgerTable({ entries, isLoading, page, pageSize, total, onPageC
     {
       key: 'debit',
       header: 'Debit (₹)',
-      render: (row) => (row.direction === 'debit' ? row.amount.toLocaleString('en-IN') : '—'),
+      render: (row) => (row.debit ? <span className="text-danger">{row.debit.toLocaleString('en-IN')}</span> : '—'),
     },
     {
       key: 'credit',
       header: 'Credit (₹)',
-      render: (row) => (row.direction === 'credit' ? row.amount.toLocaleString('en-IN') : '—'),
+      render: (row) => (row.credit ? <span className="text-success">{row.credit.toLocaleString('en-IN')}</span> : '—'),
     },
-    { key: 'balance', header: 'Balance (₹)', render: (row) => formatBalance(row.balance) },
+    { key: 'balance', header: 'Balance (₹)', render: (row) => <span className="font-bold">{formatBalance(row.balance)}</span> },
   ];
 
   return (

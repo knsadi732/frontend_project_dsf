@@ -12,30 +12,25 @@ const VOUCHER_LABELS = {
 
 function fromBackendTransaction(row) {
   return {
-    id: row.id,
-    date: row.created_at,
-    particulars: row.description || VOUCHER_LABELS[row.reference_type] || row.reference_type,
-    voucher: VOUCHER_LABELS[row.reference_type] || row.reference_type,
-    direction: row.direction,
-    amount: Number(row.amount),
+    id: row.transaction_id,
+    date: row.date,
+    particulars: row.description || VOUCHER_LABELS[row.type] || row.type,
+    voucher: VOUCHER_LABELS[row.type] || row.type,
+    debit: Number(row.debit),
+    credit: Number(row.credit),
+    balance: Number(row.balance),
   };
 }
 
-// Per-row ledger — GET /finance/transactions (finance.routes.js) is the
-// only endpoint with per-transaction detail; /finance/ledger/summary only
-// returns a {debit, credit, balance} aggregate. Running balance is
-// computed client-side from the real rows, oldest first, Dr/Cr notation.
+// Per-row ledger — GET /finance/transactions (finance.routes.js) returns rows
+// already shaped as {transaction_id, date, type, description, debit, credit,
+// balance}, oldest first, with the running balance computed server-side via
+// a SQL window function (financeTransaction.repository.js). No client-side
+// recomputation needed.
 export const ledgerApi = {
   list: () =>
-    apiClient.get('/finance/transactions', { params: { limit: 200, sort_by: 'created_at', sort_order: 'asc' } }).then((res) => {
-      const rows = res.data.data.map(fromBackendTransaction).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-
-      let balance = 0;
-      const data = rows.map((entry) => {
-        balance += entry.direction === 'credit' ? entry.amount : -entry.amount;
-        return { ...entry, balance };
-      });
-
+    apiClient.get('/finance/transactions', { params: { limit: 200 } }).then((res) => {
+      const data = res.data.data.map(fromBackendTransaction);
       return { data, total: res.data.meta?.total_records ?? data.length };
     }),
   // CA scope — re-derives the ledger summary and stamps it verified

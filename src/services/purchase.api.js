@@ -5,10 +5,9 @@ const baseApi = createCrudApi('purchase-orders');
 
 // Backend's purchaseOrder.validator.js (POST /purchase-orders) only knows
 // {branchId, warehouseId (required guid), vendorId (required guid),
-// items:[{productId (guid), quantity, unitCost}]} — no poNumber/supplier
-// name/priority/sourceType, and item.product must be a real product GUID,
-// not the free-text name the UI's item rows collect today. Status changes
-// only go through PATCH /purchase-orders/:id/status with status in
+// items:[{productId (guid), quantity, unitCost}]} — no supplier
+// name/priority/sourceType. Status changes only go through
+// PATCH /purchase-orders/:id/status with status in
 // ['approved','ordered','received','completed'] — not the UI's
 // draft/pending/in_progress/cancelled/rejected enum, and there's no
 // generic PATCH for vendor/items/dates at all, and no DELETE either.
@@ -22,7 +21,7 @@ function toBackendPayload(payload) {
     warehouseId: payload.warehouseId,
     vendorId: payload.vendorId,
     items: (payload.items ?? []).map((item) => ({
-      productId: item.productId ?? item.product,
+      productId: item.productId,
       quantity: item.quantity,
       unitCost: item.rate,
     })),
@@ -41,7 +40,9 @@ function fromBackendPurchaseOrder(order, submitted = {}) {
     poNumber: order.po_number || submitted.poNumber || order.id,
     total: order.total_amount ?? submitted.total,
     orderDate: submitted.orderDate || order.created_at?.slice(0, 10),
-    items: submitted.items ?? order.items,
+    items:
+      submitted.items ??
+      order.items?.map((item) => ({ productId: item.product_id, quantity: item.quantity, rate: item.unit_cost })),
   };
 }
 

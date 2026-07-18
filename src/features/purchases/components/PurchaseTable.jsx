@@ -7,7 +7,7 @@ import { MODULES, ACTIONS } from '@/constants/roles';
 import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
-function downloadPurchasePdf(row) {
+function downloadPurchasePdf(row, productsById) {
   generateRecordPdf({
     title: `Purchase Order - ${row.poNumber}`,
     fields: [
@@ -17,7 +17,7 @@ function downloadPurchasePdf(row) {
     ],
     items: row.items,
     itemsColumns: [
-      { key: 'product', label: 'Product', width: 80 },
+      { key: 'productId', label: 'Product', width: 80, format: (v) => productsById?.[v]?.name ?? v },
       { key: 'quantity', label: 'Qty', width: 25 },
       { key: 'rate', label: 'Rate', width: 30, format: (v) => `Rs.${Number(v).toLocaleString('en-IN')}` },
       {
@@ -36,6 +36,7 @@ const EDIT_LOCKED_STATUSES = ['approved', 'completed'];
 
 export function PurchaseTable({
   purchases,
+  productsById,
   isLoading,
   page,
   pageSize,
@@ -85,7 +86,7 @@ export function PurchaseTable({
             size="sm"
             onClick={(event) => {
               event.stopPropagation();
-              downloadPurchasePdf(row);
+              downloadPurchasePdf(row, productsById);
             }}
             aria-label={`Download ${row.poNumber}`}
           >

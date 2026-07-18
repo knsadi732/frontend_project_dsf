@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { purchaseRequestSchema, PR_STATUS_OPTIONS } from '@/features/purchaseRequests/validators/purchaseRequest.schema';
+import { purchaseApi } from '@/features/purchases/api';
+import { useAuth } from '@/hooks/useAuth';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -22,11 +24,14 @@ const DEFAULT_VALUES = {
 };
 
 export function PurchaseRequestFormModal({ open, onClose, initialValues, departmentOptions, warehouseOptions, onSubmit, isSubmitting }) {
+  const { user } = useAuth();
+
   const {
     register,
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(purchaseRequestSchema),
@@ -34,10 +39,22 @@ export function PurchaseRequestFormModal({ open, onClose, initialValues, departm
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+  const prNumber = useWatch({ control, name: 'prNumber' });
+  const isGeneratingNumber = open && !initialValues?.id && !prNumber;
 
   useEffect(() => {
-    if (open) reset(initialValues ?? DEFAULT_VALUES);
-  }, [open, initialValues, reset]);
+    if (!open) return;
+    reset(initialValues ?? { ...DEFAULT_VALUES, requestedBy: user?.name ?? '' });
+
+    // New request — PR number reuses the same sequence-backed generator as
+    // Purchase Orders (GET /purchase-orders/generate-number); there's no
+    // dedicated PR endpoint on the backend. Requested by is always the
+    // logged-in user, not free text.
+    if (!initialValues?.id) {
+      purchaseApi.generateNumber().then((generated) => setValue('prNumber', generated));
+      setValue('requestedBy', user?.name ?? '');
+    }
+  }, [open, initialValues, reset, setValue, user]);
 
   return (
     <AppModal
@@ -58,8 +75,15 @@ export function PurchaseRequestFormModal({ open, onClose, initialValues, departm
     >
       <form id="purchase-request-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-2 gap-4">
-          <AppInput label="PR Number" required error={errors.prNumber?.message} {...register('prNumber')} />
-          <AppInput label="Requested by" required error={errors.requestedBy?.message} {...register('requestedBy')} />
+          <AppInput
+            label="PR Number"
+            required
+            disabled={!initialValues?.id}
+            placeholder={isGeneratingNumber ? 'Generating…' : undefined}
+            error={errors.prNumber?.message}
+            {...register('prNumber')}
+          />
+          <AppInput label="Requested by" required disabled error={errors.requestedBy?.message} {...register('requestedBy')} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <AppSelect label="Department" placeholder="Select department" required options={departmentOptions} error={errors.departmentId?.message} {...register('departmentId')} />

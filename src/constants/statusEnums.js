@@ -126,6 +126,8 @@ export const STATUS_BADGE_VARIANT = {
   [ORDER_STATUS.APPROVED]: 'info',
   [ORDER_STATUS.IN_PROGRESS]: 'info',
   [ORDER_STATUS.COMPLETED]: 'success',
+  ordered: 'info',
+  received: 'success',
   [ORDER_STATUS.CANCELLED]: 'danger',
   [ORDER_STATUS.REJECTED]: 'danger',
   [PAYMENT_STATUS.UNPAID]: 'danger',

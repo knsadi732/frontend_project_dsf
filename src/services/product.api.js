@@ -27,6 +27,7 @@ function toBackendPayload(payload) {
 function fromBackendProduct(product) {
   return {
     ...product,
+    categoryId: product.category_id,
     unitOfMeasure: product.uom,
     gstPercent: product.tax_rate,
     price: product.unit_price,
