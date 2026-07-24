@@ -100,12 +100,12 @@ Internal ask for goods raised *before* any vendor/PO exists (no pricing, no vend
 ## Finance
 - GET   `localhost:4000/api/v1/finance/transactions`
 - POST  `localhost:4000/api/v1/finance/transactions`  — body: `{ branchId?, transactionDate? (ISO, defaults to now), referenceType: "order"|"purchase_order"|"expense"|"manual", referenceId?, direction: "debit"|"credit", amount (positive number), description? }`. No `account` field exists — this is a flat ledger-entry table (`company_id`/`branch_id` scoped only), not a wallet/chart-of-accounts. Only `referenceType: "manual"` lets the caller choose `direction`; for `order"`/`"purchase_order"`/`"expense"` the backend force-overrides direction (`order`→credit, `purchase_order`/`expense`→debit) regardless of what's sent. To add funds: `{ "referenceType": "manual", "direction": "credit", "amount": ..., "description": "..." }`. Posting date must fall in an open fiscal period or the write is rejected.
-- GET   `localhost:4000/api/v1/finance/payment-slips`  — Customer collections (Accounts Receivable) — money coming IN from a customer, not vendor payments.
-  POST body: `{ orderId?: uuid (nullable — a payment can be recorded independent of any order), customerId: uuid (required), amount: number (positive), paymentMode?: "cash"|"upi"|"card"|"bank_transfer" }`. Response: `order_id, customer_id, slip_number` (auto: `PS-<timestamp>-<hex>`)`, amount, payment_mode, issued_by, ...`. Auto-creates a linked `manual`/credit `finance_transaction` too.
+- GET   `localhost:4000/api/v1/finance/payment-slips`
+- POST  `localhost:4000/api/v1/finance/payment-slips`
 - GET   `localhost:4000/api/v1/finance/expenses`
 - POST  `localhost:4000/api/v1/finance/expenses`
-- GET   `localhost:4000/api/v1/finance/bills`  — **Customer sales invoices** (auto-generated from an Order), NOT vendor bills/payables — there is no Accounts-Payable/vendor-bill tracking anywhere in this backend (Purchase Orders have no payable-tracking or GRN either, confirmed separately). "How much debt/payable does the company have" is not answerable from this API surface — would need a new backend module.
-  POST `/finance/bills/print` body: `{ orderId: uuid }` only — the backend copies `gst_amount`/`total_amount` from the order itself, claims the next invoice number, and creates a linked credit `finance_transaction`. Idempotent — re-posting the same `orderId` returns the existing bill rather than duplicating it. Response: `order_id, bill_number, gst_amount, total_amount, printed_by, printed_at, ...`.
+- GET   `localhost:4000/api/v1/finance/bills`
+- POST  `localhost:4000/api/v1/finance/bills/print`
 - GET   `localhost:4000/api/v1/finance/ledger/summary`  — query: `from?`, `to?` (ISO dates; omit both for all-time). Response: `{ "debit": number, "credit": number, "balance": number }` where `balance = credit - debit`. No opening/closing-balance carry-forward — it's a flat sum over the (optionally date-filtered) range, not a running ledger balance. These 3 keys (`debit`/`credit`/`balance`) are the only authoritative source for a displayed balance; `/finance/transactions` rows carry no running-balance field.
 - GET   `localhost:4000/api/v1/finance/fiscal-periods`
 - POST  `localhost:4000/api/v1/finance/fiscal-periods`
@@ -114,6 +114,15 @@ Internal ask for goods raised *before* any vendor/PO exists (no pricing, no vend
 - GET   `localhost:4000/api/v1/finance/audits`  — CA scope: statutory audit records
 - POST  `localhost:4000/api/v1/finance/audits`  — CA scope: record a statutory audit
 - GET   `localhost:4000/api/v1/finance/ledger/cross-verify`  — CA scope: single-tenant ledger cross-verification
+## Loans (Debt Tracking)
+Money borrowed by the company from a bank/vendor/other lender. Outstanding balance is never stored — it's always derived as `principal_amount - SUM(repayments.principal_component)`. Disbursement posts an auto credit `finance_transaction`; each repayment posts an auto debit — both flow into `/finance/ledger/summary` automatically. Permission: `loan.manage` (granted to Admin and Accountant).
+- GET    `localhost:4000/api/v1/loans/generate-number`  — previews (does not consume) the next loan number, e.g. `DSF-LN-0001`
+- GET    `localhost:4000/api/v1/loans`  — query: `status?` (`active`/`closed`/`written_off`)
+- POST   `localhost:4000/api/v1/loans`  — body: `{ branchId?, loanNumber?, lenderName, lenderType?: "bank"|"vendor"|"other" (default "bank"), principalAmount, interestRate?: 0-100 (default 0), interestType?: "flat"|"reducing" (default "flat"), startDate (ISO), tenureMonths?, remarks? }`
+- GET    `localhost:4000/api/v1/loans/:id`  — includes derived `repaidPrincipal` and `outstandingBalance`
+- PATCH  `localhost:4000/api/v1/loans/:id/write-off`  — manual terminal state for a loan that will never be repaid; only valid from `active`
+- GET    `localhost:4000/api/v1/loans/:id/repayments`
+- POST   `localhost:4000/api/v1/loans/:id/repayments`  — body: `{ amount, principalComponent (0 ≤ principalComponent ≤ amount), paidAt?, remarks? }`; `interestComponent` is derived server-side as `amount - principalComponent`. Loan auto-closes (`status: "closed"`) once `outstandingBalance` hits 0 — no separate close call needed for a normal payoff. Fails with `LOAN_002` if the loan isn't `active`.
 ## Notifications
 - GET  `localhost:4000/api/v1/notifications`
 - POST `localhost:4000/api/v1/notifications`

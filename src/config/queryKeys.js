@@ -45,6 +45,7 @@ export const queryKeys = {
   vendorPayments: resourceKeys('vendorPayments'),
   creditNotes: resourceKeys('creditNotes'),
   ledger: resourceKeys('ledger'),
+  loans: resourceKeys('loans'),
   gstProfile: { all: ['gstProfile'] },
   statutoryAudits: resourceKeys('statutoryAudits'),
   customerCommunications: resourceKeys('customerCommunications'),

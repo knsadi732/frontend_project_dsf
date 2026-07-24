@@ -39,8 +39,8 @@ export function DashboardPage() {
     );
   }
 
-  const { salesSummary, inventoryStatus, ledgerBalance, ledgerMonth, collectionsTotal } = data;
-  const hasFinanceData = ledgerBalance != null || ledgerMonth || collectionsTotal != null;
+  const { salesSummary, inventoryStatus, ledgerBalance, ledgerMonth, collectionsTotal, outstandingDebt } = data;
+  const hasFinanceData = ledgerBalance != null || ledgerMonth || collectionsTotal != null || outstandingDebt != null;
   const noWidgetsVisible = !canViewSales && !canViewInventory && !(canViewFinance && hasFinanceData);
 
   return (
@@ -99,6 +99,9 @@ export function DashboardPage() {
               )}
               {collectionsTotal != null && (
                 <StatCard label="Collections (Receivables)" value={`₹${collectionsTotal.toLocaleString('en-IN')}`} />
+              )}
+              {outstandingDebt != null && (
+                <StatCard label="Outstanding Debt (Loans)" value={`₹${outstandingDebt.toLocaleString('en-IN')}`} />
               )}
             </>
           ) : (
