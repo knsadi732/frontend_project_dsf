@@ -36,4 +36,22 @@ export const ledgerApi = {
   // CA scope — re-derives the ledger summary and stamps it verified
   // (finance.routes.js GET /finance/ledger/cross-verify).
   crossVerify: () => apiClient.get('/finance/ledger/cross-verify').then((res) => res.data.data),
+  // POST /finance/transactions (finance.validator.js's recordTransaction).
+  // Only `referenceType: 'manual'` lets the caller pick `direction` — every
+  // other type ('order'/'purchase_order'/'expense') has its direction
+  // forced server-side (finance.service.js), so this is only ever used for
+  // hand-entered transactions like "Add Fund" (a manual credit — see
+  // AddFundModal). Posting date must fall inside an open fiscal period or
+  // the backend rejects it.
+  recordTransaction: ({ amount, direction, description, branchId, referenceId }) =>
+    apiClient
+      .post('/finance/transactions', {
+        referenceType: 'manual',
+        direction,
+        amount,
+        ...(description && { description }),
+        ...(branchId && { branchId }),
+        ...(referenceId && { referenceId }),
+      })
+      .then((res) => fromBackendTransaction(res.data.data)),
 };

@@ -99,7 +99,8 @@ Internal ask for goods raised *before* any vendor/PO exists (no pricing, no vend
 - PATCH `localhost:4000/api/v1/purchase-requests/:id/status`  — body: `{ "status": "approved" | "rejected" }`
 ## Finance
 - GET   `localhost:4000/api/v1/finance/transactions`
-- POST  `localhost:4000/api/v1/finance/transactions`
+- POST  `localhost:4000/api/v1/finance/transactions`  — body (finance.validator.js recordTransaction): `{ branchId?: uuid|null, transactionDate?: ISO date (defaults to now()), referenceType: "order"|"purchase_order"|"expense"|"manual", referenceId?: uuid|null, direction: "debit"|"credit", amount: number (positive), description?: string }`.
+  Simple ledger-entry table — no `account`/chart-of-accounts field, no wallet/balance concept (company/branch-scoped only). Only `referenceType: "manual"` respects the caller's `direction` — every other type has direction forced server-side (finance.service.js): `order` → always credit, `purchase_order`/`expense` → always debit. "Add fund to company" = a manual `direction: "credit"` transaction (see `ledgerApi.recordTransaction` / `AddFundModal`). `transactionDate` must fall inside an open fiscal period or the backend rejects it. No cached balance anywhere — derive it via `GET /finance/ledger/summary`. Requires `finance.transaction.create` permission.
 - GET   `localhost:4000/api/v1/finance/payment-slips`
 - POST  `localhost:4000/api/v1/finance/payment-slips`
 - GET   `localhost:4000/api/v1/finance/expenses`
