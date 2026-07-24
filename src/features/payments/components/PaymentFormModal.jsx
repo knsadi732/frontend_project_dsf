@@ -1,15 +1,15 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { paymentSchema, PAYMENT_METHOD_OPTIONS } from '@/features/payments/validators/payment.schema';
+import { paymentSchema, PAYMENT_MODE_OPTIONS } from '@/features/payments/validators/payment.schema';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
 
-const DEFAULT_VALUES = { invoiceId: '', amount: '', method: 'bank_transfer', paidDate: '' };
+const DEFAULT_VALUES = { customerId: '', amount: '', paymentMode: 'bank_transfer' };
 
-export function PaymentFormModal({ open, onClose, invoiceOptions, onSubmit, isSubmitting }) {
+export function PaymentFormModal({ open, onClose, customerOptions, onSubmit, isSubmitting }) {
   const {
     register,
     handleSubmit,
@@ -21,7 +21,7 @@ export function PaymentFormModal({ open, onClose, invoiceOptions, onSubmit, isSu
   });
 
   useEffect(() => {
-    if (open) reset({ ...DEFAULT_VALUES, paidDate: new Date().toISOString().slice(0, 10) });
+    if (open) reset(DEFAULT_VALUES);
   }, [open, reset]);
 
   return (
@@ -42,18 +42,17 @@ export function PaymentFormModal({ open, onClose, invoiceOptions, onSubmit, isSu
     >
       <form id="payment-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
         <AppSelect
-          label="Invoice"
-          placeholder="Select invoice"
+          label="Customer"
+          placeholder="Select customer"
           required
-          options={invoiceOptions}
-          error={errors.invoiceId?.message}
-          {...register('invoiceId')}
+          options={customerOptions}
+          error={errors.customerId?.message}
+          {...register('customerId')}
         />
         <div className="grid grid-cols-2 gap-4">
           <AppInput label="Amount (₹)" type="number" step="0.01" required error={errors.amount?.message} {...register('amount')} />
-          <AppSelect label="Method" options={PAYMENT_METHOD_OPTIONS} error={errors.method?.message} {...register('method')} />
+          <AppSelect label="Payment mode" options={PAYMENT_MODE_OPTIONS} error={errors.paymentMode?.message} {...register('paymentMode')} />
         </div>
-        <AppInput label="Paid date" type="date" required error={errors.paidDate?.message} {...register('paidDate')} />
       </form>
     </AppModal>
   );

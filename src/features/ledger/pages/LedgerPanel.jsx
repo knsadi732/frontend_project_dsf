@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useLedgerQuery } from '@/features/ledger/queries/useLedgerQuery';
+import { useLedgerSummaryQuery } from '@/features/ledger/queries/useLedgerSummaryQuery';
 import { useRecordTransaction } from '@/features/ledger/mutations/useRecordTransaction';
 import { LedgerTable } from '@/features/ledger/components/LedgerTable';
 import { AddFundModal } from '@/features/ledger/components/AddFundModal';
@@ -16,26 +17,30 @@ export function LedgerPanel() {
   const [addFundOpen, setAddFundOpen] = useState(false);
 
   const { data, isLoading, isFetching, refetch } = useLedgerQuery();
+  const { data: summary, refetch: refetchSummary } = useLedgerSummaryQuery();
   const recordTransaction = useRecordTransaction();
   const allEntries = data?.data ?? [];
   const start = (page - 1) * pageSize;
   const pageEntries = allEntries.slice(start, start + pageSize);
-  const closingBalance = allEntries[allEntries.length - 1]?.balance ?? 0;
+  const balance = summary?.balance ?? 0;
 
   const handleAddFund = (values) => {
-    recordTransaction.mutateAsync(values).then(() => setAddFundOpen(false));
+    recordTransaction.mutateAsync(values).then(() => {
+      setAddFundOpen(false);
+      refetchSummary();
+    });
   };
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">
-          General ledger — every finance transaction (debit/credit), oldest first, with a running balance.
+          General ledger — every finance transaction (debit/credit). Balance is credit minus debit, all-time.
         </p>
         <div className="flex items-center gap-3">
           <p className="text-sm font-bold text-text">
-            Balance: <span className={closingBalance >= 0 ? 'text-success' : 'text-danger'}>
-              {closingBalance >= 0 ? 'Cr' : 'Dr'} ₹{Math.abs(closingBalance).toLocaleString('en-IN')}
+            Balance: <span className={balance >= 0 ? 'text-success' : 'text-danger'}>
+              {balance >= 0 ? 'Cr' : 'Dr'} ₹{Math.abs(balance).toLocaleString('en-IN')}
             </span>
           </p>
           <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
@@ -44,7 +49,13 @@ export function LedgerPanel() {
               Add fund
             </AppButton>
           </Can>
-          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <RefreshButton
+            onClick={() => {
+              refetch();
+              refetchSummary();
+            }}
+            isFetching={isFetching}
+          />
         </div>
       </div>
 

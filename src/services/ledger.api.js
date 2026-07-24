@@ -10,6 +10,10 @@ const VOUCHER_LABELS = {
   manual: 'Payment',
 };
 
+// GET /finance/transactions rows carry no running-balance field (confirmed
+// against ApiList.md — the only authoritative balance source is GET
+// /finance/ledger/summary's flat {debit, credit, balance} sum). Don't
+// fabricate one here.
 function fromBackendTransaction(row) {
   return {
     id: row.transaction_id,
@@ -18,21 +22,26 @@ function fromBackendTransaction(row) {
     voucher: VOUCHER_LABELS[row.type] || row.type,
     debit: Number(row.debit),
     credit: Number(row.credit),
-    balance: Number(row.balance),
   };
 }
 
-// Per-row ledger — GET /finance/transactions (finance.routes.js) returns rows
-// already shaped as {transaction_id, date, type, description, debit, credit,
-// balance}, oldest first, with the running balance computed server-side via
-// a SQL window function (financeTransaction.repository.js). No client-side
-// recomputation needed.
 export const ledgerApi = {
   list: () =>
     apiClient.get('/finance/transactions', { params: { limit: 200 } }).then((res) => {
       const data = res.data.data.map(fromBackendTransaction);
       return { data, total: res.data.meta?.total_records ?? data.length };
     }),
+  // GET /finance/ledger/summary — flat sum over the (optionally
+  // date-filtered) range: { debit, credit, balance } where
+  // balance = credit - debit. No opening/closing carry-forward.
+  summary: ({ from, to } = {}) =>
+    apiClient
+      .get('/finance/ledger/summary', { params: { ...(from && { from }), ...(to && { to }) } })
+      .then((res) => ({
+        debit: Number(res.data.data.debit),
+        credit: Number(res.data.data.credit),
+        balance: Number(res.data.data.balance),
+      })),
   // CA scope — re-derives the ledger summary and stamps it verified
   // (finance.routes.js GET /finance/ledger/cross-verify).
   crossVerify: () => apiClient.get('/finance/ledger/cross-verify').then((res) => res.data.data),

@@ -11,9 +11,8 @@ export function useCreatePayment() {
     mutationFn: paymentApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.payments.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.finance.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.communicationLogs.all });
+      // Every payment-slip auto-creates a linked finance_transaction.
+      queryClient.invalidateQueries({ queryKey: queryKeys.ledger.all });
       pushToast('success', TOAST_MESSAGES.CREATE_SUCCESS('Payment'));
     },
   });

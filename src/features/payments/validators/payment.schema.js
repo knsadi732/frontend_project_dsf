@@ -1,20 +1,17 @@
 import { z } from 'zod';
 
-export const PAYMENT_METHOD_OPTIONS = [
-  { value: 'upi', label: 'UPI' },
-  { value: 'bank_transfer', label: 'Bank transfer' },
-  { value: 'credit_card', label: 'Credit card' },
-  { value: 'debit_card', label: 'Debit card' },
+// ApiList.md's POST /finance/payment-slips only accepts these 4 modes —
+// narrower than Chapter 15's fuller Customer Payment method list
+// (cheque/NEFT/RTGS/IMPS aren't supported on this endpoint).
+export const PAYMENT_MODE_OPTIONS = [
   { value: 'cash', label: 'Cash' },
-  { value: 'cheque', label: 'Cheque' },
-  { value: 'neft', label: 'NEFT' },
-  { value: 'rtgs', label: 'RTGS' },
-  { value: 'imps', label: 'IMPS' },
+  { value: 'upi', label: 'UPI' },
+  { value: 'card', label: 'Card' },
+  { value: 'bank_transfer', label: 'Bank transfer' },
 ];
 
 export const paymentSchema = z.object({
-  invoiceId: z.string().min(1, 'Invoice is required'),
+  customerId: z.string().min(1, 'Customer is required'),
   amount: z.coerce.number().positive('Amount must be greater than 0'),
-  method: z.enum(['upi', 'bank_transfer', 'credit_card', 'debit_card', 'cash', 'cheque', 'neft', 'rtgs', 'imps']).default('bank_transfer'),
-  paidDate: z.string().min(1, 'Paid date is required'),
+  paymentMode: z.enum(['cash', 'upi', 'card', 'bank_transfer']).optional(),
 });

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { usePaymentsQuery } from '@/features/payments/queries/usePaymentsQuery';
 import { useCreatePayment } from '@/features/payments/mutations/useCreatePayment';
-import { useInvoicesQuery } from '@/features/finance/queries/useInvoicesQuery';
+import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { PaymentTable } from '@/features/payments/components/PaymentTable';
 import { PaymentFormModal } from '@/features/payments/components/PaymentFormModal';
 import { AppButton } from '@/components/ui/AppButton';
@@ -16,10 +16,10 @@ export function PaymentsPanel() {
   const [formOpen, setFormOpen] = useState(false);
 
   const { data, isLoading } = usePaymentsQuery({ page, pageSize });
-  const { data: invoicesData } = useInvoicesQuery({ pageSize: 100 });
-  const invoices = invoicesData?.data ?? [];
-  const invoicesById = Object.fromEntries(invoices.map((inv) => [inv.id, inv]));
-  const invoiceOptions = invoices.map((inv) => ({ value: inv.id, label: `${inv.invoiceNumber} — ${inv.party} (₹${Number(inv.balanceDue ?? inv.amount).toLocaleString('en-IN')} due)` }));
+  const { data: customersData } = useCustomersQuery({ pageSize: 100 });
+  const customers = customersData?.data ?? [];
+  const customersById = Object.fromEntries(customers.map((c) => [c.id, c]));
+  const customerOptions = customers.map((c) => ({ value: c.id, label: c.name }));
 
   const createPayment = useCreatePayment();
 
@@ -30,7 +30,7 @@ export function PaymentsPanel() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-text-muted">Customer payments recorded against invoices (Accounts Receivable).</p>
+        <p className="text-sm text-text-muted">Customer payments recorded (Accounts Receivable / collections).</p>
         <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
           <AppButton onClick={() => setFormOpen(true)}>
             <Plus className="size-4" />
@@ -41,7 +41,7 @@ export function PaymentsPanel() {
 
       <PaymentTable
         payments={data?.data ?? []}
-        invoicesById={invoicesById}
+        customersById={customersById}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -55,7 +55,7 @@ export function PaymentsPanel() {
 
       <PaymentFormModal
         open={formOpen}
-        invoiceOptions={invoiceOptions}
+        customerOptions={customerOptions}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
         isSubmitting={createPayment.isPending}

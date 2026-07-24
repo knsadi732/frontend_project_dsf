@@ -1,11 +1,6 @@
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 
-function formatBalance(balance) {
-  const sign = balance >= 0 ? 'Cr' : 'Dr';
-  return `${sign} ${Math.abs(balance).toLocaleString('en-IN')}`;
-}
-
 export function LedgerTable({ entries, isLoading, page, pageSize, total, onPageChange, onPageSizeChange }) {
   const columns = [
     { key: 'date', header: 'Date', render: (row) => new Date(row.date).toLocaleDateString('en-IN') },
@@ -21,7 +16,6 @@ export function LedgerTable({ entries, isLoading, page, pageSize, total, onPageC
       header: 'Credit (₹)',
       render: (row) => (row.credit ? <span className="text-success">{row.credit.toLocaleString('en-IN')}</span> : '—'),
     },
-    { key: 'balance', header: 'Balance (₹)', render: (row) => <span className="font-bold">{formatBalance(row.balance)}</span> },
   ];
 
   return (

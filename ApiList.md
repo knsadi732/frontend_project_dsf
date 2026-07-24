@@ -99,15 +99,14 @@ Internal ask for goods raised *before* any vendor/PO exists (no pricing, no vend
 - PATCH `localhost:4000/api/v1/purchase-requests/:id/status`  — body: `{ "status": "approved" | "rejected" }`
 ## Finance
 - GET   `localhost:4000/api/v1/finance/transactions`
-- POST  `localhost:4000/api/v1/finance/transactions`  — body (finance.validator.js recordTransaction): `{ branchId?: uuid|null, transactionDate?: ISO date (defaults to now()), referenceType: "order"|"purchase_order"|"expense"|"manual", referenceId?: uuid|null, direction: "debit"|"credit", amount: number (positive), description?: string }`.
-  Simple ledger-entry table — no `account`/chart-of-accounts field, no wallet/balance concept (company/branch-scoped only). Only `referenceType: "manual"` respects the caller's `direction` — every other type has direction forced server-side (finance.service.js): `order` → always credit, `purchase_order`/`expense` → always debit. "Add fund to company" = a manual `direction: "credit"` transaction (see `ledgerApi.recordTransaction` / `AddFundModal`). `transactionDate` must fall inside an open fiscal period or the backend rejects it. No cached balance anywhere — derive it via `GET /finance/ledger/summary`. Requires `finance.transaction.create` permission.
-- GET   `localhost:4000/api/v1/finance/payment-slips`
-- POST  `localhost:4000/api/v1/finance/payment-slips`
+- POST  `localhost:4000/api/v1/finance/transactions`  — body: `{ branchId?, transactionDate? (ISO, defaults to now), referenceType: "order"|"purchase_order"|"expense"|"manual", referenceId?, direction: "debit"|"credit", amount (positive number), description? }`. No `account` field exists — this is a flat ledger-entry table (`company_id`/`branch_id` scoped only), not a wallet/chart-of-accounts. Only `referenceType: "manual"` lets the caller choose `direction`; for `order"`/`"purchase_order"`/`"expense"` the backend force-overrides direction (`order`→credit, `purchase_order`/`expense`→debit) regardless of what's sent. To add funds: `{ "referenceType": "manual", "direction": "credit", "amount": ..., "description": "..." }`. Posting date must fall in an open fiscal period or the write is rejected.
+- GET   `localhost:4000/api/v1/finance/payment-slips`  — Customer collections (Accounts Receivable) — money coming IN from a customer, not vendor payments.
+  POST body: `{ orderId?: uuid (nullable — a payment can be recorded independent of any order), customerId: uuid (required), amount: number (positive), paymentMode?: "cash"|"upi"|"card"|"bank_transfer" }`. Response: `order_id, customer_id, slip_number` (auto: `PS-<timestamp>-<hex>`)`, amount, payment_mode, issued_by, ...`. Auto-creates a linked `manual`/credit `finance_transaction` too.
 - GET   `localhost:4000/api/v1/finance/expenses`
 - POST  `localhost:4000/api/v1/finance/expenses`
-- GET   `localhost:4000/api/v1/finance/bills`
-- POST  `localhost:4000/api/v1/finance/bills/print`
-- GET   `localhost:4000/api/v1/finance/ledger/summary`
+- GET   `localhost:4000/api/v1/finance/bills`  — **Customer sales invoices** (auto-generated from an Order), NOT vendor bills/payables — there is no Accounts-Payable/vendor-bill tracking anywhere in this backend (Purchase Orders have no payable-tracking or GRN either, confirmed separately). "How much debt/payable does the company have" is not answerable from this API surface — would need a new backend module.
+  POST `/finance/bills/print` body: `{ orderId: uuid }` only — the backend copies `gst_amount`/`total_amount` from the order itself, claims the next invoice number, and creates a linked credit `finance_transaction`. Idempotent — re-posting the same `orderId` returns the existing bill rather than duplicating it. Response: `order_id, bill_number, gst_amount, total_amount, printed_by, printed_at, ...`.
+- GET   `localhost:4000/api/v1/finance/ledger/summary`  — query: `from?`, `to?` (ISO dates; omit both for all-time). Response: `{ "debit": number, "credit": number, "balance": number }` where `balance = credit - debit`. No opening/closing-balance carry-forward — it's a flat sum over the (optionally date-filtered) range, not a running ledger balance. These 3 keys (`debit`/`credit`/`balance`) are the only authoritative source for a displayed balance; `/finance/transactions` rows carry no running-balance field.
 - GET   `localhost:4000/api/v1/finance/fiscal-periods`
 - POST  `localhost:4000/api/v1/finance/fiscal-periods`
 - PATCH `localhost:4000/api/v1/finance/fiscal-periods/:id/close`
@@ -119,9 +118,19 @@ Internal ask for goods raised *before* any vendor/PO exists (no pricing, no vend
 - GET  `localhost:4000/api/v1/notifications`
 - POST `localhost:4000/api/v1/notifications`
 ## Analytics
-- GET  `localhost:4000/api/v1/analytics/dashboard`
-- GET  `localhost:4000/api/v1/analytics/dashboard/:key`
-- POST `localhost:4000/api/v1/analytics/regenerate`
+All three routes are gated by a single flat permission `analytics.view` — there is **no per-widget/per-role data scoping on the backend**. Whoever holds `analytics.view` gets every widget in full; the seeded Accountant/CA roles don't have `analytics.view` at all (only Admin does by default), so today it's all-or-nothing access, not "finance role sees only finance data". Any module-wise filtering of the dashboard has to be done on the frontend.
+- GET  `localhost:4000/api/v1/analytics/dashboard`  — returns an array of all widgets:
+  ```json
+  {
+    "data": [
+      { "widgetKey": "sales_summary", "data": { "order_count": "12", "total_sales": "45000.00" } | null, "generatedAt": "2026-07-24T00:00:00Z" | null },
+      { "widgetKey": "inventory_status", "data": { "total_on_hand": "980", "total_reserved": "120" } | null, "generatedAt": "..." | null }
+    ]
+  }
+  ```
+  `data` is `null` (with `generatedAt: null`) if no snapshot has been generated yet for that company. Numeric fields come back as strings (Postgres `NUMERIC`/`COUNT` via `pg`). Widgets are read from a 15-min Redis cache backed by nightly-precomputed snapshot rows — never live-aggregated on request.
+- GET  `localhost:4000/api/v1/analytics/dashboard/:key`  — same single-widget shape as one array entry above. `key` must be `sales_summary` or `inventory_status`; anything else → `COMMON_001` error.
+- POST `localhost:4000/api/v1/analytics/regenerate`  — forces the snapshot job to run immediately (same job the nightly scheduler runs), returns `{ "companies": <count regenerated> }`. Doesn't take a body.
 ## Company / Branches / Warehouses / Settings
 - GET    `localhost:4000/api/v1/company`
 - PATCH  `localhost:4000/api/v1/company`
