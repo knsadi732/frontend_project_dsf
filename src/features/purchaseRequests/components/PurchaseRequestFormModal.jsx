@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { purchaseRequestSchema, PR_STATUS_OPTIONS, PRIORITY_OPTIONS } from '@/features/purchaseRequests/validators/purchaseRequest.schema';
+import { purchaseRequestSchema } from '@/features/purchaseRequests/validators/purchaseRequest.schema';
 import { purchaseRequestApi } from '@/features/purchaseRequests/api';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,21 +14,23 @@ import { AppButton } from '@/components/ui/AppButton';
 
 const EMPTY_ITEM = { productId: '', quantity: '', remarks: '' };
 const DEFAULT_VALUES = {
-  prNumber: '',
-  requestDate: '',
-  requestedBy: '',
-  departmentId: '',
-  priority: 'normal',
-  requiredDate: '',
   warehouseId: '',
+  departmentId: '',
+  branchId: '',
   items: [EMPTY_ITEM],
   remarks: '',
-  status: 'draft',
 };
 
-export function PurchaseRequestFormModal({ open, onClose, initialValues, departmentOptions, warehouseOptions, onSubmit, isSubmitting }) {
+export function PurchaseRequestFormModal({
+  open,
+  onClose,
+  departmentOptions,
+  warehouseOptions,
+  branchOptions,
+  onSubmit,
+  isSubmitting,
+}) {
   const { user } = useAuth();
-
   const { data: productsData } = useProductsQuery({ pageSize: 200 });
   const productOptions = (productsData?.data ?? []).map((product) => ({
     value: product.id,
@@ -48,43 +50,28 @@ export function PurchaseRequestFormModal({ open, onClose, initialValues, departm
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
-  const prNumber = useWatch({ control, name: 'prNumber' });
-  const isGeneratingNumber = open && !initialValues?.id && !prNumber;
+  // Display-only preview of the reserved PR number — the backend assigns it
+  // server-side on create, it isn't part of the POST body (see
+  // purchaseRequestApi.create's toBackendPayload).
+  const previewNumber = useWatch({ control, name: '__prNumberPreview' });
 
-  // Department isn't a free choice — Chapter 3 (Employee Domain): every
-  // employee belongs to one primary department, so a PR is always raised
-  // on behalf of the requester's own department. Only falls back to a
-  // manual pick if the backend session doesn't carry departmentId yet
-  // (see auth.api.js's fromBackendUser).
+  // Department isn't a free choice — the requester's own department (see
+  // Chapter 3, Employee Domain: every employee belongs to one primary
+  // department). Only falls back to a manual pick if the backend session
+  // doesn't carry departmentId yet (see auth.api.js's fromBackendUser).
   const departmentAutoFilled = Boolean(user?.departmentId);
 
   useEffect(() => {
     if (!open) return;
-    const today = new Date().toISOString().slice(0, 10);
-    reset(
-      initialValues ?? {
-        ...DEFAULT_VALUES,
-        requestDate: today,
-        requiredDate: today,
-        requestedBy: user?.name ?? '',
-        departmentId: user?.departmentId ?? '',
-      },
-    );
-
-    // New request — PR Number is server-generated (sequence-backed), not
-    // client-typed (Chapter-11.md §11.4 / ApiList.md generate-number).
-    if (!initialValues?.id) {
-      purchaseRequestApi.generateNumber().then((generated) => setValue('prNumber', generated));
-      setValue('requestedBy', user?.name ?? '');
-      if (user?.departmentId) setValue('departmentId', user.departmentId);
-    }
-  }, [open, initialValues, reset, setValue, user]);
+    reset({ ...DEFAULT_VALUES, departmentId: user?.departmentId ?? '' });
+    purchaseRequestApi.generateNumber().then((generated) => setValue('__prNumberPreview', generated));
+  }, [open, reset, setValue, user]);
 
   return (
     <AppModal
       open={open}
       onClose={onClose}
-      title={initialValues ? 'Edit purchase request' : 'New purchase request'}
+      title="New purchase request"
       className="max-w-2xl"
       footer={
         <>
@@ -99,37 +86,26 @@ export function PurchaseRequestFormModal({ open, onClose, initialValues, departm
     >
       <form id="purchase-request-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-2 gap-4">
-          <AppInput
-            label="PR Number"
+          <AppInput label="PR Number" disabled placeholder={previewNumber ? undefined : 'Generating…'} value={previewNumber ?? ''} readOnly />
+          <AppSelect
+            label="Warehouse"
+            placeholder="Select warehouse"
             required
-            disabled
-            placeholder={isGeneratingNumber ? 'Generating…' : undefined}
-            error={errors.prNumber?.message}
-            {...register('prNumber')}
+            options={warehouseOptions}
+            error={errors.warehouseId?.message}
+            {...register('warehouseId')}
           />
-          <AppInput label="Requested by" required disabled error={errors.requestedBy?.message} {...register('requestedBy')} />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <AppInput label="Request date" type="date" required disabled error={errors.requestDate?.message} {...register('requestDate')} />
-          <AppInput label="Required date" type="date" required error={errors.requiredDate?.message} {...register('requiredDate')} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <AppSelect
             label="Department"
             placeholder="Select department"
-            required
             disabled={departmentAutoFilled}
             options={departmentOptions}
             error={errors.departmentId?.message}
             {...register('departmentId')}
           />
-          <AppSelect label="Warehouse" placeholder="Select warehouse" required options={warehouseOptions} error={errors.warehouseId?.message} {...register('warehouseId')} />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <AppSelect label="Priority" options={PRIORITY_OPTIONS} error={errors.priority?.message} {...register('priority')} />
-          {initialValues?.id && (
-            <AppSelect label="Status" options={PR_STATUS_OPTIONS} error={errors.status?.message} {...register('status')} />
-          )}
+          <AppSelect label="Branch" placeholder="Select branch" options={branchOptions} error={errors.branchId?.message} {...register('branchId')} />
         </div>
 
         <div className="flex flex-col gap-2">

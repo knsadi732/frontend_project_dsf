@@ -4,7 +4,6 @@ import { usePurchasesQuery } from '@/features/purchases/queries/usePurchasesQuer
 import { useCreatePurchase } from '@/features/purchases/mutations/useCreatePurchase';
 import { useUpdatePurchase } from '@/features/purchases/mutations/useUpdatePurchase';
 import { useDeletePurchase } from '@/features/purchases/mutations/useDeletePurchase';
-import { useUpdatePurchaseRequest } from '@/features/purchaseRequests/mutations/useUpdatePurchaseRequest';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { PurchaseTable } from '@/features/purchases/components/PurchaseTable';
 import { PurchaseFormModal } from '@/features/purchases/components/PurchaseFormModal';
@@ -42,7 +41,6 @@ export function PurchasesPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, purchase: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [convertingRequestId, setConvertingRequestId] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
@@ -66,7 +64,6 @@ export function PurchasesPage() {
   const createPurchase = useCreatePurchase();
   const updatePurchase = useUpdatePurchase();
   const deletePurchase = useDeletePurchase();
-  const updatePurchaseRequest = useUpdatePurchaseRequest();
 
   const handleSubmit = (values) => {
     // Only forward `status` when it actually changed — the backend rejects
@@ -80,19 +77,11 @@ export function PurchasesPage() {
       ? updatePurchase.mutateAsync({ id: formState.purchase.id, payload })
       : createPurchase.mutateAsync(payload);
 
-    action.then((result) => {
-      // Chapter-11.md §11.4: an approved PR moves to "Converted to RFQ"
-      // once it's actioned — RFQ itself isn't its own feature yet, so this
-      // fires the moment the PO that supersedes it is created/saved.
-      if (convertingRequestId) {
-        updatePurchaseRequest.mutate({
-          id: convertingRequestId,
-          payload: { status: 'converted_to_rfq', linkedPurchaseOrderId: result.id },
-        });
-        setConvertingRequestId(null);
-      }
-      setFormState({ open: false, purchase: null });
-    });
+    // ApiList.md: PATCH /purchase-requests/:id/status only accepts
+    // approved/rejected — there's no "converted" status, so a PR actioned
+    // via handleConvertToPo is simply left approved; that already records
+    // that it was actioned.
+    action.then(() => setFormState({ open: false, purchase: null }));
   };
 
   const handleConfirmDelete = () => {
@@ -100,7 +89,6 @@ export function PurchasesPage() {
   };
 
   const handleConvertToPo = (request) => {
-    setConvertingRequestId(request.id);
     setActiveTab('purchases');
     setFormState({
       open: true,
@@ -202,10 +190,7 @@ export function PurchasesPage() {
           <PurchaseFormModal
             open={formState.open}
             initialValues={formState.purchase}
-            onClose={() => {
-              setFormState({ open: false, purchase: null });
-              setConvertingRequestId(null);
-            }}
+            onClose={() => setFormState({ open: false, purchase: null })}
             onSubmit={handleSubmit}
             isSubmitting={createPurchase.isPending || updatePurchase.isPending}
           />
