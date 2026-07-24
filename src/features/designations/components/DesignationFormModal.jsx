@@ -7,9 +7,9 @@ import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
 
-const DEFAULT_VALUES = { title: '', departmentId: '', status: 'active' };
+const DEFAULT_VALUES = { title: '', status: 'active' };
 
-export function DesignationFormModal({ open, onClose, initialValues, departmentOptions, onSubmit, isSubmitting }) {
+export function DesignationFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
   const {
     register,
     handleSubmit,
@@ -42,14 +42,6 @@ export function DesignationFormModal({ open, onClose, initialValues, departmentO
     >
       <form id="designation-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
         <AppInput label="Title" required error={errors.title?.message} {...register('title')} />
-        <AppSelect
-          label="Department"
-          required
-          error={errors.departmentId?.message}
-          options={departmentOptions}
-          placeholder="Select department"
-          {...register('departmentId')}
-        />
         <AppSelect
           label="Status"
           error={errors.status?.message}

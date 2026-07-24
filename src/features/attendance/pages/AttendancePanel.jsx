@@ -1,50 +1,59 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useAttendanceQuery } from '@/features/attendance/queries/useAttendanceQuery';
-import { useCreateAttendance } from '@/features/attendance/mutations/useCreateAttendance';
-import { useUpdateAttendance } from '@/features/attendance/mutations/useUpdateAttendance';
-import { useDeleteAttendance } from '@/features/attendance/mutations/useDeleteAttendance';
 import { AttendanceTable } from '@/features/attendance/components/AttendanceTable';
-import { AttendanceFormModal } from '@/features/attendance/components/AttendanceFormModal';
-import { AppButton } from '@/components/ui/AppButton';
-import { AppModal } from '@/components/ui/AppModal';
-import { Can } from '@/routes/PermissionGuard';
-import { MODULES, ACTIONS } from '@/constants/roles';
+import { AppSelect } from '@/components/ui/AppSelect';
+import { AppInput } from '@/components/ui/AppInput';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
+// Read-only: the backend has no create/update/delete for attendance, only
+// GET /attendance. Records are created automatically on login (see
+// useLoginMutation), so this panel is a filterable log, not a CRUD screen.
 export function AttendancePanel({ employeesById, employeeOptions }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [formState, setFormState] = useState({ open: false, record: null });
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [employeeId, setEmployeeId] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  const { data, isLoading } = useAttendanceQuery({ page, pageSize });
-  const createAttendance = useCreateAttendance();
-  const updateAttendance = useUpdateAttendance();
-  const deleteAttendance = useDeleteAttendance();
-
-  const handleSubmit = (values) => {
-    const action = formState.record
-      ? updateAttendance.mutateAsync({ id: formState.record.id, payload: values })
-      : createAttendance.mutateAsync(values);
-
-    action.then(() => setFormState({ open: false, record: null }));
-  };
-
-  const handleConfirmDelete = () => {
-    deleteAttendance.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
-  };
+  const { data, isLoading } = useAttendanceQuery({
+    page,
+    pageSize,
+    employeeId: employeeId || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+  });
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-text-muted">Daily check-in/check-out records per employee.</p>
-        <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, record: null })}>
-            <Plus className="size-4" />
-            New record
-          </AppButton>
-        </Can>
+      <div className="grid grid-cols-3 gap-4">
+        <AppSelect
+          label="Employee"
+          placeholder="All employees"
+          options={employeeOptions}
+          value={employeeId}
+          onChange={(e) => {
+            setEmployeeId(e.target.value);
+            setPage(1);
+          }}
+        />
+        <AppInput
+          label="From"
+          type="date"
+          value={dateFrom}
+          onChange={(e) => {
+            setDateFrom(e.target.value);
+            setPage(1);
+          }}
+        />
+        <AppInput
+          label="To"
+          type="date"
+          value={dateTo}
+          onChange={(e) => {
+            setDateTo(e.target.value);
+            setPage(1);
+          }}
+        />
       </div>
 
       <AttendanceTable
@@ -59,36 +68,7 @@ export function AttendancePanel({ employeesById, employeeOptions }) {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(record) => setFormState({ open: true, record })}
-        onDelete={setDeleteTarget}
       />
-
-      <AttendanceFormModal
-        open={formState.open}
-        initialValues={formState.record}
-        employeeOptions={employeeOptions}
-        onClose={() => setFormState({ open: false, record: null })}
-        onSubmit={handleSubmit}
-        isSubmitting={createAttendance.isPending || updateAttendance.isPending}
-      />
-
-      <AppModal
-        open={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title="Delete attendance record"
-        footer={
-          <>
-            <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </AppButton>
-            <AppButton variant="danger" loading={deleteAttendance.isPending} onClick={handleConfirmDelete}>
-              Delete
-            </AppButton>
-          </>
-        }
-      >
-        <p className="text-sm text-text-muted">Are you sure you want to delete this attendance record? This action cannot be undone.</p>
-      </AppModal>
     </div>
   );
 }

@@ -1,2 +1,2 @@
 export { attendanceApi } from './api';
-export { AttendancePanel } from './pages/AttendancePanel';
+export { AttendancePage } from './pages/AttendancePage';

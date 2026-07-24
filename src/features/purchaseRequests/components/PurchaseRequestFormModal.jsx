@@ -1,20 +1,23 @@
 import { useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { purchaseRequestSchema, PR_STATUS_OPTIONS } from '@/features/purchaseRequests/validators/purchaseRequest.schema';
-import { purchaseApi } from '@/features/purchases/api';
+import { purchaseRequestSchema, PR_STATUS_OPTIONS, PRIORITY_OPTIONS } from '@/features/purchaseRequests/validators/purchaseRequest.schema';
+import { purchaseRequestApi } from '@/features/purchaseRequests/api';
+import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useAuth } from '@/hooks/useAuth';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
+import { AppComboSelect } from '@/components/ui/AppComboSelect';
 import { AppButton } from '@/components/ui/AppButton';
 
-const EMPTY_ITEM = { product: '', quantity: '' };
+const EMPTY_ITEM = { productId: '', quantity: '', remarks: '' };
 const DEFAULT_VALUES = {
   prNumber: '',
-  departmentId: '',
+  requestDate: '',
   requestedBy: '',
+  departmentId: '',
   priority: 'normal',
   requiredDate: '',
   warehouseId: '',
@@ -25,6 +28,12 @@ const DEFAULT_VALUES = {
 
 export function PurchaseRequestFormModal({ open, onClose, initialValues, departmentOptions, warehouseOptions, onSubmit, isSubmitting }) {
   const { user } = useAuth();
+
+  const { data: productsData } = useProductsQuery({ pageSize: 200 });
+  const productOptions = (productsData?.data ?? []).map((product) => ({
+    value: product.id,
+    label: `${product.sku} — ${product.name}`,
+  }));
 
   const {
     register,
@@ -42,17 +51,32 @@ export function PurchaseRequestFormModal({ open, onClose, initialValues, departm
   const prNumber = useWatch({ control, name: 'prNumber' });
   const isGeneratingNumber = open && !initialValues?.id && !prNumber;
 
+  // Department isn't a free choice — Chapter 3 (Employee Domain): every
+  // employee belongs to one primary department, so a PR is always raised
+  // on behalf of the requester's own department. Only falls back to a
+  // manual pick if the backend session doesn't carry departmentId yet
+  // (see auth.api.js's fromBackendUser).
+  const departmentAutoFilled = Boolean(user?.departmentId);
+
   useEffect(() => {
     if (!open) return;
-    reset(initialValues ?? { ...DEFAULT_VALUES, requestedBy: user?.name ?? '' });
+    const today = new Date().toISOString().slice(0, 10);
+    reset(
+      initialValues ?? {
+        ...DEFAULT_VALUES,
+        requestDate: today,
+        requiredDate: today,
+        requestedBy: user?.name ?? '',
+        departmentId: user?.departmentId ?? '',
+      },
+    );
 
-    // New request — PR number reuses the same sequence-backed generator as
-    // Purchase Orders (GET /purchase-orders/generate-number); there's no
-    // dedicated PR endpoint on the backend. Requested by is always the
-    // logged-in user, not free text.
+    // New request — PR Number is server-generated (sequence-backed), not
+    // client-typed (Chapter-11.md §11.4 / ApiList.md generate-number).
     if (!initialValues?.id) {
-      purchaseApi.generateNumber().then((generated) => setValue('prNumber', generated));
+      purchaseRequestApi.generateNumber().then((generated) => setValue('prNumber', generated));
       setValue('requestedBy', user?.name ?? '');
+      if (user?.departmentId) setValue('departmentId', user.departmentId);
     }
   }, [open, initialValues, reset, setValue, user]);
 
@@ -78,7 +102,7 @@ export function PurchaseRequestFormModal({ open, onClose, initialValues, departm
           <AppInput
             label="PR Number"
             required
-            disabled={!initialValues?.id}
+            disabled
             placeholder={isGeneratingNumber ? 'Generating…' : undefined}
             error={errors.prNumber?.message}
             {...register('prNumber')}
@@ -86,22 +110,26 @@ export function PurchaseRequestFormModal({ open, onClose, initialValues, departm
           <AppInput label="Requested by" required disabled error={errors.requestedBy?.message} {...register('requestedBy')} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <AppSelect label="Department" placeholder="Select department" required options={departmentOptions} error={errors.departmentId?.message} {...register('departmentId')} />
+          <AppInput label="Request date" type="date" required disabled error={errors.requestDate?.message} {...register('requestDate')} />
+          <AppInput label="Required date" type="date" required error={errors.requiredDate?.message} {...register('requiredDate')} />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <AppSelect
+            label="Department"
+            placeholder="Select department"
+            required
+            disabled={departmentAutoFilled}
+            options={departmentOptions}
+            error={errors.departmentId?.message}
+            {...register('departmentId')}
+          />
           <AppSelect label="Warehouse" placeholder="Select warehouse" required options={warehouseOptions} error={errors.warehouseId?.message} {...register('warehouseId')} />
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          <AppInput label="Required date" type="date" required error={errors.requiredDate?.message} {...register('requiredDate')} />
-          <AppSelect
-            label="Priority"
-            options={[
-              { value: 'low', label: 'Low' },
-              { value: 'normal', label: 'Normal' },
-              { value: 'urgent', label: 'Urgent' },
-            ]}
-            error={errors.priority?.message}
-            {...register('priority')}
-          />
-          <AppSelect label="Status" options={PR_STATUS_OPTIONS} error={errors.status?.message} {...register('status')} />
+        <div className="grid grid-cols-2 gap-4">
+          <AppSelect label="Priority" options={PRIORITY_OPTIONS} error={errors.priority?.message} {...register('priority')} />
+          {initialValues?.id && (
+            <AppSelect label="Status" options={PR_STATUS_OPTIONS} error={errors.status?.message} {...register('status')} />
+          )}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -114,9 +142,22 @@ export function PurchaseRequestFormModal({ open, onClose, initialValues, departm
           </div>
           {errors.items?.message && <p className="text-xs text-danger">{errors.items.message}</p>}
           {fields.map((field, index) => (
-            <div key={field.id} className="grid grid-cols-[1fr_8rem_2rem] items-start gap-2">
-              <AppInput placeholder="Product / material" error={errors.items?.[index]?.product?.message} {...register(`items.${index}.product`)} />
+            <div key={field.id} className="grid grid-cols-[1fr_6rem_1fr_2rem] items-start gap-2">
+              <Controller
+                control={control}
+                name={`items.${index}.productId`}
+                render={({ field }) => (
+                  <AppComboSelect
+                    placeholder="Select product"
+                    options={productOptions}
+                    error={errors.items?.[index]?.productId?.message}
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
               <AppInput type="number" placeholder="Qty" error={errors.items?.[index]?.quantity?.message} {...register(`items.${index}.quantity`)} />
+              <AppInput placeholder="Remarks (optional)" error={errors.items?.[index]?.remarks?.message} {...register(`items.${index}.remarks`)} />
               <AppButton
                 type="button"
                 variant="ghost"

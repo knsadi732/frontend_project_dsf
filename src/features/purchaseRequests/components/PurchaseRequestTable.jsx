@@ -11,7 +11,7 @@ const STATUS_VARIANT = {
   pending_approval: 'warning',
   approved: 'success',
   rejected: 'danger',
-  converted_to_po: 'success',
+  converted_to_rfq: 'success',
 };
 
 export function PurchaseRequestTable({
@@ -63,22 +63,26 @@ export function PurchaseRequestTable({
               </AppButton>
             </Can>
           )}
-          <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(row); }} aria-label="Edit PR">
-              <Pencil className="size-4" />
-            </AppButton>
-          </Can>
-          <Can module={MODULES.PURCHASES} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onDelete(row); }}
-              aria-label="Delete PR"
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
-          </Can>
+          {row.status === 'draft' && (
+            <>
+              <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
+                <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(row); }} aria-label="Edit PR">
+                  <Pencil className="size-4" />
+                </AppButton>
+              </Can>
+              <Can module={MODULES.PURCHASES} action={ACTIONS.DELETE}>
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); onDelete(row); }}
+                  aria-label="Delete PR"
+                  className="text-danger hover:bg-danger/10"
+                >
+                  <Trash2 className="size-4" />
+                </AppButton>
+              </Can>
+            </>
+          )}
         </div>
       ),
     },
@@ -94,7 +98,7 @@ export function PurchaseRequestTable({
       total={total}
       onPageChange={onPageChange}
       onPageSizeChange={onPageSizeChange}
-      onRowClick={onEdit}
+      onRowClick={(row) => row.status === 'draft' && onEdit(row)}
       emptyMessage="No purchase requests yet"
     />
   );

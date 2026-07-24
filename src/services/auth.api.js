@@ -16,6 +16,15 @@ function fromBackendUser(user, phone) {
     phone: phone ?? user.phone ?? '',
     primaryRole: user.roleKey ?? user.role?.key,
     additionalRoles: user.additionalRoles ?? [],
+    // Chapter 3 (Employee Domain): every employee belongs to one primary
+    // department. Not confirmed yet whether /auth/login or /auth/me
+    // actually echoes this back (the /users list endpoint only returns a
+    // display-name string, no id — see user.api.js's fromBackendUser
+    // comment) — read defensively and let callers (e.g. the Purchase
+    // Request form, which auto-fills Department from the logged-in user)
+    // fall back to a manual pick when it's missing.
+    departmentId: user.departmentId ?? user.department_id ?? null,
+    departmentName: user.department ?? user.departmentName ?? null,
   };
 }
 
@@ -27,11 +36,24 @@ export const authApi = {
   // Every response is enveloped as `{ success, message, data }`
   // (backend_project_dsf/src/utils/response.js), so the actual payload is
   // `res.data.data`.
-  login: ({ phone, password }) =>
-    apiClient.post('/auth/login', { identifier: phone, password }).then((res) => {
-      const { accessToken, refreshToken, user } = res.data.data;
-      return { accessToken, refreshToken, user: fromBackendUser(user, phone) };
-    }),
+  //
+  // latitude/longitude/locationLabel are optional: when present, the
+  // backend marks that day's attendance check-in (first login of the day)
+  // against this location. There is no separate "mark attendance" endpoint
+  // — it's a side effect of login itself.
+  login: ({ phone, password, latitude, longitude, locationLabel }) =>
+    apiClient
+      .post('/auth/login', {
+        identifier: phone,
+        password,
+        ...(latitude != null && { latitude }),
+        ...(longitude != null && { longitude }),
+        ...(locationLabel && { locationLabel }),
+      })
+      .then((res) => {
+        const { accessToken, refreshToken, user } = res.data.data;
+        return { accessToken, refreshToken, user: fromBackendUser(user, phone) };
+      }),
   logout: () => {
     const refreshToken = useAuthStore.getState().refreshToken;
     return apiClient.post('/auth/logout', { refreshToken });

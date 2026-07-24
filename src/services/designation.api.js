@@ -1,13 +1,24 @@
 import { createCrudApi } from '@/services/api/createCrudApi';
 
-const MOCK_DESIGNATIONS = [
-  { id: '1', title: 'CEO', departmentId: '1', status: 'active' },
-  { id: '2', title: 'Admin Manager', departmentId: '1', status: 'active' },
-  { id: '3', title: 'Sales Manager', departmentId: '2', status: 'active' },
-  { id: '4', title: 'Purchase Executive', departmentId: '3', status: 'active' },
-  { id: '5', title: 'Production Supervisor', departmentId: '4', status: 'active' },
-  { id: '6', title: 'Accountant', departmentId: '5', status: 'active' },
-  { id: '7', title: 'Warehouse Staff', departmentId: '6', status: 'active' },
-];
+const baseApi = createCrudApi('designations');
 
-export const designationApi = createCrudApi('designations', MOCK_DESIGNATIONS);
+// Backend's designations table (migrations/0036_create_designations.sql)
+// only has {name, status} — no department_id column, so a designation
+// isn't actually scoped to a department there. `title` here is `name`
+// there.
+function toBackendPayload({ title, status }) {
+  return { name: title, status };
+}
+
+function fromBackendDesignation(row) {
+  return { id: row.id, title: row.name, status: row.status };
+}
+
+export const designationApi = {
+  list: (params) =>
+    baseApi.list(params).then(({ data, total }) => ({ data: data.map(fromBackendDesignation), total })),
+  get: (id) => baseApi.get(id).then(fromBackendDesignation),
+  create: (payload) => baseApi.create(toBackendPayload(payload)).then(fromBackendDesignation),
+  update: (id, payload) => baseApi.update(id, toBackendPayload(payload)).then(fromBackendDesignation),
+  remove: (id) => baseApi.remove(id),
+};

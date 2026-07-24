@@ -8,7 +8,6 @@ import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 
 export function DesignationTable({
   designations,
-  departmentsById,
   isLoading,
   page,
   pageSize,
@@ -20,11 +19,6 @@ export function DesignationTable({
 }) {
   const columns = [
     { key: 'title', header: 'Designation', render: (row) => <span className="font-medium text-text">{row.title}</span> },
-    {
-      key: 'department',
-      header: 'Department',
-      render: (row) => <span className="text-text-muted">{departmentsById[row.departmentId]?.name ?? '—'}</span>,
-    },
     {
       key: 'status',
       header: 'Status',

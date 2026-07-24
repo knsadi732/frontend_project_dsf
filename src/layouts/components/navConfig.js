@@ -12,11 +12,13 @@ import {
   Bell,
   FileBarChart,
   Undo2,
+  CalendarCheck,
 } from 'lucide-react';
 import { MODULES } from '@/constants/roles';
 
 export const NAV_ITEMS = [
   { module: MODULES.DASHBOARD, label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
+  { module: MODULES.ATTENDANCE, label: 'Attendance', to: '/attendance', icon: CalendarCheck },
   { module: MODULES.PRODUCTS, label: 'Products', to: '/products', icon: Package },
   { module: MODULES.CUSTOMERS, label: 'Customers', to: '/customers', icon: Contact },
   { module: MODULES.VENDORS, label: 'Vendors', to: '/vendors', icon: Truck },

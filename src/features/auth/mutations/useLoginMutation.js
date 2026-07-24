@@ -3,12 +3,20 @@ import { authApi } from '@/services/auth.api';
 import { useAuthStore } from '@/store/authStore';
 import { pushToast } from '@/utils/toastBus';
 import { TOAST_MESSAGES } from '@/constants/toastMessages';
+import { getCurrentPosition } from '@/utils/geolocation';
 
 export function useLoginMutation() {
   const setSession = useAuthStore((state) => state.setSession);
 
   return useMutation({
-    mutationFn: authApi.login,
+    // There is no separate "mark attendance" endpoint — the backend marks
+    // today's attendance check-in as a side effect of login itself, using
+    // whatever latitude/longitude came in the request body. So location
+    // must be captured before the login POST, not after.
+    mutationFn: async (credentials) => {
+      const location = await getCurrentPosition();
+      return authApi.login({ ...credentials, latitude: location?.latitude, longitude: location?.longitude });
+    },
     onSuccess: (data) => {
       setSession(data);
       pushToast('success', TOAST_MESSAGES.LOGIN_SUCCESS);

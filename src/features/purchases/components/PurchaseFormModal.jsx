@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { purchaseSchema, PURCHASE_ORDER_STATUS_PIPELINE, PRODUCT_TYPE_OPTIONS } from '@/features/purchases/validators/purchase.schema';
+import { purchaseSchema, PURCHASE_ORDER_STATUS_PIPELINE } from '@/features/purchases/validators/purchase.schema';
 import { purchaseApi } from '@/features/purchases/api';
 import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
@@ -14,13 +14,13 @@ import { AppSelect } from '@/components/ui/AppSelect';
 import { AppComboSelect } from '@/components/ui/AppComboSelect';
 import { AppButton } from '@/components/ui/AppButton';
 
-// `productType` is a local filter only (static PRODUCT_TYPE_OPTIONS list —
-// raw material vs finished footwear vs office supplies vs spare parts vs
-// machinery, ...) — it narrows which products the Product dropdown offers,
-// it isn't part of what the backend accepts per item
-// (purchaseOrder.validator.js only wants productId/quantity/unitCost) and
-// is dropped on submit.
-const EMPTY_ITEM = { productType: '', productId: '', quantity: '', rate: '' };
+// `categoryId` is a local filter only — it narrows which products the
+// Product dropdown offers (Business_Data_Model.md Ch.20: Product -> Variant
+// -> Purchase, so every purchasable item is a real Product row under some
+// real Category, e.g. Footwear or Raw Material). It isn't part of what the
+// backend accepts per item (purchaseOrder.validator.js only wants
+// productId/quantity/unitCost) and is dropped on submit.
+const EMPTY_ITEM = { categoryId: '', productId: '', quantity: '', rate: '' };
 const DEFAULT_VALUES = {
   poNumber: '',
   vendorId: '',
@@ -65,15 +65,7 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
   const warehouseOptions = (warehousesData?.data ?? []).map((warehouse) => ({ value: warehouse.id, label: warehouse.name }));
 
   const { data: categoriesData } = useCategoriesQuery({ pageSize: 100 });
-  const categories = categoriesData?.data ?? [];
-
-  // PRODUCT_TYPE_OPTIONS is the static list shown in the dropdown; resolve
-  // the actual product_categories row it corresponds to by name, since
-  // that's what products are really filtered by (categoryId).
-  const categoryIdForType = (typeValue) => {
-    const label = PRODUCT_TYPE_OPTIONS.find((option) => option.value === typeValue)?.label;
-    return categories.find((category) => category.name?.toLowerCase() === label?.toLowerCase())?.id ?? null;
-  };
+  const categoryOptions = (categoriesData?.data ?? []).map((category) => ({ value: category.id, label: category.name }));
 
   const { data: productsData } = useProductsQuery({ pageSize: 200 });
   const products = productsData?.data ?? [];
@@ -81,15 +73,14 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
   // Each footwear SKU (size/color combo) is its own Product row on the
   // backend — there's no separate variant layer — so the name alone is
   // ambiguous (e.g. multiple sizes named "Running Shoe"); lead with the SKU.
-  // Not every purchase is finished footwear either — raw material, office
-  // supplies, spare parts, machinery, etc. are just Products under a
-  // different category, so the product type picked per row narrows this list.
-  const productOptionsFor = (typeValue) => {
-    const categoryId = typeValue && categoryIdForType(typeValue);
-    return products
-      .filter((product) => !typeValue || product.categoryId === categoryId)
+  // Not every purchase is finished footwear either — raw material,
+  // packaging, etc. are just Products under a different real Category
+  // (Business_Data_Model.md Ch.20), so the category picked per row narrows
+  // this list to that category's products.
+  const productOptionsFor = (categoryId) =>
+    products
+      .filter((product) => !categoryId || product.categoryId === categoryId)
       .map((product) => ({ value: product.id, label: `${product.sku} — ${product.name}` }));
-  };
 
   const {
     register,
@@ -113,10 +104,10 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
     if (product) setValue(`items.${index}.rate`, product.baseCost ?? 0);
   };
 
-  const handleProductTypeChange = (index) => {
-    // A product picked under the previous type no longer belongs to the
-    // list the new type will show — clear it rather than leave a stale,
-    // now-invisible selection.
+  const handleCategoryChange = (index) => {
+    // A product picked under the previous category no longer belongs to
+    // the list the new category will show — clear it rather than leave a
+    // stale, now-invisible selection.
     setValue(`items.${index}.productId`, '');
     setValue(`items.${index}.rate`, '');
   };
@@ -141,20 +132,18 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
     }
   }, [open, initialValues, reset, setValue]);
 
-  // Editing an existing PO: its items only carry productId, not the
-  // (purely local, UI-only) productType filter — backfill it from the
-  // product's real category once products/categories have loaded, so the
-  // row doesn't render as "pick a product type first" for an item that
-  // already has a product.
+  // Existing PO items, or items prefilled by "Convert to PO" from an
+  // approved purchase request, only carry productId, not the (purely
+  // local, UI-only) categoryId filter — backfill it from the product's own
+  // categoryId once products have loaded, so the row doesn't render as
+  // "pick a category first" for an item that already has a product.
   useEffect(() => {
-    if (!open || !initialValues?.id || !products.length || !categories.length) return;
+    if (!open || !initialValues?.items?.length || !products.length) return;
     (initialValues.items ?? []).forEach((item, index) => {
       const product = products.find((p) => p.id === item.productId);
-      const categoryName = categories.find((c) => c.id === product?.categoryId)?.name;
-      const type = PRODUCT_TYPE_OPTIONS.find((option) => option.label.toLowerCase() === categoryName?.toLowerCase());
-      if (type) setValue(`items.${index}.productType`, type.value);
+      if (product?.categoryId) setValue(`items.${index}.categoryId`, product.categoryId);
     });
-  }, [open, initialValues, products, categories, setValue]);
+  }, [open, initialValues, products, setValue]);
 
   const submitWithTotal = (values) => onSubmit({ ...values, total });
 
@@ -244,7 +233,7 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
           {errors.items?.message && <p className="text-xs text-danger">{errors.items.message}</p>}
 
           <div className="grid grid-cols-[9rem_1fr_6rem_7rem_7rem_2rem] gap-2 px-0.5 text-xs font-medium text-text-muted">
-            <span>Product Type</span>
+            <span>Category</span>
             <span>Product</span>
             <span>Qty</span>
             <span>Rate (₹/unit)</span>
@@ -256,18 +245,18 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
             {fields.map((field, index) => (
               <div key={field.id} className="grid grid-cols-[9rem_1fr_6rem_7rem_7rem_2rem] items-start gap-2">
                 <AppSelect
-                  placeholder="Product Type"
-                  options={PRODUCT_TYPE_OPTIONS}
-                  {...register(`items.${index}.productType`, { onChange: () => handleProductTypeChange(index) })}
+                  placeholder="Category"
+                  options={categoryOptions}
+                  {...register(`items.${index}.categoryId`, { onChange: () => handleCategoryChange(index) })}
                 />
                 <Controller
                   control={control}
                   name={`items.${index}.productId`}
                   render={({ field }) => (
                     <AppComboSelect
-                      placeholder={items?.[index]?.productType ? 'Select product' : 'Select product type first'}
-                      disabled={!items?.[index]?.productType}
-                      options={productOptionsFor(items?.[index]?.productType)}
+                      placeholder={items?.[index]?.categoryId ? 'Select product' : 'Select category first'}
+                      disabled={!items?.[index]?.categoryId}
+                      options={productOptionsFor(items?.[index]?.categoryId)}
                       error={errors.items?.[index]?.productId?.message}
                       value={field.value}
                       onChange={(productId) => {

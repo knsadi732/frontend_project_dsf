@@ -81,10 +81,13 @@ export function PurchasesPage() {
       : createPurchase.mutateAsync(payload);
 
     action.then((result) => {
+      // Chapter-11.md §11.4: an approved PR moves to "Converted to RFQ"
+      // once it's actioned — RFQ itself isn't its own feature yet, so this
+      // fires the moment the PO that supersedes it is created/saved.
       if (convertingRequestId) {
         updatePurchaseRequest.mutate({
           id: convertingRequestId,
-          payload: { status: 'converted_to_po', linkedPurchaseOrderId: result.id },
+          payload: { status: 'converted_to_rfq', linkedPurchaseOrderId: result.id },
         });
         setConvertingRequestId(null);
       }
@@ -108,9 +111,9 @@ export function PurchasesPage() {
         warehouseId: request.warehouseId ?? '',
         orderDate: new Date().toISOString().slice(0, 10),
         status: ORDER_STATUS.DRAFT,
-        // Purchase requests only carry a free-text product name, not a real
-        // product GUID, so productId is left blank for the user to pick.
-        items: request.items.map((item) => ({ productId: '', quantity: item.quantity, rate: '' })),
+        // Purchase requests carry a real productId but no price — POs are
+        // where pricing/vendor gets decided, so rate is left for the user.
+        items: request.items.map((item) => ({ productId: item.productId, quantity: item.quantity, rate: '' })),
       },
     });
   };

@@ -13,7 +13,6 @@ import { DesignationsPanel } from '@/features/designations';
 import { CompanyPanel } from '@/features/company';
 import { BranchesPanel } from '@/features/branches';
 import { WarehousesPanel } from '@/features/warehouses';
-import { AttendancePanel } from '@/features/attendance';
 import { LeavesPanel } from '@/features/leaves';
 import { AssetsPanel } from '@/features/assets';
 import { AuditLogsPanel } from '@/features/auditLogs';
@@ -66,7 +65,6 @@ const TABS = [
   { key: 'company', label: 'Company' },
   { key: 'branches', label: 'Branches' },
   { key: 'warehouses', label: 'Warehouses' },
-  { key: 'attendance', label: 'Attendance' },
   { key: 'leaves', label: 'Leave' },
   { key: 'assets', label: 'Assets' },
   { key: 'audit-logs', label: 'Audit Logs' },
@@ -277,7 +275,6 @@ export function UsersPage() {
       {activeTab === 'company' && <CompanyPanel />}
       {activeTab === 'branches' && <BranchesPanel />}
       {activeTab === 'warehouses' && <WarehousesPanel />}
-      {activeTab === 'attendance' && <AttendancePanel employeesById={employeesById} employeeOptions={employeeOptions} />}
       {activeTab === 'leaves' && <LeavesPanel employeesById={employeesById} employeeOptions={employeeOptions} />}
       {activeTab === 'assets' && <AssetsPanel employeesById={employeesById} employeeOptions={employeeOptions} />}
       {activeTab === 'audit-logs' && <AuditLogsPanel employeesById={employeesById} />}

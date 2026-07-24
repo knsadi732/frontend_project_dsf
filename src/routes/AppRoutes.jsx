@@ -23,6 +23,7 @@ const SalesPage = lazy(() => import('@/features/sales').then((m) => ({ default: 
 const FinancePage = lazy(() => import('@/features/finance').then((m) => ({ default: m.FinancePage })));
 const ReturnsPage = lazy(() => import('@/features/returns').then((m) => ({ default: m.ReturnsPage })));
 const UsersPage = lazy(() => import('@/features/users').then((m) => ({ default: m.UsersPage })));
+const AttendancePage = lazy(() => import('@/features/attendance').then((m) => ({ default: m.AttendancePage })));
 const ProfilePage = lazy(() => import('@/features/profile').then((m) => ({ default: m.ProfilePage })));
 const NotificationsPage = lazy(() =>
   import('@/features/notifications').then((m) => ({ default: m.NotificationsPage })),
@@ -62,6 +63,10 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<SuspenseOutlet><DashboardPage /></SuspenseOutlet>} />
+
+          <Route element={<PermissionGuard module={MODULES.ATTENDANCE} action={ACTIONS.VIEW} />}>
+            <Route path="/attendance" element={<SuspenseOutlet><AttendancePage /></SuspenseOutlet>} />
+          </Route>
 
           <Route element={<PermissionGuard module={MODULES.PRODUCTS} action={ACTIONS.VIEW} />}>
             <Route path="/products" element={<SuspenseOutlet><ProductsPage /></SuspenseOutlet>} />

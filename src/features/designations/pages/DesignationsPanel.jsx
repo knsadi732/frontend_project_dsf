@@ -1,10 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useDesignationsQuery } from '@/features/designations/queries/useDesignationsQuery';
 import { useCreateDesignation } from '@/features/designations/mutations/useCreateDesignation';
 import { useUpdateDesignation } from '@/features/designations/mutations/useUpdateDesignation';
 import { useDeleteDesignation } from '@/features/designations/mutations/useDeleteDesignation';
-import { useDepartmentsQuery } from '@/features/departments/queries/useDepartmentsQuery';
 import { DesignationTable } from '@/features/designations/components/DesignationTable';
 import { DesignationFormModal } from '@/features/designations/components/DesignationFormModal';
 import { AppButton } from '@/components/ui/AppButton';
@@ -20,17 +19,9 @@ export function DesignationsPanel() {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const { data, isLoading } = useDesignationsQuery({ page, pageSize });
-  const { data: departmentsData } = useDepartmentsQuery({ pageSize: 100 });
   const createDesignation = useCreateDesignation();
   const updateDesignation = useUpdateDesignation();
   const deleteDesignation = useDeleteDesignation();
-
-  const departments = useMemo(() => departmentsData?.data ?? [], [departmentsData]);
-  const departmentsById = useMemo(
-    () => Object.fromEntries(departments.map((department) => [department.id, department])),
-    [departments],
-  );
-  const departmentOptions = departments.map((department) => ({ value: department.id, label: department.name }));
 
   const handleSubmit = (values) => {
     const action = formState.designation
@@ -47,7 +38,7 @@ export function DesignationsPanel() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-text-muted">Designations are job titles, each tied to a department.</p>
+        <p className="text-sm text-text-muted">Designations are company-wide job titles.</p>
         <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
           <AppButton onClick={() => setFormState({ open: true, designation: null })}>
             <Plus className="size-4" />
@@ -58,7 +49,6 @@ export function DesignationsPanel() {
 
       <DesignationTable
         designations={data?.data ?? []}
-        departmentsById={departmentsById}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -75,7 +65,6 @@ export function DesignationsPanel() {
       <DesignationFormModal
         open={formState.open}
         initialValues={formState.designation}
-        departmentOptions={departmentOptions}
         onClose={() => setFormState({ open: false, designation: null })}
         onSubmit={handleSubmit}
         isSubmitting={createDesignation.isPending || updateDesignation.isPending}
