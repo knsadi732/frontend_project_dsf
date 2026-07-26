@@ -3,11 +3,12 @@ import { useCategoriesQuery } from '@/features/categories/queries/useCategoriesQ
 import { useCreateCategory } from '@/features/categories/mutations/useCreateCategory';
 import { useUpdateCategory } from '@/features/categories/mutations/useUpdateCategory';
 import { useDeleteCategory } from '@/features/categories/mutations/useDeleteCategory';
-import { CategoryTable } from '@/features/categories/components/CategoryTable';
 import { CategoryFormModal } from '@/features/categories/components/CategoryFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
-import { CreateButton } from '@/components/ui/ActionButtons';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -41,6 +42,27 @@ export function CategoriesPanel() {
     deleteCategory.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'name', header: 'Category', render: (row) => <span className="font-medium text-text">{row.name}</span> },
+    { key: 'categoryCode', header: 'Code' },
+    { key: 'parent', header: 'Parent', render: (row) => row.parent_name ?? '—' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.name}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, category: row }); }} />
+          </Can>
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -53,8 +75,9 @@ export function CategoriesPanel() {
         </div>
       </div>
 
-      <CategoryTable
-        categories={categories}
+      <AppTable
+        columns={columns}
+        data={categories}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -64,8 +87,8 @@ export function CategoriesPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(category) => setFormState({ open: true, category })}
-        onDelete={setDeleteTarget}
+        onRowClick={(category) => setFormState({ open: true, category })}
+        emptyMessage="No categories yet"
       />
 
       <CategoryFormModal

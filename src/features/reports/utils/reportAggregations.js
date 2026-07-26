@@ -68,16 +68,16 @@ export function receivableAging(invoices) {
     }));
 }
 
-export function payableAging(vendorBills, vendorsById) {
+export function payableAging(vendorBills) {
   return vendorBills
-    .filter((bill) => Number(bill.balanceDue ?? bill.amount ?? 0) > 0)
+    .filter((bill) => Number(bill.amountDue ?? 0) > 0)
     .map((bill) => ({
       id: bill.id,
-      reference: bill.billNumber,
-      party: vendorsById[bill.vendorId]?.name ?? bill.vendorId,
-      dueDate: bill.dueDate,
-      balanceDue: Number(bill.balanceDue ?? bill.amount ?? 0),
-      bucket: agingBucket(bill.dueDate),
+      reference: bill.invoiceNumber,
+      party: bill.vendorName ?? bill.vendorId,
+      dueDate: bill.paymentDueDate,
+      balanceDue: Number(bill.amountDue ?? 0),
+      bucket: agingBucket(bill.paymentDueDate),
     }));
 }
 

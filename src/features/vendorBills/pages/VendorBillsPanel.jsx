@@ -1,66 +1,62 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import { useVendorBillsQuery } from '@/features/vendorBills/queries/useVendorBillsQuery';
-import { useCreateVendorBill } from '@/features/vendorBills/mutations/useCreateVendorBill';
-import { useDeleteVendorBill } from '@/features/vendorBills/mutations/useDeleteVendorBill';
-import { useCreateVendorPayment } from '@/features/vendorBills/mutations/useCreateVendorPayment';
+import { useRecordVendorBillPayment } from '@/features/vendorBills/mutations/useRecordVendorBillPayment';
 import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
-import { usePurchasesQuery } from '@/features/purchases/queries/usePurchasesQuery';
-import { useGoodsReceiptNotesQuery } from '@/features/goodsReceiptNotes/queries/useGoodsReceiptNotesQuery';
-import { VendorBillFormModal } from '@/features/vendorBills/components/VendorBillFormModal';
 import { VendorPaymentFormModal } from '@/features/vendorBills/components/VendorPaymentFormModal';
 import { AppTable } from '@/components/ui/AppTable';
-import { AppButton } from '@/components/ui/AppButton';
-import { AppModal } from '@/components/ui/AppModal';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { MultiFilter } from '@/components/ui/MultiFilter';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
+import { RefreshButton } from '@/components/ui/RefreshButton';
+import { ViewButton } from '@/components/ui/ActionButtons';
+import { AppButton } from '@/components/ui/AppButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 const BILL_STATUS_VARIANT = { pending: 'warning', partial: 'warning', paid: 'success', overdue: 'danger' };
+const STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'partial', label: 'Partial' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'overdue', label: 'Overdue' },
+];
 
 export function VendorBillsPanel() {
+  const [status, setStatus] = useState('');
+  const [vendorId, setVendorId] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [billFormOpen, setBillFormOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useVendorBillsQuery({ page, pageSize });
+  const filters = useMemo(() => ({ status, vendorId, page, pageSize }), [status, vendorId, page, pageSize]);
+
+  // GET /vendor-bills (permission: vendor_bill.view) — bills are
+  // auto-created from GRNs (grn.service.js), so there's no create/delete
+  // flow here, only viewing and recording payments.
+  const { data, isLoading, isFetching, refetch } = useVendorBillsQuery(filters);
   const { data: vendorsData } = useVendorsQuery({ pageSize: 100 });
-  const { data: purchasesData } = usePurchasesQuery({ pageSize: 100 });
-  const { data: grnsData } = useGoodsReceiptNotesQuery({ pageSize: 100 });
-  const vendors = vendorsData?.data ?? [];
-  const purchaseOrders = purchasesData?.data ?? [];
-  const grns = grnsData?.data ?? [];
-  const vendorsById = Object.fromEntries(vendors.map((v) => [v.id, v]));
-  const purchaseOrdersById = Object.fromEntries(purchaseOrders.map((po) => [po.id, po]));
-  const vendorOptions = vendors.map((v) => ({ value: v.id, label: v.name }));
-  const purchaseOrderOptions = purchaseOrders.map((po) => ({ value: po.id, label: po.poNumber }));
-  const grnOptions = grns.map((grn) => ({ value: grn.id, label: grn.grnNumber }));
+  const vendorOptions = (vendorsData?.data ?? []).map((v) => ({ value: v.id, label: v.name }));
 
-  const createBill = useCreateVendorBill();
-  const deleteBill = useDeleteVendorBill();
-  const createVendorPayment = useCreateVendorPayment();
-
-  const handleConfirmDelete = () => {
-    deleteBill.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
-  };
+  const recordPayment = useRecordVendorBillPayment();
 
   const columns = [
-    { key: 'billNumber', header: 'Bill Number' },
-    { key: 'vendor', header: 'Vendor', render: (row) => vendorsById?.[row.vendorId]?.name ?? '—' },
-    { key: 'po', header: 'Purchase Order', render: (row) => purchaseOrdersById?.[row.purchaseOrderId]?.poNumber ?? '—' },
-    { key: 'amount', header: 'Amount', render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}` },
-    { key: 'balanceDue', header: 'Balance due', render: (row) => `₹${Number(row.balanceDue ?? row.amount).toLocaleString('en-IN')}` },
-    { key: 'dueDate', header: 'Due date' },
+    { key: 'invoiceNumber', header: 'Bill Number' },
+    { key: 'vendorName', header: 'Vendor', render: (row) => row.vendorName ?? '—' },
+    { key: 'poNumber', header: 'Purchase Order', render: (row) => row.poNumber ?? '—' },
+    { key: 'grnNumber', header: 'GRN', render: (row) => row.grnNumber ?? '—' },
+    { key: 'totalAmount', header: 'Total', render: (row) => `₹${Number(row.totalAmount).toLocaleString('en-IN')}` },
+    { key: 'amountDue', header: 'Amount due', render: (row) => `₹${Number(row.amountDue).toLocaleString('en-IN')}` },
+    { key: 'paymentDueDate', header: 'Due date' },
+    { key: 'utrNumber', header: 'UTR', render: (row) => row.utrNumber ?? '—' },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status ?? 'pending'} variantMap={BILL_STATUS_VARIANT} /> },
     {
       key: 'actions',
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
+          {row.invoiceUrl && <ViewButton label="View invoice" href={row.invoiceUrl} />}
           {row.status !== 'paid' && (
             <Can module={MODULES.FINANCE} action={ACTIONS.EDIT}>
               <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setPaymentTarget(row); }} aria-label="Record payment" title="Record payment">
@@ -68,9 +64,6 @@ export function VendorBillsPanel() {
               </AppButton>
             </Can>
           )}
-          <Can module={MODULES.FINANCE} action={ACTIONS.DELETE}>
-            <DeleteButton label="Delete bill" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
-          </Can>
         </div>
       ),
     },
@@ -78,12 +71,28 @@ export function VendorBillsPanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-text-muted">Vendor bills and payments (Accounts Payable).</p>
-        <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setBillFormOpen(true)}>New vendor bill</CreateButton>
-        </Can>
-      </div>
+      <p className="text-sm text-text-muted">Vendor bills and payments (Accounts Payable) — auto-created from GRNs.</p>
+
+      <FilterBar>
+        <MultiFilter
+          filters={[
+            { key: 'status', label: 'Status', options: STATUS_OPTIONS },
+            { key: 'vendorId', label: 'Vendor', options: vendorOptions, placeholder: 'All vendors' },
+          ]}
+          values={{ status, vendorId }}
+          onChange={(key, value) => {
+            if (key === 'status') setStatus(value);
+            if (key === 'vendorId') setVendorId(value);
+            setPage(1);
+          }}
+          onClear={() => {
+            setStatus('');
+            setVendorId('');
+            setPage(1);
+          }}
+        />
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
+      </FilterBar>
 
       <AppTable
         columns={columns}
@@ -100,41 +109,15 @@ export function VendorBillsPanel() {
         emptyMessage="No vendor bills yet"
       />
 
-      <VendorBillFormModal
-        open={billFormOpen}
-        vendorOptions={vendorOptions}
-        purchaseOrderOptions={purchaseOrderOptions}
-        grnOptions={grnOptions}
-        onClose={() => setBillFormOpen(false)}
-        onSubmit={(values) => createBill.mutateAsync(values).then(() => setBillFormOpen(false))}
-        isSubmitting={createBill.isPending}
-      />
-
       <VendorPaymentFormModal
         open={Boolean(paymentTarget)}
         bill={paymentTarget}
         onClose={() => setPaymentTarget(null)}
-        onSubmit={(values) => createVendorPayment.mutateAsync(values).then(() => setPaymentTarget(null))}
-        isSubmitting={createVendorPayment.isPending}
-      />
-
-      <AppModal
-        open={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title="Delete vendor bill"
-        footer={
-          <>
-            <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </AppButton>
-            <AppButton variant="danger" loading={deleteBill.isPending} onClick={handleConfirmDelete}>
-              Delete
-            </AppButton>
-          </>
+        onSubmit={(values) =>
+          recordPayment.mutateAsync({ id: paymentTarget.id, ...values }).then(() => setPaymentTarget(null))
         }
-      >
-        <p className="text-sm text-text-muted">Are you sure you want to delete <span className="font-medium text-text">{deleteTarget?.billNumber}</span>? This action cannot be undone.</p>
-      </AppModal>
+        isSubmitting={recordPayment.isPending}
+      />
     </div>
   );
 }

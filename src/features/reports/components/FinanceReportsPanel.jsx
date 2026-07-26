@@ -2,8 +2,6 @@ import { useMemo } from 'react';
 import { useInvoicesQuery } from '@/features/finance/queries/useInvoicesQuery';
 import { useVendorBillsQuery } from '@/features/vendorBills/queries/useVendorBillsQuery';
 import { usePaymentsQuery } from '@/features/payments/queries/usePaymentsQuery';
-import { useVendorPaymentsQuery } from '@/features/vendorBills/queries/useVendorPaymentsQuery';
-import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { ReportSection } from '@/features/reports/components/ReportSection';
 import { receivableAging, payableAging } from '@/features/reports/utils/reportAggregations';
 
@@ -11,24 +9,39 @@ export function FinanceReportsPanel() {
   const { data: invoicesData } = useInvoicesQuery({ pageSize: 500 });
   const { data: vendorBillsData } = useVendorBillsQuery({ pageSize: 500 });
   const { data: paymentsData } = usePaymentsQuery({ pageSize: 500 });
-  const { data: vendorPaymentsData } = useVendorPaymentsQuery({ pageSize: 500 });
-  const { data: vendorsData } = useVendorsQuery({ pageSize: 200 });
 
   const invoices = invoicesData?.data ?? [];
   const vendorBills = vendorBillsData?.data ?? [];
   const payments = paymentsData?.data ?? [];
-  const vendorPayments = vendorPaymentsData?.data ?? [];
-  const vendorsById = useMemo(() => Object.fromEntries((vendorsData?.data ?? []).map((v) => [v.id, v])), [vendorsData]);
 
   const arAging = useMemo(() => receivableAging(invoices), [invoices]);
-  const apAging = useMemo(() => payableAging(vendorBills, vendorsById), [vendorBills, vendorsById]);
+  const apAging = useMemo(() => payableAging(vendorBills), [vendorBills]);
 
+  // Vendor bills carry one cumulative amount_paid/utr_number each (no
+  // separate payment-history table on the backend), so each paid/partial
+  // bill contributes a single synthesized "Payment" row here.
   const paymentRegister = useMemo(
     () => [
-      ...payments.map((p) => ({ ...p, id: `receipt-${p.id}`, direction: 'Receipt', reference: invoices.find((inv) => inv.id === p.invoiceId)?.invoiceNumber ?? p.invoiceId, date: p.paidDate })),
-      ...vendorPayments.map((p) => ({ ...p, id: `payment-${p.id}`, direction: 'Payment', reference: vendorBills.find((bill) => bill.id === p.vendorBillId)?.billNumber ?? p.vendorBillId, date: p.paidDate })),
+      ...payments.map((p) => ({
+        id: `receipt-${p.id}`,
+        direction: 'Receipt',
+        reference: invoices.find((inv) => inv.id === p.invoiceId)?.invoiceNumber ?? p.invoiceId,
+        amount: p.amount,
+        note: p.method,
+        date: p.paidDate,
+      })),
+      ...vendorBills
+        .filter((bill) => Number(bill.amountPaid ?? 0) > 0)
+        .map((bill) => ({
+          id: `payment-${bill.id}`,
+          direction: 'Payment',
+          reference: bill.invoiceNumber,
+          amount: bill.amountPaid,
+          note: bill.utrNumber ? `UTR: ${bill.utrNumber}` : '—',
+          date: bill.paidAt,
+        })),
     ].sort((a, b) => (a.date < b.date ? 1 : -1)),
-    [payments, vendorPayments, invoices, vendorBills],
+    [payments, vendorBills, invoices],
   );
 
   return (
@@ -70,7 +83,7 @@ export function FinanceReportsPanel() {
           { key: 'direction', header: 'Type' },
           { key: 'reference', header: 'Reference' },
           { key: 'amount', header: 'Amount', format: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}` },
-          { key: 'method', header: 'Method' },
+          { key: 'note', header: 'Method / UTR' },
         ]}
         rows={paymentRegister}
       />
