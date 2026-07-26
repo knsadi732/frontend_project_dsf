@@ -1,42 +1,66 @@
-import { Download, Pencil, Trash2 } from 'lucide-react';
+import { Ban, Check, Download, Pencil, PackageCheck, PackageOpen, Send, SendHorizonal } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
-import { generateRecordPdf } from '@/utils/generateRecordPdf';
+import { generatePurchaseOrderPdf } from '@/features/purchases/utils/generatePurchaseOrderPdf';
+import { purchaseApi } from '@/features/purchases/api';
+import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
+import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
+import { useCompanyQuery } from '@/features/company/queries/useCompanyQuery';
 
-function downloadPurchasePdf(row, productsById) {
-  generateRecordPdf({
-    title: `Purchase Order - ${row.poNumber}`,
-    fields: [
-      { label: 'Supplier', value: row.supplier },
-      { label: 'Order Date', value: row.orderDate },
-      { label: 'Status', value: row.status },
-    ],
-    items: row.items,
-    itemsColumns: [
-      { key: 'productId', label: 'Product', width: 80, format: (v) => productsById?.[v]?.name ?? v },
-      { key: 'quantity', label: 'Qty', width: 25 },
-      { key: 'rate', label: 'Rate', width: 30, format: (v) => `Rs.${Number(v).toLocaleString('en-IN')}` },
-      {
-        key: 'amount',
-        label: 'Amount',
-        width: 35,
-        format: (_v, item) => `Rs.${(Number(item.quantity) * Number(item.rate)).toLocaleString('en-IN')}`,
-      },
-    ],
-    total: `Total: Rs.${Number(row.total).toLocaleString('en-IN')}`,
-    fileName: `${row.poNumber}.pdf`,
+function variantLabel(variantId, variantsById, productsById) {
+  const variant = variantsById?.[variantId];
+  if (!variant) return variantId;
+  return `${variant.sku} — ${productsById?.[variant.productId]?.name ?? 'Unknown product'}`;
+}
+
+function downloadPurchasePdf(row, productsById, variantsById, company, vendorsById, warehousesById) {
+  // The list endpoint (which feeds this table) never returns `items` — only
+  // GET /purchase-orders/:id joins them (same gap fixed for Convert-to-PO)
+  // — fetch the full record so the PDF's item table isn't empty.
+  purchaseApi.get(row.id).then((full) => {
+    generatePurchaseOrderPdf({
+      po: full,
+      company,
+      vendor: vendorsById[full.vendorId],
+      warehouse: warehousesById[full.warehouseId],
+      items: (full.items ?? []).map((item) => {
+        const variant = variantsById[item.productVariantId];
+        const product = productsById[variant?.productId];
+        return {
+          label: variantLabel(item.productVariantId, variantsById, productsById),
+          quantity: item.quantity,
+          unitCost: item.unitCost,
+          hsnCode: product?.hsnCode,
+          uom: product?.uom,
+        };
+      }),
+    });
   });
 }
 
-const EDIT_LOCKED_STATUSES = ['approved', 'completed'];
+const EDIT_LOCKED_STATUSES = ['completed', 'cancelled'];
+
+// Real pipeline (purchase.schema.js / backend PURCHASE_ORDER_STATUS_PIPELINE):
+// draft -> pending_approval -> approved -> sent -> acknowledged ->
+// partially_received -> completed, one step at a time. Each entry here is
+// the single next-step button shown for that status.
+const NEXT_STEP = {
+  draft: { status: 'pending_approval', label: 'Send for approval', icon: Send, variant: 'primary' },
+  pending_approval: { status: 'approved', label: 'Approve PO', icon: Check, variant: 'success' },
+  approved: { status: 'sent', label: 'Send to vendor', icon: SendHorizonal, variant: 'info' },
+  sent: { status: 'acknowledged', label: 'Mark acknowledged', icon: PackageOpen, variant: 'info' },
+  acknowledged: { status: 'partially_received', label: 'Mark partially received', icon: PackageCheck, variant: 'info' },
+  partially_received: { status: 'completed', label: 'Mark completed', icon: PackageCheck, variant: 'success' },
+};
 
 export function PurchaseTable({
   purchases,
   productsById,
+  variantsById,
   isLoading,
   page,
   pageSize,
@@ -44,15 +68,19 @@ export function PurchaseTable({
   onPageChange,
   onPageSizeChange,
   onEdit,
-  onDelete,
+  onTransitionStatus,
+  onCancelOrder,
 }) {
-  const handleRowClick = (row) => {
-    if (!EDIT_LOCKED_STATUSES.includes(row.status)) onEdit(row);
-  };
+  const { data: vendorsData } = useVendorsQuery({ pageSize: 100 });
+  const vendorsById = Object.fromEntries((vendorsData?.data ?? []).map((vendor) => [vendor.id, vendor]));
+
+  const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
+  const warehousesById = Object.fromEntries((warehousesData?.data ?? []).map((warehouse) => [warehouse.id, warehouse]));
+
+  const { data: company } = useCompanyQuery();
 
   const columns = [
     { key: 'poNumber', header: 'PO Number' },
-    { key: 'supplier', header: 'Supplier' },
     { key: 'orderDate', header: 'Order Date' },
     {
       key: 'total',
@@ -67,62 +95,76 @@ export function PurchaseTable({
       ),
     },
     {
-      key: 'priority',
-      header: 'Priority',
-      render: (row) =>
-        row.priority === 'urgent' ? (
-          <BaseBadge variant="danger">Urgent</BaseBadge>
-        ) : (
-          <span className="text-xs text-text-muted">Normal</span>
-        ),
-    },
-    {
       key: 'actions',
       header: '',
-      render: (row) => (
-        <div className="flex justify-end gap-1">
-          <AppButton
-            variant="ghost"
-            size="sm"
-            onClick={(event) => {
-              event.stopPropagation();
-              downloadPurchasePdf(row, productsById);
-            }}
-            aria-label={`Download ${row.poNumber}`}
-          >
-            <Download className="size-4" />
-          </AppButton>
-          {!EDIT_LOCKED_STATUSES.includes(row.status) && (
-            <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
-              <AppButton
-                variant="ghost"
-                size="sm"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onEdit(row);
-                }}
-                aria-label={`Edit ${row.poNumber}`}
-              >
-                <Pencil className="size-4" />
-              </AppButton>
-            </Can>
-          )}
-          <Can module={MODULES.PURCHASES} action={ACTIONS.DELETE}>
+      render: (row) => {
+        const next = NEXT_STEP[row.status];
+        const isCancellable = !EDIT_LOCKED_STATUSES.includes(row.status);
+        return (
+          <div className="flex justify-end gap-1">
             <AppButton
               variant="ghost"
               size="sm"
               onClick={(event) => {
                 event.stopPropagation();
-                onDelete(row);
+                downloadPurchasePdf(row, productsById, variantsById, company, vendorsById, warehousesById);
               }}
-              aria-label={`Delete ${row.poNumber}`}
-              className="text-danger hover:bg-danger/10"
+              aria-label={`Download ${row.poNumber}`}
+              title="Download PDF"
             >
-              <Trash2 className="size-4" />
+              <Download className="size-4" />
             </AppButton>
-          </Can>
-        </div>
-      ),
+            {!EDIT_LOCKED_STATUSES.includes(row.status) && (
+              <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onEdit(row);
+                  }}
+                  aria-label={`Edit ${row.poNumber}`}
+                  title="View / edit"
+                >
+                  <Pencil className="size-4" />
+                </AppButton>
+              </Can>
+            )}
+            {next && (
+              <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
+                <AppButton
+                  variant={next.variant}
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onTransitionStatus(row, next.status);
+                  }}
+                  aria-label={next.label}
+                  title={next.label}
+                >
+                  <next.icon className="size-4" />
+                </AppButton>
+              </Can>
+            )}
+            {isCancellable && (
+              <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
+                <AppButton
+                  variant="danger"
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onCancelOrder(row);
+                  }}
+                  aria-label="Cancel PO"
+                  title="Cancel order"
+                >
+                  <Ban className="size-4" />
+                </AppButton>
+              </Can>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -136,7 +178,7 @@ export function PurchaseTable({
       total={total}
       onPageChange={onPageChange}
       onPageSizeChange={onPageSizeChange}
-      onRowClick={handleRowClick}
+      onRowClick={onEdit}
       emptyMessage="No purchase orders yet"
     />
   );

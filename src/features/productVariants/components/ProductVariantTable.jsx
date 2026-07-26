@@ -1,10 +1,8 @@
-import { Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
-import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 
 export function ProductVariantTable({
   variants,
@@ -24,38 +22,20 @@ export function ProductVariantTable({
     { key: 'color', header: 'Color' },
     { key: 'sku', header: 'SKU' },
     { key: 'barcode', header: 'Barcode' },
-    {
-      key: 'attributes',
-      header: 'Attributes',
-      render: (row) => [row.material, row.gender, row.width, row.pattern].filter(Boolean).join(' · ') || '—',
-    },
     { key: 'mrp', header: 'MRP', render: (row) => `₹${Number(row.mrp).toLocaleString('en-IN')}` },
     { key: 'sellingPrice', header: 'Selling Price', render: (row) => `₹${Number(row.sellingPrice).toLocaleString('en-IN')}` },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <BaseBadge variant={STATUS_BADGE_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>,
-    },
+    { key: 'costPrice', header: 'Cost Price', render: (row) => `₹${Number(row.costPrice).toLocaleString('en-IN')}` },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'actions',
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
           <Can module={MODULES.PRODUCTS} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(row); }} aria-label={`Edit ${row.sku}`}>
-              <Pencil className="size-4" />
-            </AppButton>
+            <EditButton label={`Edit ${row.sku}`} onClick={(e) => { e.stopPropagation(); onEdit(row); }} />
           </Can>
           <Can module={MODULES.PRODUCTS} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onDelete(row); }}
-              aria-label={`Delete ${row.sku}`}
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label={`Delete ${row.sku}`} onClick={(e) => { e.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),

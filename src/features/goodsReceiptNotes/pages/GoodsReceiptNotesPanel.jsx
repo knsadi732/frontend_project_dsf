@@ -1,62 +1,80 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useGoodsReceiptNotesQuery } from '@/features/goodsReceiptNotes/queries/useGoodsReceiptNotesQuery';
-import { useCreateGrn } from '@/features/goodsReceiptNotes/mutations/useCreateGrn';
-import { useUpdateGrn } from '@/features/goodsReceiptNotes/mutations/useUpdateGrn';
-import { useDeleteGrn } from '@/features/goodsReceiptNotes/mutations/useDeleteGrn';
 import { usePurchasesQuery } from '@/features/purchases/queries/usePurchasesQuery';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
+import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { GrnTable } from '@/features/goodsReceiptNotes/components/GrnTable';
-import { GrnFormModal } from '@/features/goodsReceiptNotes/components/GrnFormModal';
-import { AppButton } from '@/components/ui/AppButton';
-import { AppModal } from '@/components/ui/AppModal';
-import { Can } from '@/routes/PermissionGuard';
-import { MODULES, ACTIONS } from '@/constants/roles';
+import { SearchInput } from '@/components/ui/SearchInput';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { AppSelect } from '@/components/ui/AppSelect';
+import { RefreshButton } from '@/components/ui/RefreshButton';
+import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 export function GoodsReceiptNotesPanel() {
+  const [search, setSearch] = useState('');
+  const [vendorId, setVendorId] = useState('');
+  const [warehouseId, setWarehouseId] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [formState, setFormState] = useState({ open: false, grn: null });
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useGoodsReceiptNotesQuery({ page, pageSize });
+  const debouncedSearch = useDebounce(search);
+  // Real GET /grn query params: page, limit, sortBy, sortOrder, search,
+  // vendorId, warehouseId — no `status` filter.
+  const filters = useMemo(
+    () => ({ search: debouncedSearch, vendorId, warehouseId, page, pageSize }),
+    [debouncedSearch, vendorId, warehouseId, page, pageSize],
+  );
+
+  const { data, isLoading, isFetching, refetch } = useGoodsReceiptNotesQuery(filters);
   const { data: purchasesData } = usePurchasesQuery({ pageSize: 100 });
   const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
-  const purchaseOrders = purchasesData?.data ?? [];
+  const { data: vendorsData } = useVendorsQuery({ pageSize: 100 });
+  const purchaseOrdersById = Object.fromEntries((purchasesData?.data ?? []).map((po) => [po.id, po]));
   const warehouses = warehousesData?.data ?? [];
-  const purchaseOrdersById = Object.fromEntries(purchaseOrders.map((po) => [po.id, po]));
   const warehousesById = Object.fromEntries(warehouses.map((w) => [w.id, w]));
-  const purchaseOrderOptions = purchaseOrders.map((po) => ({ value: po.id, label: po.poNumber }));
+  const vendors = vendorsData?.data ?? [];
   const warehouseOptions = warehouses.map((w) => ({ value: w.id, label: w.name }));
-
-  const createGrn = useCreateGrn();
-  const updateGrn = useUpdateGrn();
-  const deleteGrn = useDeleteGrn();
-
-  const handleSubmit = (values) => {
-    const action = formState.grn
-      ? updateGrn.mutateAsync({ id: formState.grn.id, payload: values })
-      : createGrn.mutateAsync(values);
-
-    action.then(() => setFormState({ open: false, grn: null }));
-  };
-
-  const handleConfirmDelete = () => {
-    deleteGrn.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
-  };
+  const vendorOptions = vendors.map((v) => ({ value: v.id, label: v.name }));
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-text-muted">Goods receipt notes — inventory increases only after approval.</p>
-        <Can module={MODULES.PURCHASES} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, grn: null })}>
-            <Plus className="size-4" />
-            New GRN
-          </AppButton>
-        </Can>
-      </div>
+      <p className="text-sm text-text-muted">Goods receipt notes (read-only for now).</p>
+
+      <FilterBar>
+        <SearchInput
+          value={search}
+          onChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          placeholder="Search GRNs…"
+          className="w-72"
+        />
+        <AppSelect
+          value={vendorId}
+          onChange={(event) => {
+            setVendorId(event.target.value);
+            setPage(1);
+          }}
+          options={vendorOptions}
+          placeholder="All vendors"
+          className="w-44"
+          aria-label="Filter by vendor"
+        />
+        <AppSelect
+          value={warehouseId}
+          onChange={(event) => {
+            setWarehouseId(event.target.value);
+            setPage(1);
+          }}
+          options={warehouseOptions}
+          placeholder="All warehouses"
+          className="w-44"
+          aria-label="Filter by warehouse"
+        />
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
+      </FilterBar>
 
       <GrnTable
         grns={data?.data ?? []}
@@ -71,38 +89,7 @@ export function GoodsReceiptNotesPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(grn) => setFormState({ open: true, grn })}
-        onDelete={setDeleteTarget}
-        onApprove={(grn) => updateGrn.mutate({ id: grn.id, payload: { status: 'approved' } })}
       />
-
-      <GrnFormModal
-        open={formState.open}
-        initialValues={formState.grn}
-        purchaseOrderOptions={purchaseOrderOptions}
-        warehouseOptions={warehouseOptions}
-        onClose={() => setFormState({ open: false, grn: null })}
-        onSubmit={handleSubmit}
-        isSubmitting={createGrn.isPending || updateGrn.isPending}
-      />
-
-      <AppModal
-        open={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title="Delete GRN"
-        footer={
-          <>
-            <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </AppButton>
-            <AppButton variant="danger" loading={deleteGrn.isPending} onClick={handleConfirmDelete}>
-              Delete
-            </AppButton>
-          </>
-        }
-      >
-        <p className="text-sm text-text-muted">Are you sure you want to delete <span className="font-medium text-text">{deleteTarget?.grnNumber}</span>? This action cannot be undone.</p>
-      </AppModal>
     </div>
   );
 }

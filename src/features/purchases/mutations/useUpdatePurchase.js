@@ -8,7 +8,7 @@ export function useUpdatePurchase() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, payload }) => purchaseApi.update(id, payload),
+    mutationFn: ({ id, status }) => purchaseApi.transitionStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.purchases.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.production.all });

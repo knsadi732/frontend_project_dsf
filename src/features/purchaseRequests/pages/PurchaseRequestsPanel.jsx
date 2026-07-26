@@ -63,6 +63,8 @@ export function PurchaseRequestsPanel({ onConvertToPo }) {
           setPageSize(size);
           setPage(1);
         }}
+        onSubmitRequest={(request) => updateStatus.mutate({ id: request.id, status: 'submitted' })}
+        onSendForApproval={(request) => updateStatus.mutate({ id: request.id, status: 'pending_approval' })}
         onApprove={(request) => updateStatus.mutate({ id: request.id, status: 'approved' })}
         onReject={(request) => updateStatus.mutate({ id: request.id, status: 'rejected' })}
         onConvertToPo={onConvertToPo}

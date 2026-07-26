@@ -4,6 +4,7 @@ import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { useCreateVendor } from '@/features/vendors/mutations/useCreateVendor';
 import { useUpdateVendor } from '@/features/vendors/mutations/useUpdateVendor';
 import { useDeleteVendor } from '@/features/vendors/mutations/useDeleteVendor';
+import { vendorApi } from '@/features/vendors/api';
 import { VendorTable } from '@/features/vendors/components/VendorTable';
 import { VendorFormModal } from '@/features/vendors/components/VendorFormModal';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -37,6 +38,13 @@ export function VendorsPage() {
       : createVendor.mutateAsync(values);
 
     action.then(() => setFormState({ open: false, vendor: null }));
+  };
+
+  // Edit always re-fetches the single vendor (GET /vendors/:id) instead of
+  // reusing the row from the list query, so the form shows exactly what
+  // the backend has right now rather than a possibly-stale list snapshot.
+  const handleEdit = (vendor) => {
+    vendorApi.get(vendor.id).then((full) => setFormState({ open: true, vendor: full }));
   };
 
   const handleConfirmDelete = () => {
@@ -82,7 +90,7 @@ export function VendorsPage() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(vendor) => setFormState({ open: true, vendor })}
+        onEdit={handleEdit}
         onDelete={setDeleteTarget}
       />
 

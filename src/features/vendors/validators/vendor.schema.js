@@ -11,23 +11,14 @@ export const VENDOR_TYPE_OPTIONS = [
   { value: 'maintenance', label: 'Maintenance contractor' },
 ];
 
-export const VENDOR_ADDRESS_TYPE_OPTIONS = [
-  { value: 'registered_office', label: 'Registered office' },
-  { value: 'factory', label: 'Factory' },
-  { value: 'warehouse', label: 'Warehouse' },
-  { value: 'billing', label: 'Billing' },
-  { value: 'shipping', label: 'Shipping' },
-];
-
+// Matches the real backend shape exactly (party.validator.js: `addresses:
+// [{ label?, address (required) }]`) — a JSONB array, not a rich structured
+// address record. Sending the previous richer shape (type/contactPerson/
+// city/state/postalCode) had no `address` key, so it would fail the
+// backend's `address: required()` validation on save.
 export const vendorAddressSchema = z.object({
-  type: z.enum(['registered_office', 'factory', 'warehouse', 'billing', 'shipping']).default('registered_office'),
-  contactPerson: z.string().optional(),
-  phone: z.string().optional(),
-  addressLine: z.string().min(1, 'Address is required'),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  country: z.string().optional(),
-  postalCode: z.string().optional(),
+  label: z.string().optional(),
+  address: z.string().min(1, 'Address is required'),
 });
 
 export const vendorSchema = z.object({
@@ -38,6 +29,9 @@ export const vendorSchema = z.object({
   address: z.string().optional(),
   gstNumber: z.string().optional(),
   paymentTerms: z.string().optional(),
+  bankName: z.string().optional(),
+  bankAccountNumber: z.string().optional(),
+  bankIfsc: z.string().optional(),
   creditLimit: z.coerce.number().nonnegative().optional(),
   creditDays: z.coerce.number().int().nonnegative().optional(),
   addresses: z.array(vendorAddressSchema).default([]),

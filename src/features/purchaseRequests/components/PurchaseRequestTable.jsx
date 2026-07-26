@@ -1,11 +1,19 @@
-import { Check, FileOutput, X } from 'lucide-react';
+import { Check, FileOutput, Send, SendHorizonal, X } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 
-const STATUS_VARIANT = { pending: 'warning', approved: 'success', rejected: 'danger' };
+const STATUS_VARIANT = {
+  draft: 'default',
+  submitted: 'warning',
+  pending_approval: 'warning',
+  pending: 'warning',
+  approved: 'success',
+  converted_to_rfq: 'success',
+  rejected: 'danger',
+};
 
 export function PurchaseRequestTable({
   requests,
@@ -17,6 +25,8 @@ export function PurchaseRequestTable({
   total,
   onPageChange,
   onPageSizeChange,
+  onSubmitRequest,
+  onSendForApproval,
   onApprove,
   onReject,
   onConvertToPo,
@@ -37,19 +47,33 @@ export function PurchaseRequestTable({
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
-          {row.status === 'pending' && (
+          {row.status === 'draft' && (
             <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
-              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onApprove(row); }} aria-label="Approve PR" className="text-success hover:bg-success/10">
+              <AppButton variant="primary" size="sm" title="Submit PR" onClick={(e) => { e.stopPropagation(); onSubmitRequest(row); }} aria-label="Submit PR">
+                <Send className="size-4" />
+              </AppButton>
+            </Can>
+          )}
+          {row.status === 'submitted' && (
+            <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
+              <AppButton variant="info" size="sm" title="Send for approval" onClick={(e) => { e.stopPropagation(); onSendForApproval(row); }} aria-label="Send for approval">
+                <SendHorizonal className="size-4" />
+              </AppButton>
+            </Can>
+          )}
+          {row.status === 'pending_approval' && (
+            <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
+              <AppButton variant="success" size="sm" title="Approve PR" onClick={(e) => { e.stopPropagation(); onApprove(row); }} aria-label="Approve PR">
                 <Check className="size-4" />
               </AppButton>
-              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onReject(row); }} aria-label="Reject PR" className="text-danger hover:bg-danger/10">
+              <AppButton variant="danger" size="sm" title="Reject PR" onClick={(e) => { e.stopPropagation(); onReject(row); }} aria-label="Reject PR">
                 <X className="size-4" />
               </AppButton>
             </Can>
           )}
           {row.status === 'approved' && (
             <Can module={MODULES.PURCHASES} action={ACTIONS.CREATE}>
-              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onConvertToPo(row); }} aria-label="Convert to PO">
+              <AppButton variant="info" size="sm" title="Convert to Purchase Order" onClick={(e) => { e.stopPropagation(); onConvertToPo(row); }} aria-label="Convert to PO">
                 <FileOutput className="size-4" />
               </AppButton>
             </Can>

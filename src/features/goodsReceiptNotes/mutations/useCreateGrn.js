@@ -8,9 +8,10 @@ export function useCreateGrn() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: goodsReceiptNoteApi.create,
+    mutationFn: ({ poId, payload }) => goodsReceiptNoteApi.createForPurchaseOrder(poId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.goodsReceiptNotes.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.purchases.all });
       pushToast('success', TOAST_MESSAGES.CREATE_SUCCESS('Goods receipt note'));
     },
   });

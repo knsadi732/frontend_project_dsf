@@ -11,6 +11,10 @@ const VARIANTS = {
   ghost: 'bg-transparent text-text hover:bg-surface-hover',
   danger:
     'bg-gradient-to-br from-danger to-red-700 text-white shadow-md shadow-danger/20 hover:brightness-110 hover:shadow-lg hover:shadow-danger/25 active:brightness-95',
+  success:
+    'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-md shadow-emerald-500/20 hover:brightness-110 hover:shadow-lg hover:shadow-emerald-500/25 active:brightness-95',
+  info:
+    'bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-md shadow-sky-500/20 hover:brightness-110 hover:shadow-lg hover:shadow-sky-500/25 active:brightness-95',
 };
 
 const SIZES = {

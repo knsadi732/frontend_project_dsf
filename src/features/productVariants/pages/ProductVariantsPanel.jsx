@@ -9,6 +9,7 @@ import { ProductVariantTable } from '@/features/productVariants/components/Produ
 import { ProductVariantFormModal } from '@/features/productVariants/components/ProductVariantFormModal';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -19,7 +20,7 @@ export function ProductVariantsPanel() {
   const [formState, setFormState] = useState({ open: false, variant: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useProductVariantsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useProductVariantsQuery({ page, pageSize });
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
   const products = productsData?.data ?? [];
   const productsById = Object.fromEntries(products.map((product) => [product.id, product]));
@@ -45,12 +46,15 @@ export function ProductVariantsPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Variants capture size/color/SKU/barcode/pricing per product.</p>
-        <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, variant: null })}>
-            <Plus className="size-4" />
-            New variant
-          </AppButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
+            <AppButton onClick={() => setFormState({ open: true, variant: null })}>
+              <Plus className="size-4" />
+              New variant
+            </AppButton>
+          </Can>
+        </div>
       </div>
 
       <ProductVariantTable

@@ -8,6 +8,7 @@ import { CategoryTable } from '@/features/categories/components/CategoryTable';
 import { CategoryFormModal } from '@/features/categories/components/CategoryFormModal';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -18,9 +19,8 @@ export function CategoriesPanel() {
   const [formState, setFormState] = useState({ open: false, category: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useCategoriesQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useCategoriesQuery({ page, pageSize });
   const categories = data?.data ?? [];
-  const categoriesById = Object.fromEntries(categories.map((category) => [category.id, category]));
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
@@ -45,17 +45,19 @@ export function CategoriesPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Categories organize products in a parent-child hierarchy.</p>
-        <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, category: null })}>
-            <Plus className="size-4" />
-            New category
-          </AppButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
+            <AppButton onClick={() => setFormState({ open: true, category: null })}>
+              <Plus className="size-4" />
+              New category
+            </AppButton>
+          </Can>
+        </div>
       </div>
 
       <CategoryTable
         categories={categories}
-        categoriesById={categoriesById}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}

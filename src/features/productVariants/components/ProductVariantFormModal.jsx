@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { productVariantSchema } from '@/features/productVariants/validators/productVariant.schema';
+import { productVariantApi } from '@/services/productVariant.api';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -13,12 +14,12 @@ const DEFAULT_VALUES = {
   color: '',
   sku: '',
   barcode: '',
-  material: '',
-  gender: '',
-  width: '',
-  pattern: '',
+  weight: '',
   mrp: '',
   sellingPrice: '',
+  wholesalePrice: '',
+  dealerPrice: '',
+  costPrice: '',
   status: 'active',
 };
 
@@ -27,6 +28,7 @@ export function ProductVariantFormModal({ open, onClose, initialValues, productO
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(productVariantSchema),
@@ -34,8 +36,15 @@ export function ProductVariantFormModal({ open, onClose, initialValues, productO
   });
 
   useEffect(() => {
-    if (open) reset(initialValues ?? DEFAULT_VALUES);
-  }, [open, initialValues, reset]);
+    if (!open) return;
+    reset(initialValues ?? DEFAULT_VALUES);
+
+    // New variant — the SKU is server-generated (sequence-backed), fetch a
+    // suggestion as soon as the form opens (same pattern as PO/loan numbers).
+    if (!initialValues?.id) {
+      productVariantApi.generateSku().then((sku) => setValue('sku', sku));
+    }
+  }, [open, initialValues, reset, setValue]);
 
   return (
     <AppModal
@@ -63,40 +72,22 @@ export function ProductVariantFormModal({ open, onClose, initialValues, productO
           {...register('productId')}
         />
         <div className="grid grid-cols-2 gap-4">
-          <AppInput label="Size" required error={errors.size?.message} {...register('size')} />
-          <AppInput label="Color" required error={errors.color?.message} {...register('color')} />
+          <AppInput label="Size" error={errors.size?.message} {...register('size')} />
+          <AppInput label="Color" error={errors.color?.message} {...register('color')} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <AppInput label="SKU" required error={errors.sku?.message} {...register('sku')} />
-          <AppInput label="Barcode" required error={errors.barcode?.message} {...register('barcode')} />
-        </div>
-        <div className="grid grid-cols-4 gap-4">
-          <AppInput label="Material" error={errors.material?.message} {...register('material')} />
-          <AppSelect
-            label="Gender"
-            placeholder="Select"
-            options={[
-              { value: 'men', label: 'Men' },
-              { value: 'women', label: 'Women' },
-              { value: 'unisex', label: 'Unisex' },
-              { value: 'kids', label: 'Kids' },
-            ]}
-            error={errors.gender?.message}
-            {...register('gender')}
-          />
-          <AppInput label="Width" error={errors.width?.message} {...register('width')} />
-          <AppInput label="Pattern" error={errors.pattern?.message} {...register('pattern')} />
+          <AppInput label="Barcode" error={errors.barcode?.message} {...register('barcode')} />
+          <AppInput label="Weight (kg)" type="number" step="0.001" error={errors.weight?.message} {...register('weight')} />
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <AppInput label="MRP" type="number" step="0.01" required error={errors.mrp?.message} {...register('mrp')} />
-          <AppInput
-            label="Selling Price"
-            type="number"
-            step="0.01"
-            required
-            error={errors.sellingPrice?.message}
-            {...register('sellingPrice')}
-          />
+          <AppInput label="MRP" type="number" step="0.01" error={errors.mrp?.message} {...register('mrp')} />
+          <AppInput label="Selling price" type="number" step="0.01" error={errors.sellingPrice?.message} {...register('sellingPrice')} />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <AppInput label="Cost price" type="number" step="0.01" error={errors.costPrice?.message} {...register('costPrice')} />
+          <AppInput label="Wholesale price" type="number" step="0.01" error={errors.wholesalePrice?.message} {...register('wholesalePrice')} />
+          <AppInput label="Dealer price" type="number" step="0.01" error={errors.dealerPrice?.message} {...register('dealerPrice')} />
         </div>
         <AppSelect
           label="Status"
@@ -104,6 +95,7 @@ export function ProductVariantFormModal({ open, onClose, initialValues, productO
           options={[
             { value: 'active', label: 'Active' },
             { value: 'inactive', label: 'Inactive' },
+            { value: 'discontinued', label: 'Discontinued' },
           ]}
           {...register('status')}
         />

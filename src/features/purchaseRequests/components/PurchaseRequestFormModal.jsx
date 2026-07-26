@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { purchaseRequestSchema } from '@/features/purchaseRequests/validators/purchaseRequest.schema';
 import { purchaseRequestApi } from '@/features/purchaseRequests/api';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
+import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
 import { useAuth } from '@/hooks/useAuth';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
@@ -12,7 +13,7 @@ import { AppSelect } from '@/components/ui/AppSelect';
 import { AppComboSelect } from '@/components/ui/AppComboSelect';
 import { AppButton } from '@/components/ui/AppButton';
 
-const EMPTY_ITEM = { productId: '', quantity: '', remarks: '' };
+const EMPTY_ITEM = { productVariantId: '', quantity: '', remarks: '' };
 const DEFAULT_VALUES = {
   warehouseId: '',
   departmentId: '',
@@ -32,10 +33,17 @@ export function PurchaseRequestFormModal({
 }) {
   const { user } = useAuth();
   const { data: productsData } = useProductsQuery({ pageSize: 200 });
-  const productOptions = (productsData?.data ?? []).map((product) => ({
-    value: product.id,
-    label: `${product.sku} — ${product.name}`,
-  }));
+  const productsById = Object.fromEntries((productsData?.data ?? []).map((product) => [product.id, product]));
+
+  const { data: variantsData } = useProductVariantsQuery({ pageSize: 500 });
+  const variantOptions = (variantsData?.data ?? []).map((variant) => {
+    const productName = productsById[variant.productId]?.name;
+    const attrs = [variant.size, variant.color].filter(Boolean).join('/');
+    return {
+      value: variant.id,
+      label: `${variant.sku} — ${productName ?? 'Unknown product'}${attrs ? ` (${attrs})` : ''}`,
+    };
+  });
 
   const {
     register,
@@ -121,12 +129,12 @@ export function PurchaseRequestFormModal({
             <div key={field.id} className="grid grid-cols-[1fr_6rem_1fr_2rem] items-start gap-2">
               <Controller
                 control={control}
-                name={`items.${index}.productId`}
+                name={`items.${index}.productVariantId`}
                 render={({ field }) => (
                   <AppComboSelect
-                    placeholder="Select product"
-                    options={productOptions}
-                    error={errors.items?.[index]?.productId?.message}
+                    placeholder="Select product variant"
+                    options={variantOptions}
+                    error={errors.items?.[index]?.productVariantId?.message}
                     value={field.value}
                     onChange={field.onChange}
                   />

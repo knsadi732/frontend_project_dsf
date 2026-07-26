@@ -1,30 +1,30 @@
 import { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
 import { usePurchasesQuery } from '@/features/purchases/queries/usePurchasesQuery';
 import { useCreatePurchase } from '@/features/purchases/mutations/useCreatePurchase';
 import { useUpdatePurchase } from '@/features/purchases/mutations/useUpdatePurchase';
-import { useDeletePurchase } from '@/features/purchases/mutations/useDeletePurchase';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
+import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
 import { PurchaseTable } from '@/features/purchases/components/PurchaseTable';
 import { PurchaseFormModal } from '@/features/purchases/components/PurchaseFormModal';
-import { PurchaseRequestsPanel } from '@/features/purchaseRequests';
+import { PurchaseRequestsPanel, purchaseRequestApi } from '@/features/purchaseRequests';
 import { GoodsReceiptNotesPanel } from '@/features/goodsReceiptNotes';
+import { PURCHASE_ORDER_STATUS_PIPELINE, PURCHASE_ORDER_CANCELLED } from '@/features/purchases/validators/purchase.schema';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
-import { AppButton } from '@/components/ui/AppButton';
-import { AppModal } from '@/components/ui/AppModal';
-import { AppSelect } from '@/components/ui/AppSelect';
 import { AppInput } from '@/components/ui/AppInput';
+import { AppSelect } from '@/components/ui/AppSelect';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Tabs } from '@/layouts/components/Tabs';
-import { Can } from '@/routes/PermissionGuard';
-import { MODULES, ACTIONS } from '@/constants/roles';
-import { ORDER_STATUS, toStatusOptions } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
-const STATUS_OPTIONS = toStatusOptions(ORDER_STATUS);
+// Real PO status pipeline (see purchase.schema.js) — not the generic
+// ORDER_STATUS enum, which doesn't match this domain's states.
+const STATUS_OPTIONS = [...PURCHASE_ORDER_STATUS_PIPELINE, PURCHASE_ORDER_CANCELLED].map((value) => ({
+  value,
+  label: value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+}));
 
 const TABS = [
   { key: 'purchases', label: 'Purchase Orders' },
@@ -40,7 +40,6 @@ export function PurchasesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, purchase: null });
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
@@ -61,72 +60,78 @@ export function PurchasesPage() {
     () => Object.fromEntries((productsData?.data ?? []).map((product) => [product.id, product])),
     [productsData],
   );
+  const { data: variantsData } = useProductVariantsQuery({ pageSize: 500 });
+  const variantsById = useMemo(
+    () => Object.fromEntries((variantsData?.data ?? []).map((variant) => [variant.id, variant])),
+    [variantsData],
+  );
+
   const createPurchase = useCreatePurchase();
   const updatePurchase = useUpdatePurchase();
-  const deletePurchase = useDeletePurchase();
 
   const handleSubmit = (values) => {
-    // Only forward `status` when it actually changed — the backend rejects
-    // a "transition" to the PO's current status (assertTransition only
-    // allows moving to the very next pipeline step), so re-submitting the
-    // form without picking "Advance to …" would otherwise 400 for nothing.
-    const statusChanged = values.status !== formState.purchase?.status;
-    const payload = statusChanged ? values : { ...values, status: undefined };
-
-    const action = formState.purchase?.id
-      ? updatePurchase.mutateAsync({ id: formState.purchase.id, payload })
-      : createPurchase.mutateAsync(payload);
-
-    // ApiList.md: PATCH /purchase-requests/:id/status only accepts
-    // approved/rejected — there's no "converted" status, so a PR actioned
-    // via handleConvertToPo is simply left approved; that already records
-    // that it was actioned.
-    action.then(() => setFormState({ open: false, purchase: null }));
+    if (formState.purchase?.id) {
+      // No generic edit endpoint exists — only a status transition
+      // (see purchase.api.js transitionStatus). Everything else on the
+      // form is read-only display for an existing PO.
+      updatePurchase.mutateAsync({ id: formState.purchase.id, status: values.status }).then(() => setFormState({ open: false, purchase: null }));
+      return;
+    }
+    createPurchase.mutateAsync(values).then(() => setFormState({ open: false, purchase: null }));
   };
 
-  const handleConfirmDelete = () => {
-    deletePurchase.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
+  const handleCancelOrder = (purchase) => {
+    updatePurchase.mutateAsync({ id: purchase.id, status: 'cancelled' }).then(() => setFormState({ open: false, purchase: null }));
+  };
+
+  const handleTransitionStatus = (purchase, status) => {
+    updatePurchase.mutate({ id: purchase.id, status });
   };
 
   const handleConvertToPo = (request) => {
     setActiveTab('purchases');
-    setFormState({
-      open: true,
-      purchase: {
-        poNumber: '',
-        vendorId: '',
-        supplier: '',
-        warehouseId: request.warehouseId ?? '',
-        orderDate: new Date().toISOString().slice(0, 10),
-        status: ORDER_STATUS.DRAFT,
-        // Purchase requests carry a real productId but no price — POs are
-        // where pricing/vendor gets decided, so rate is left for the user.
-        items: request.items.map((item) => ({ productId: item.productId, quantity: item.quantity, rate: '' })),
-      },
+    // The Purchase Requests table is fed by the list endpoint, which never
+    // returns `items` (only GET /purchase-requests/:id joins them — see
+    // purchaseRequest.service.js getPurchaseRequest) — fetch the full
+    // detail here so the "items to convert" table isn't empty.
+    purchaseRequestApi.get(request.id).then((full) => {
+      setFormState({
+        open: true,
+        purchase: {
+          poNumber: '',
+          purchaseRequestId: full.id,
+          vendorId: '',
+          warehouseId: full.warehouseId ?? '',
+          branchId: full.branchId ?? '',
+          deliveryAddress: '',
+          taxAmount: '',
+          paymentTerms: '',
+          expectedDeliveryDate: '',
+          status: 'draft',
+          // Purchase requests carry the real productVariantId + quantity,
+          // but no cost — POs are where pricing/vendor gets decided, so
+          // unitCost is left for the user to fill in per line.
+          items: full.items.map((item) => ({ productVariantId: item.productVariantId, quantity: item.quantity, unitCost: '' })),
+        },
+      });
     });
   };
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-text">Purchases</h1>
-          <p className="text-sm text-text-muted">Purchase requests, purchase orders and goods receipt notes.</p>
-        </div>
-        {activeTab === 'purchases' && (
-          <Can module={MODULES.PURCHASES} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setFormState({ open: true, purchase: null })}>
-              <Plus className="size-4" />
-              New purchase order
-            </AppButton>
-          </Can>
-        )}
+      <div>
+        <h1 className="text-xl font-semibold text-text">Purchases</h1>
+        <p className="text-sm text-text-muted">Purchase requests, purchase orders and goods receipt notes.</p>
       </div>
 
       <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'purchases' && (
         <>
+          <p className="text-sm text-text-muted">
+            A purchase order can only be created from an approved purchase request — use "Convert to PO" on the
+            Purchase Requests tab.
+          </p>
           <FilterBar>
             <SearchInput
               value={search}
@@ -174,6 +179,7 @@ export function PurchasesPage() {
           <PurchaseTable
             purchases={data?.data ?? []}
             productsById={productsById}
+            variantsById={variantsById}
             total={data?.total ?? 0}
             page={page}
             pageSize={pageSize}
@@ -184,7 +190,8 @@ export function PurchasesPage() {
               setPage(1);
             }}
             onEdit={(purchase) => setFormState({ open: true, purchase })}
-            onDelete={setDeleteTarget}
+            onTransitionStatus={handleTransitionStatus}
+            onCancelOrder={handleCancelOrder}
           />
 
           <PurchaseFormModal
@@ -192,29 +199,9 @@ export function PurchasesPage() {
             initialValues={formState.purchase}
             onClose={() => setFormState({ open: false, purchase: null })}
             onSubmit={handleSubmit}
+            onCancelOrder={handleCancelOrder}
             isSubmitting={createPurchase.isPending || updatePurchase.isPending}
           />
-
-          <AppModal
-            open={Boolean(deleteTarget)}
-            onClose={() => setDeleteTarget(null)}
-            title="Delete purchase order"
-            footer={
-              <>
-                <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
-                  Cancel
-                </AppButton>
-                <AppButton variant="danger" loading={deletePurchase.isPending} onClick={handleConfirmDelete}>
-                  Delete
-                </AppButton>
-              </>
-            }
-          >
-            <p className="text-sm text-text-muted">
-              Are you sure you want to delete{' '}
-              <span className="font-medium text-text">{deleteTarget?.poNumber}</span>? This action cannot be undone.
-            </p>
-          </AppModal>
         </>
       )}
 

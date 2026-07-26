@@ -32,7 +32,7 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
   const products = productsData?.data ?? [];
   const productOptions = products.map((product) => ({
     value: product.id,
-    label: `${product.name} (₹${product.price})`,
+    label: `${product.name} (₹${product.sellingPrice})`,
   }));
 
   const { data: customersData } = useCustomersQuery({ pageSize: 100 });
@@ -77,7 +77,7 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
 
   const handleProductChange = (index, productId) => {
     const product = products.find((item) => item.id === productId);
-    if (product) setValue(`items.${index}.rate`, product.price);
+    if (product) setValue(`items.${index}.rate`, product.sellingPrice);
   };
 
   const submitWithTotal = (values) => onSubmit({ ...values, total });

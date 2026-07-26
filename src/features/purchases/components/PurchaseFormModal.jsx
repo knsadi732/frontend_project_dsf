@@ -1,53 +1,27 @@
-import { useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { useEffect, useMemo, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { purchaseSchema, PURCHASE_ORDER_STATUS_PIPELINE } from '@/features/purchases/validators/purchase.schema';
+import { purchaseSchema, PURCHASE_ORDER_STATUS_PIPELINE, PURCHASE_ORDER_CANCELLED } from '@/features/purchases/validators/purchase.schema';
 import { purchaseApi } from '@/features/purchases/api';
 import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
+import { useBranchesQuery } from '@/features/branches/queries/useBranchesQuery';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
-import { useCategoriesQuery } from '@/features/categories/queries/useCategoriesQuery';
+import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
+import { useCompanyQuery } from '@/features/company/queries/useCompanyQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
-import { AppComboSelect } from '@/components/ui/AppComboSelect';
 import { AppButton } from '@/components/ui/AppButton';
 
-// `categoryId` is a local filter only — it narrows which products the
-// Product dropdown offers (Business_Data_Model.md Ch.20: Product -> Variant
-// -> Purchase, so every purchasable item is a real Product row under some
-// real Category, e.g. Footwear or Raw Material). It isn't part of what the
-// backend accepts per item (purchaseOrder.validator.js only wants
-// productId/quantity/unitCost) and is dropped on submit.
-const EMPTY_ITEM = { categoryId: '', productId: '', quantity: '', rate: '' };
-const DEFAULT_VALUES = {
-  poNumber: '',
-  vendorId: '',
-  supplier: '',
-  warehouseId: '',
-  orderDate: '',
-  status: 'draft',
-  newPoLabel: 'draft',
-  items: [EMPTY_ITEM],
-};
-
-// Cosmetic only — a new PO's real backend status is always 'draft' (see
-// PurchasesPage.jsx submit handler, which never sends `status` on create).
-// There's no "pending" state in PURCHASE_ORDER_STATUS_PIPELINE
-// (backend/src/constants/enums.js), so this choice isn't persisted.
-const NEW_PO_LABEL_OPTIONS = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'pending', label: 'Pending' },
-];
-
 function statusLabel(status) {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// A PO's status may only advance one step at a time (backend
-// assertTransition) — the dropdown only ever offers "stay as-is" or "move
-// to the next step", never a free choice of every status.
+// A PO's status may only advance one step at a time on the pipeline
+// (backend assertTransition) — the dropdown only ever offers "stay as-is"
+// or "move to the next step". Cancel is a separate action (see
+// PURCHASE_ORDER_CANCELLED) since it can fork off any non-terminal state.
 function nextStepOptions(currentStatus) {
   const index = PURCHASE_ORDER_STATUS_PIPELINE.indexOf(currentStatus);
   const next = PURCHASE_ORDER_STATUS_PIPELINE[index + 1];
@@ -56,7 +30,16 @@ function nextStepOptions(currentStatus) {
   return options;
 }
 
-export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
+const TAX_MODE_OPTIONS = [
+  { value: 'none', label: 'No GST' },
+  { value: 'exclusive', label: 'GST — Exclusive (add on top of unit cost)' },
+  { value: 'inclusive', label: 'GST — Inclusive (already part of unit cost)' },
+];
+
+export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, onCancelOrder, isSubmitting }) {
+  const isEdit = Boolean(initialValues?.id);
+  const isTerminal = initialValues?.status === 'completed' || initialValues?.status === PURCHASE_ORDER_CANCELLED;
+
   const { data: vendorsData } = useVendorsQuery({ pageSize: 100 });
   const vendors = vendorsData?.data ?? [];
   const vendorOptions = vendors.map((vendor) => ({ value: vendor.id, label: vendor.name }));
@@ -64,23 +47,24 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
   const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
   const warehouseOptions = (warehousesData?.data ?? []).map((warehouse) => ({ value: warehouse.id, label: warehouse.name }));
 
-  const { data: categoriesData } = useCategoriesQuery({ pageSize: 100 });
-  const categoryOptions = (categoriesData?.data ?? []).map((category) => ({ value: category.id, label: category.name }));
+  const { data: branchesData } = useBranchesQuery({ pageSize: 100 });
+  const branchOptions = (branchesData?.data ?? []).map((branch) => ({ value: branch.id, label: branch.name }));
 
   const { data: productsData } = useProductsQuery({ pageSize: 200 });
-  const products = productsData?.data ?? [];
+  const productsById = Object.fromEntries((productsData?.data ?? []).map((product) => [product.id, product]));
 
-  // Each footwear SKU (size/color combo) is its own Product row on the
-  // backend — there's no separate variant layer — so the name alone is
-  // ambiguous (e.g. multiple sizes named "Running Shoe"); lead with the SKU.
-  // Not every purchase is finished footwear either — raw material,
-  // packaging, etc. are just Products under a different real Category
-  // (Business_Data_Model.md Ch.20), so the category picked per row narrows
-  // this list to that category's products.
-  const productOptionsFor = (categoryId) =>
-    products
-      .filter((product) => !categoryId || product.categoryId === categoryId)
-      .map((product) => ({ value: product.id, label: `${product.sku} — ${product.name}` }));
+  const { data: variantsData } = useProductVariantsQuery({ pageSize: 500 });
+  const variantsById = Object.fromEntries((variantsData?.data ?? []).map((variant) => [variant.id, variant]));
+
+  const { data: company } = useCompanyQuery();
+
+  const variantLabel = (variantId) => {
+    const variant = variantsById[variantId];
+    if (!variant) return variantId;
+    const productName = productsById[variant.productId]?.name ?? 'Unknown product';
+    const attrs = [variant.size, variant.color].filter(Boolean).join('/');
+    return `${variant.sku} — ${productName}${attrs ? ` (${attrs})` : ''}`;
+  };
 
   const {
     register,
@@ -91,85 +75,117 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
     formState: { errors },
   } = useForm({
     resolver: zodResolver(purchaseSchema),
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: initialValues ?? {},
   });
 
-  const handleVendorChange = (vendorId) => {
-    const vendor = vendors.find((item) => item.id === vendorId);
-    if (vendor) setValue('supplier', vendor.name);
-  };
+  // GST calculation is purely a frontend concern — the backend only ever
+  // accepts one flat `taxAmount` number (see purchaseOrder.validator.js /
+  // purchase.schema.js), so these two don't go through the zod-validated
+  // form fields at all; they just drive the taxAmount/unitCost this form
+  // computes and sends on submit.
+  const [taxMode, setTaxMode] = useState('exclusive');
+  const [gstPercent, setGstPercent] = useState('');
+  // Reset the tax controls whenever the modal transitions from closed to
+  // open — adjusted during render (not in an effect) per React's
+  // "storing information from previous renders" pattern.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setTaxMode('exclusive');
+      setGstPercent('');
+    }
+  }
 
-  const handleProductChange = (index, productId) => {
-    const product = products.find((item) => item.id === productId);
-    if (product) setValue(`items.${index}.rate`, product.baseCost ?? 0);
-  };
-
-  const handleCategoryChange = (index) => {
-    // A product picked under the previous category no longer belongs to
-    // the list the new category will show — clear it rather than leave a
-    // stale, now-invisible selection.
-    setValue(`items.${index}.productId`, '');
-    setValue(`items.${index}.rate`, '');
-  };
-
-  const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const items = useWatch({ control, name: 'items' });
   const poNumber = useWatch({ control, name: 'poNumber' });
-  const isGeneratingNumber = open && !initialValues?.id && !poNumber;
-  const total = (items ?? []).reduce(
-    (sum, item) => sum + (Number(item?.quantity) || 0) * (Number(item?.rate) || 0),
-    0,
-  );
+  const vendorId = useWatch({ control, name: 'vendorId' });
+  const isGeneratingNumber = open && !isEdit && !poNumber;
+  const subtotal = (items ?? []).reduce((sum, item) => sum + (Number(item?.quantity) || 0) * (Number(item?.unitCost) || 0), 0);
+
+  const rate = Number(gstPercent) || 0;
+  const computedTaxAmount = useMemo(() => {
+    if (isEdit) return Number(initialValues?.taxAmount) || 0;
+    if (taxMode === 'none' || !rate) return 0;
+    if (taxMode === 'inclusive') return subtotal - subtotal / (1 + rate / 100);
+    return subtotal * (rate / 100);
+  }, [isEdit, initialValues, taxMode, rate, subtotal]);
+
+  // Exclusive/none: total = subtotal + tax (tax added on top). Inclusive:
+  // total = subtotal unchanged (the tax was already inside the unit costs).
+  const displayTotal = isEdit
+    ? Number(initialValues?.total) || subtotal
+    : taxMode === 'inclusive'
+      ? subtotal
+      : subtotal + computedTaxAmount;
+
+  // CGST+SGST if vendor is in the same state as the company (GSTIN's first
+  // 2 digits are the state code), otherwise IGST for the full rate.
+  const companyStateCode = company?.gstNumber?.slice(0, 2);
+  const vendor = vendors.find((v) => v.id === vendorId);
+  const vendorStateCode = vendor?.gstNumber?.slice(0, 2);
+  const gstBreakup =
+    taxMode === 'none' || !rate
+      ? null
+      : companyStateCode && vendorStateCode
+        ? companyStateCode === vendorStateCode
+          ? { type: 'CGST + SGST', cgst: rate / 2, sgst: rate / 2 }
+          : { type: 'IGST', igst: rate }
+        : null;
 
   useEffect(() => {
     if (!open) return;
-    reset(initialValues ?? DEFAULT_VALUES);
+    reset(initialValues ?? {});
 
-    // New PO — the number is server-generated (sequence-backed), not
-    // client-typed, so fetch it as soon as the form opens.
-    if (!initialValues?.id) {
+    // New PO (via Convert to PO) — the number is server-generated
+    // (sequence-backed), fetch it as soon as the form opens.
+    if (!isEdit) {
       purchaseApi.generateNumber().then((generated) => setValue('poNumber', generated));
     }
-  }, [open, initialValues, reset, setValue]);
+  }, [open, initialValues, isEdit, reset, setValue]);
 
-  // Existing PO items, or items prefilled by "Convert to PO" from an
-  // approved purchase request, only carry productId, not the (purely
-  // local, UI-only) categoryId filter — backfill it from the product's own
-  // categoryId once products have loaded, so the row doesn't render as
-  // "pick a category first" for an item that already has a product.
-  useEffect(() => {
-    if (!open || !initialValues?.items?.length || !products.length) return;
-    (initialValues.items ?? []).forEach((item, index) => {
-      const product = products.find((p) => p.id === item.productId);
-      if (product?.categoryId) setValue(`items.${index}.categoryId`, product.categoryId);
-    });
-  }, [open, initialValues, products, setValue]);
-
-  const submitWithTotal = (values) => onSubmit({ ...values, total });
+  const submitWithComputedTax = (values) => {
+    // Inclusive mode: the unit costs the user typed already include GST, but
+    // the backend always computes total = Σ(quantity×unitCost) + taxAmount
+    // (no "inclusive" concept server-side) — so the tax portion has to be
+    // backed out of each line's unitCost before sending, otherwise the
+    // backend would add tax on top a second time.
+    const factor = taxMode === 'inclusive' && rate ? 1 + rate / 100 : 1;
+    const adjustedItems = values.items.map((item) => ({
+      ...item,
+      unitCost: Number(item.unitCost) / factor,
+    }));
+    onSubmit({ ...values, items: adjustedItems, taxAmount: computedTaxAmount });
+  };
 
   return (
     <AppModal
       open={open}
       onClose={onClose}
-      title={initialValues?.id ? 'Edit purchase order' : 'New purchase order'}
+      title={isEdit ? `Purchase order ${initialValues.poNumber}` : 'New purchase order (from approved request)'}
       className="max-w-2xl"
       footer={
         <>
           <AppButton variant="secondary" onClick={onClose}>
             Cancel
           </AppButton>
+          {isEdit && !isTerminal && (
+            <AppButton variant="danger" onClick={() => onCancelOrder(initialValues)} loading={isSubmitting}>
+              Cancel order
+            </AppButton>
+          )}
           <AppButton type="submit" form="purchase-form" loading={isSubmitting}>
-            Save purchase order
+            {isEdit ? 'Update status' : 'Create purchase order'}
           </AppButton>
         </>
       }
     >
-      <form id="purchase-form" onSubmit={handleSubmit(submitWithTotal)} className="flex flex-col gap-4" noValidate>
+      <form id="purchase-form" onSubmit={handleSubmit(submitWithComputedTax)} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-2 gap-4">
           <AppInput
             label="PO Number"
             required
-            disabled={!initialValues?.id}
+            disabled
             placeholder={isGeneratingNumber ? 'Generating…' : undefined}
             error={errors.poNumber?.message}
             {...register('poNumber')}
@@ -178,9 +194,10 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
             label="Vendor"
             placeholder="Select vendor"
             required
+            disabled={isEdit}
             options={vendorOptions}
             error={errors.vendorId?.message}
-            {...register('vendorId', { onChange: (event) => handleVendorChange(event.target.value) })}
+            {...register('vendorId')}
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -188,119 +205,105 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, isSu
             label="Warehouse"
             placeholder="Select warehouse"
             required
+            disabled={isEdit}
             options={warehouseOptions}
             error={errors.warehouseId?.message}
             {...register('warehouseId')}
           />
-          <AppInput
-            label="Order Date"
-            type="date"
-            required
-            error={errors.orderDate?.message}
-            {...register('orderDate')}
-          />
+          <AppSelect label="Branch" placeholder="Select branch" disabled={isEdit} options={branchOptions} error={errors.branchId?.message} {...register('branchId')} />
         </div>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-end justify-between gap-4">
-            <span className="text-sm font-medium text-text">Items ordered</span>
-            <div className="flex items-end gap-2">
-              {initialValues?.id ? (
-                <AppSelect
-                  label="Status"
-                  error={errors.status?.message}
-                  options={nextStepOptions(initialValues.status ?? 'draft')}
-                  className="w-44"
-                  {...register('status')}
-                />
-              ) : (
-                <AppSelect
-                  label="Status"
-                  options={NEW_PO_LABEL_OPTIONS}
-                  className="w-44"
-                  {...register('newPoLabel')}
-                />
-              )}
-              <AppButton type="button" variant="secondary" size="sm" onClick={() => append(EMPTY_ITEM)}>
-                <Plus className="size-4" />
-                Add item
-              </AppButton>
-            </div>
-          </div>
-          {!initialValues?.id && (
-            <p className="text-xs text-text-muted">New purchase orders are always saved as Draft in the system regardless of this choice.</p>
-          )}
+        <div className="grid grid-cols-2 gap-4">
+          <AppInput label="Payment terms" disabled={isEdit} error={errors.paymentTerms?.message} {...register('paymentTerms')} />
+          <AppInput label="Expected delivery date" type="date" disabled={isEdit} error={errors.expectedDeliveryDate?.message} {...register('expectedDeliveryDate')} />
+        </div>
+        <AppInput label="Delivery address" disabled={isEdit} error={errors.deliveryAddress?.message} {...register('deliveryAddress')} />
 
-          {errors.items?.message && <p className="text-xs text-danger">{errors.items.message}</p>}
-
-          <div className="grid grid-cols-[9rem_1fr_6rem_7rem_7rem_2rem] gap-2 px-0.5 text-xs font-medium text-text-muted">
-            <span>Category</span>
-            <span>Product</span>
+        <div className="flex flex-col gap-2 border-t border-border pt-3">
+          <span className="text-sm font-medium text-text">Items (from the approved purchase request)</span>
+          <div className="grid grid-cols-[1fr_5rem_7rem_7rem] gap-2 px-0.5 text-xs font-medium text-text-muted">
+            <span>Product variant</span>
             <span>Qty</span>
-            <span>Rate (₹/unit)</span>
+            <span>Unit cost (₹)</span>
             <span className="text-right">Amount</span>
-            <span />
           </div>
-
           <div className="flex flex-col gap-2">
-            {fields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-[9rem_1fr_6rem_7rem_7rem_2rem] items-start gap-2">
-                <AppSelect
-                  placeholder="Category"
-                  options={categoryOptions}
-                  {...register(`items.${index}.categoryId`, { onChange: () => handleCategoryChange(index) })}
-                />
-                <Controller
-                  control={control}
-                  name={`items.${index}.productId`}
-                  render={({ field }) => (
-                    <AppComboSelect
-                      placeholder={items?.[index]?.categoryId ? 'Select product' : 'Select category first'}
-                      disabled={!items?.[index]?.categoryId}
-                      options={productOptionsFor(items?.[index]?.categoryId)}
-                      error={errors.items?.[index]?.productId?.message}
-                      value={field.value}
-                      onChange={(productId) => {
-                        field.onChange(productId);
-                        handleProductChange(index, productId);
-                      }}
-                    />
-                  )}
-                />
-                <AppInput
-                  type="number"
-                  placeholder="Qty"
-                  error={errors.items?.[index]?.quantity?.message}
-                  {...register(`items.${index}.quantity`)}
-                />
+            {(items ?? []).map((item, index) => (
+              <div key={index} className="grid grid-cols-[1fr_5rem_7rem_7rem] items-start gap-2">
+                <div className="flex h-9 items-center text-sm text-text">{variantLabel(item.productVariantId)}</div>
+                <div className="flex h-9 items-center text-sm text-text-muted">{item.quantity}</div>
                 <AppInput
                   type="number"
                   step="0.01"
-                  placeholder="Rate"
-                  error={errors.items?.[index]?.rate?.message}
-                  {...register(`items.${index}.rate`)}
+                  disabled={isEdit}
+                  error={errors.items?.[index]?.unitCost?.message}
+                  {...register(`items.${index}.unitCost`)}
                 />
                 <div className="flex h-9 items-center justify-end text-sm text-text-muted">
-                  ₹{((Number(items?.[index]?.quantity) || 0) * (Number(items?.[index]?.rate) || 0)).toLocaleString('en-IN')}
+                  ₹{((Number(item.quantity) || 0) * (Number(item.unitCost) || 0)).toLocaleString('en-IN')}
                 </div>
-                <AppButton
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => remove(index)}
-                  disabled={fields.length === 1}
-                  aria-label="Remove item"
-                  className="text-danger hover:bg-danger/10"
-                >
-                  <Trash2 className="size-4" />
-                </AppButton>
               </div>
             ))}
           </div>
-
-          <div className="flex justify-end border-t border-border pt-2 text-sm font-semibold text-text">
-            Total: ₹{total.toLocaleString('en-IN')}
-          </div>
+          {errors.items?.message && <p className="text-xs text-danger">{errors.items.message}</p>}
         </div>
+
+        <div className="flex flex-col gap-3 border-t border-border pt-3">
+          <span className="text-sm font-medium text-text">Tax</span>
+          {isEdit ? (
+            <div className="flex justify-between text-sm text-text-muted">
+              <span>Tax amount</span>
+              <span>₹{(Number(initialValues?.taxAmount) || 0).toLocaleString('en-IN')}</span>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <AppSelect
+                  label="Tax type"
+                  options={TAX_MODE_OPTIONS}
+                  value={taxMode}
+                  onChange={(event) => setTaxMode(event.target.value)}
+                />
+                <AppInput
+                  label="GST %"
+                  type="number"
+                  step="0.01"
+                  disabled={taxMode === 'none'}
+                  value={gstPercent}
+                  onChange={(event) => setGstPercent(event.target.value)}
+                />
+              </div>
+              {gstBreakup && (
+                <p className="text-xs text-text-muted">
+                  {gstBreakup.type === 'IGST'
+                    ? `Vendor is out-of-state — IGST @ ${gstBreakup.igst}% = ₹${computedTaxAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+                    : `Vendor is in the same state — CGST @ ${gstBreakup.cgst}% + SGST @ ${gstBreakup.sgst}% = ₹${computedTaxAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
+                </p>
+              )}
+              {taxMode !== 'none' && rate > 0 && !gstBreakup && (
+                <p className="text-xs text-text-muted">
+                  Select a vendor with a GSTIN to see the CGST+SGST/IGST split — tax amount: ₹
+                  {computedTaxAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="flex justify-end border-t border-border pt-3 text-sm font-semibold text-text">
+          Total: ₹{displayTotal.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+        </div>
+
+        {isEdit && (
+          <div className="border-t border-border pt-4">
+            <AppSelect
+              label="Status"
+              error={errors.status?.message}
+              options={nextStepOptions(initialValues.status ?? 'draft')}
+              disabled={isTerminal}
+              {...register('status')}
+            />
+          </div>
+        )}
       </form>
     </AppModal>
   );

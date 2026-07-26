@@ -11,16 +11,15 @@ function downloadProductPdf(row, categoriesById, brandsById) {
   generateRecordPdf({
     title: `Product - ${row.name}`,
     fields: [
-      { label: 'SKU', value: row.sku },
+      { label: 'Product code', value: row.productCode },
       { label: 'Category', value: categoriesById?.[row.categoryId]?.name },
       { label: 'Brand', value: brandsById?.[row.brandId]?.name },
+      { label: 'Gender', value: row.gender },
       { label: 'HSN code', value: row.hsnCode },
-      { label: 'GST %', value: row.gstPercent },
-      { label: 'Price', value: `Rs.${Number(row.price).toLocaleString('en-IN')}` },
-      { label: 'Stock', value: row.stock },
+      { label: 'GST %', value: row.gstPercentage },
       { label: 'Status', value: row.status },
     ],
-    fileName: `${row.sku}.pdf`,
+    fileName: `${row.productCode || row.name}.pdf`,
   });
 }
 
@@ -38,29 +37,10 @@ export function ProductTable({
   onDelete,
 }) {
   const columns = [
-    {
-      key: 'name',
-      header: 'Name',
-      render: (row) => (
-        <div className="flex items-center gap-2">
-          {row.thumbnailUrl ? (
-            <img src={row.thumbnailUrl} alt={row.name} className="size-8 rounded border border-border object-cover" />
-          ) : (
-            <div className="size-8 rounded border border-dashed border-border" />
-          )}
-          <span>{row.name}</span>
-        </div>
-      ),
-    },
-    { key: 'sku', header: 'SKU' },
+    { key: 'name', header: 'Name' },
+    { key: 'productCode', header: 'Code' },
     { key: 'category', header: 'Category', render: (row) => categoriesById?.[row.categoryId]?.name ?? '—' },
     { key: 'brand', header: 'Brand', render: (row) => brandsById?.[row.brandId]?.name ?? '—' },
-    {
-      key: 'price',
-      header: 'Price',
-      render: (row) => `₹${Number(row.price).toLocaleString('en-IN')}`,
-    },
-    { key: 'stock', header: 'Stock' },
     {
       key: 'status',
       header: 'Status',

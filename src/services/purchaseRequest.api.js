@@ -3,9 +3,10 @@ import { createCrudApi } from '@/services/api/createCrudApi';
 
 const baseApi = createCrudApi('purchase-requests');
 
-// ApiList.md's POST /purchase-requests body: { warehouseId, departmentId?,
-// branchId?, remarks?, items: [{ productId, quantity, remarks? }] }. No
-// prNumber in the body — that's server-generated (see generateNumber).
+// Real backend body (purchaseRequest.validator.js): { warehouseId,
+// departmentId?, branchId?, remarks?, items: [{ productVariantId, quantity,
+// remarks? }] }. No prNumber in the body — that's server-generated (see
+// generateNumber).
 function toBackendPayload(payload) {
   return {
     warehouseId: payload.warehouseId,
@@ -13,16 +14,16 @@ function toBackendPayload(payload) {
     ...(payload.branchId && { branchId: payload.branchId }),
     ...(payload.remarks && { remarks: payload.remarks }),
     items: (payload.items ?? []).map((item) => ({
-      productId: item.productId,
+      productVariantId: item.productVariantId,
       quantity: item.quantity,
       ...(item.remarks && { remarks: item.remarks }),
     })),
   };
 }
 
-// Same backend as purchase-orders, so responses are likely raw Postgres
-// columns (snake_case) rather than the camelCase the Joi body expects —
-// read both forms defensively until a real response sample confirms it.
+// Responses are raw `SELECT * FROM purchase_requests` /
+// `purchase_request_items` rows (purchaseRequest.repository.js) —
+// snake_case Postgres columns, no case-conversion layer on the backend.
 function fromBackendPurchaseRequest(request, submitted = {}) {
   return {
     ...submitted,
@@ -31,11 +32,11 @@ function fromBackendPurchaseRequest(request, submitted = {}) {
     warehouseId: request.warehouseId ?? request.warehouse_id ?? submitted.warehouseId,
     departmentId: request.departmentId ?? request.department_id ?? submitted.departmentId,
     branchId: request.branchId ?? request.branch_id ?? submitted.branchId,
-    status: request.status ?? 'pending',
+    status: request.status ?? 'draft',
     items:
       submitted.items ??
       (request.items ?? []).map((item) => ({
-        productId: item.productId ?? item.product_id,
+        productVariantId: item.productVariantId ?? item.product_variant_id,
         quantity: item.quantity,
         remarks: item.remarks,
       })),
@@ -53,9 +54,13 @@ export const purchaseRequestApi = {
     })),
   get: (id) => baseApi.get(id).then((request) => fromBackendPurchaseRequest(request)),
   create: (payload) => baseApi.create(toBackendPayload(payload)).then((request) => fromBackendPurchaseRequest(request, payload)),
-  // No generic edit endpoint — only PATCH /purchase-requests/:id/status with
-  // status in ['approved','rejected']. pending -> decided is a one-way,
-  // terminal move (a decided PR can't be re-decided; raise a new one).
+  // Real pipeline (purchaseRequest.service.js decidePurchaseRequest):
+  // draft -> submitted -> pending_approval -> approved -> converted_to_rfq,
+  // strictly one step at a time; rejected forks off pending_approval only.
+  // A freshly created PR always starts at `draft` (createPurchaseRequest
+  // Joi schema has no `status` field — the backend silently strips one if
+  // sent) — the table's "Submit" action moves it to `submitted` via this
+  // same endpoint.
   updateStatus: (id, status) =>
     apiClient.patch(`/purchase-requests/${id}/status`, { status }).then((res) => fromBackendPurchaseRequest(res.data.data)),
 };

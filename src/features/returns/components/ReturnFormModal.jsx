@@ -67,7 +67,7 @@ export function ReturnFormModal({ open, onClose, initialValues, onSubmit, isSubm
 
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
   const products = useMemo(() => productsData?.data ?? [], [productsData]);
-  const productOptions = products.map((product) => ({ value: product.id, label: `${product.name} (₹${product.price})` }));
+  const productOptions = products.map((product) => ({ value: product.id, label: `${product.name} (₹${product.sellingPrice})` }));
 
   const {
     register,
@@ -93,7 +93,7 @@ export function ReturnFormModal({ open, onClose, initialValues, onSubmit, isSubm
   useEffect(() => {
     const product = products.find((item) => item.id === productId);
     if (product && quantity) {
-      setValue('amount', Number(product.price) * Number(quantity));
+      setValue('amount', Number(product.sellingPrice) * Number(quantity));
     }
   }, [productId, quantity, products, setValue]);
 

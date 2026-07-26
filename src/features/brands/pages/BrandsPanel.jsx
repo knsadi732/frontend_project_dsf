@@ -8,6 +8,7 @@ import { BrandTable } from '@/features/brands/components/BrandTable';
 import { BrandFormModal } from '@/features/brands/components/BrandFormModal';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -18,7 +19,7 @@ export function BrandsPanel() {
   const [formState, setFormState] = useState({ open: false, brand: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useBrandsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useBrandsQuery({ page, pageSize });
   const createBrand = useCreateBrand();
   const updateBrand = useUpdateBrand();
   const deleteBrand = useDeleteBrand();
@@ -39,12 +40,15 @@ export function BrandsPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Every product belongs to one brand.</p>
-        <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, brand: null })}>
-            <Plus className="size-4" />
-            New brand
-          </AppButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
+            <AppButton onClick={() => setFormState({ open: true, brand: null })}>
+              <Plus className="size-4" />
+              New brand
+            </AppButton>
+          </Can>
+        </div>
       </div>
 
       <BrandTable

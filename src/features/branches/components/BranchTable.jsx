@@ -1,10 +1,8 @@
-import { Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
-import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 
 export function BranchTable({
   branches,
@@ -19,31 +17,17 @@ export function BranchTable({
 }) {
   const columns = [
     { key: 'name', header: 'Branch', render: (row) => <span className="font-medium text-text">{row.name}</span> },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <BaseBadge variant={STATUS_BADGE_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>,
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'actions',
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
           <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(row); }} aria-label={`Edit ${row.name}`}>
-              <Pencil className="size-4" />
-            </AppButton>
+            <EditButton label={`Edit ${row.name}`} onClick={(e) => { e.stopPropagation(); onEdit(row); }} />
           </Can>
           <Can module={MODULES.USERS} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onDelete(row); }}
-              aria-label={`Delete ${row.name}`}
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(e) => { e.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),

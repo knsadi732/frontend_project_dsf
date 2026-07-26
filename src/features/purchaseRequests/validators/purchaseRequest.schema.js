@@ -11,13 +11,14 @@ export const PR_STATUS_OPTIONS = [
 ];
 
 export const purchaseRequestItemSchema = z.object({
-  productId: z.string().min(1, 'Product is required'),
+  productVariantId: z.string().min(1, 'Product variant is required'),
   quantity: z.coerce.number().int().positive('Quantity must be greater than 0'),
   remarks: z.string().optional(),
 });
 
-// ApiList.md POST /purchase-requests body: { warehouseId, departmentId?,
-// branchId?, remarks?, items: [{ productId, quantity, remarks? }] }.
+// Real backend body: { warehouseId, departmentId?, branchId?, remarks?,
+// items: [{ productVariantId, quantity, remarks? }] } — confirmed against
+// purchaseRequest.validator.js / purchase_request_items table.
 export const purchaseRequestSchema = z.object({
   warehouseId: z.string().min(1, 'Warehouse is required'),
   departmentId: z.string().optional(),
