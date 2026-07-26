@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Download, Pencil, Trash2 } from 'lucide-react';
-import { useInventoryListQuery } from '@/features/inventory/queries/useInventoryListQuery';
+import { useProductStockQuery } from '@/features/inventory/queries/useProductStockQuery';
 import { useCreateInventoryItem } from '@/features/inventory/mutations/useCreateInventoryItem';
 import { useUpdateInventoryItem } from '@/features/inventory/mutations/useUpdateInventoryItem';
 import { useDeleteInventoryItem } from '@/features/inventory/mutations/useDeleteInventoryItem';
+import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
+import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
+import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useBinsQuery } from '@/features/bins/queries/useBinsQuery';
 import { InventoryFormModal } from '@/features/inventory/components/InventoryFormModal';
 import { WarehouseZonesPanel } from '@/features/warehouseZones';
@@ -11,47 +14,32 @@ import { RacksPanel } from '@/features/racks';
 import { ShelvesPanel } from '@/features/shelves';
 import { BinsPanel } from '@/features/bins';
 import { InventoryMovementsPanel } from '@/features/inventoryMovements';
-import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { MultiFilter } from '@/components/ui/MultiFilter';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
-function totalQuantity(row) {
-  return (
-    Number(row.quantity || 0) +
-    Number(row.reservedQuantity || 0) +
-    Number(row.damagedQuantity || 0) +
-    Number(row.inTransitQuantity || 0) +
-    Number(row.repairQuantity || 0)
-  );
-}
-
-function downloadInventoryPdf(row) {
+function downloadInventoryPdf(row, sku, productName, warehouseName) {
   generateRecordPdf({
-    title: `Inventory - ${row.productName}`,
+    title: `Inventory - ${productName}`,
     fields: [
-      { label: 'SKU', value: row.sku },
-      { label: 'Warehouse', value: row.warehouse },
-      { label: 'Available Quantity', value: row.quantity },
-      { label: 'Reserved', value: row.reservedQuantity ?? 0 },
-      { label: 'Damaged', value: row.damagedQuantity ?? 0 },
-      { label: 'In Transit', value: row.inTransitQuantity ?? 0 },
-      { label: 'In Repair', value: row.repairQuantity ?? 0 },
-      { label: 'Total Quantity', value: totalQuantity(row) },
-      { label: 'Reorder Level', value: row.reorderLevel },
-      { label: 'Stock Status', value: row.quantity <= row.reorderLevel ? 'Low stock' : 'In stock' },
+      { label: 'SKU', value: sku },
+      { label: 'Warehouse', value: warehouseName },
+      { label: 'Quantity on hand', value: row.quantityOnHand },
+      { label: 'Reserved', value: row.quantityReserved },
+      { label: 'Available', value: row.quantityOnHand - row.quantityReserved },
+      { label: 'Status', value: row.status },
     ],
-    fileName: `${row.sku}-inventory.pdf`,
+    fileName: `${sku ?? row.id}-inventory.pdf`,
   });
 }
 
@@ -66,22 +54,33 @@ const TABS = [
 
 export function InventoryPage() {
   const [activeTab, setActiveTab] = useState('inventory');
-  const [search, setSearch] = useState('');
+  const [warehouseId, setWarehouseId] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, item: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const debouncedSearch = useDebounce(search);
-  const filters = useMemo(
-    () => ({ search: debouncedSearch, page, pageSize }),
-    [debouncedSearch, page, pageSize],
-  );
+  const filters = useMemo(() => ({ warehouseId, page, pageSize }), [warehouseId, page, pageSize]);
 
-  const { data, isLoading, isFetching, refetch } = useInventoryListQuery(filters);
+  // GET /products/stock (permission: product.manage) — paginated
+  // warehouse_stock rows, filterable by warehouseId; only carries
+  // warehouseId/productVariantId/quantities/status, so SKU/product/
+  // warehouse names are joined in below.
+  const { data, isLoading, isFetching, refetch } = useProductStockQuery(filters);
+
+  const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
+  const warehouses = warehousesData?.data ?? [];
+  const warehousesById = Object.fromEntries(warehouses.map((warehouse) => [warehouse.id, warehouse]));
+  const warehouseOptions = warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }));
+
+  const { data: variantsData } = useProductVariantsQuery({ pageSize: 500 });
+  const variantsById = Object.fromEntries((variantsData?.data ?? []).map((variant) => [variant.id, variant]));
+
+  const { data: productsData } = useProductsQuery({ pageSize: 200 });
+  const productsById = Object.fromEntries((productsData?.data ?? []).map((product) => [product.id, product]));
+
   const { data: binsData } = useBinsQuery({ pageSize: 100 });
   const bins = binsData?.data ?? [];
-  const binsById = Object.fromEntries(bins.map((bin) => [bin.id, bin]));
   const binOptions = bins.map((bin) => ({ value: bin.id, label: bin.code }));
 
   const createInventoryItem = useCreateInventoryItem();
@@ -101,70 +100,70 @@ export function InventoryPage() {
   };
 
   const columns = [
-    { key: 'sku', header: 'SKU' },
-    { key: 'productName', header: 'Product Name' },
-    { key: 'warehouse', header: 'Warehouse' },
-    { key: 'bin', header: 'Bin', render: (row) => binsById?.[row.binLocationId]?.code ?? '—' },
-    { key: 'quantity', header: 'Available' },
-    { key: 'reservedQuantity', header: 'Reserved', render: (row) => row.reservedQuantity ?? 0 },
-    { key: 'repairQuantity', header: 'In Repair', render: (row) => row.repairQuantity ?? 0 },
-    { key: 'total', header: 'Total', render: (row) => totalQuantity(row) },
-    { key: 'reorderLevel', header: 'Reorder Level' },
+    { key: 'sku', header: 'SKU', render: (row) => variantsById[row.productVariantId]?.sku ?? '—' },
     {
-      key: 'stock',
-      header: 'Stock',
-      render: (row) =>
-        row.quantity <= row.reorderLevel ? (
-          <BaseBadge variant="danger">Low stock</BaseBadge>
-        ) : (
-          <BaseBadge variant="success">In stock</BaseBadge>
-        ),
+      key: 'productName',
+      header: 'Product Name',
+      render: (row) => productsById[variantsById[row.productVariantId]?.productId]?.name ?? '—',
+    },
+    { key: 'warehouse', header: 'Warehouse', render: (row) => warehousesById[row.warehouseId]?.name ?? '—' },
+    { key: 'quantityOnHand', header: 'On Hand' },
+    { key: 'quantityReserved', header: 'Reserved' },
+    { key: 'available', header: 'Available', render: (row) => row.quantityOnHand - row.quantityReserved },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (row) => <BaseBadge variant={row.status === 'active' ? 'success' : 'default'}>{row.status}</BaseBadge>,
     },
     {
       key: 'actions',
       header: '',
-      render: (row) => (
-        <div className="flex justify-end gap-1">
-          <AppButton
-            variant="ghost"
-            size="sm"
-            onClick={(event) => {
-              event.stopPropagation();
-              downloadInventoryPdf(row);
-            }}
-            aria-label={`Download ${row.productName}`}
-          >
-            <Download className="size-4" />
-          </AppButton>
-          <Can module={MODULES.INVENTORY} action={ACTIONS.EDIT}>
+      render: (row) => {
+        const sku = variantsById[row.productVariantId]?.sku;
+        const productName = productsById[variantsById[row.productVariantId]?.productId]?.name;
+        return (
+          <div className="flex justify-end gap-1">
             <AppButton
               variant="ghost"
               size="sm"
               onClick={(event) => {
                 event.stopPropagation();
-                setFormState({ open: true, item: row });
+                downloadInventoryPdf(row, sku, productName, warehousesById[row.warehouseId]?.name);
               }}
-              aria-label={`Edit ${row.productName}`}
+              aria-label={`Download ${productName ?? sku ?? 'inventory row'}`}
             >
-              <Pencil className="size-4" />
+              <Download className="size-4" />
             </AppButton>
-          </Can>
-          <Can module={MODULES.INVENTORY} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                setDeleteTarget(row);
-              }}
-              aria-label={`Delete ${row.productName}`}
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
-          </Can>
-        </div>
-      ),
+            <Can module={MODULES.INVENTORY} action={ACTIONS.EDIT}>
+              <AppButton
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setFormState({ open: true, item: row });
+                }}
+                aria-label={`Edit ${productName ?? sku ?? 'inventory row'}`}
+              >
+                <Pencil className="size-4" />
+              </AppButton>
+            </Can>
+            <Can module={MODULES.INVENTORY} action={ACTIONS.DELETE}>
+              <AppButton
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setDeleteTarget({ ...row, productName, sku });
+                }}
+                aria-label={`Delete ${productName ?? sku ?? 'inventory row'}`}
+                className="text-danger hover:bg-danger/10"
+              >
+                <Trash2 className="size-4" />
+              </AppButton>
+            </Can>
+          </div>
+        );
+      },
     },
   ];
 
@@ -187,14 +186,17 @@ export function InventoryPage() {
       {activeTab === 'inventory' && (
         <>
           <FilterBar>
-            <SearchInput
-              value={search}
-              onChange={(value) => {
-                setSearch(value);
+            <MultiFilter
+              filters={[{ key: 'warehouseId', label: 'Warehouse', options: warehouseOptions, placeholder: 'All warehouses' }]}
+              values={{ warehouseId }}
+              onChange={(key, value) => {
+                setWarehouseId(value);
                 setPage(1);
               }}
-              placeholder="Search inventory…"
-              className="w-72"
+              onClear={() => {
+                setWarehouseId('');
+                setPage(1);
+              }}
             />
             <RefreshButton onClick={refetch} isFetching={isFetching} />
           </FilterBar>
@@ -241,8 +243,8 @@ export function InventoryPage() {
           >
             <p className="text-sm text-text-muted">
               Are you sure you want to delete{' '}
-              <span className="font-medium text-text">{deleteTarget?.productName}</span>? This action cannot be
-              undone.
+              <span className="font-medium text-text">{deleteTarget?.productName ?? deleteTarget?.sku}</span>? This
+              action cannot be undone.
             </p>
           </AppModal>
         </>
