@@ -42,7 +42,6 @@ export const queryKeys = {
   productionRequests: resourceKeys('productionRequests'),
   payments: resourceKeys('payments'),
   vendorBills: resourceKeys('vendorBills'),
-  vendorPayments: resourceKeys('vendorPayments'),
   creditNotes: resourceKeys('creditNotes'),
   ledger: resourceKeys('ledger'),
   loans: resourceKeys('loans'),

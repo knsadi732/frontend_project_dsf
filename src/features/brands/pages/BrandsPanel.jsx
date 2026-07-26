@@ -3,11 +3,12 @@ import { useBrandsQuery } from '@/features/brands/queries/useBrandsQuery';
 import { useCreateBrand } from '@/features/brands/mutations/useCreateBrand';
 import { useUpdateBrand } from '@/features/brands/mutations/useUpdateBrand';
 import { useDeleteBrand } from '@/features/brands/mutations/useDeleteBrand';
-import { BrandTable } from '@/features/brands/components/BrandTable';
 import { BrandFormModal } from '@/features/brands/components/BrandFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
-import { CreateButton } from '@/components/ui/ActionButtons';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -36,6 +37,27 @@ export function BrandsPanel() {
     deleteBrand.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'name', header: 'Brand', render: (row) => <span className="font-medium text-text">{row.name}</span> },
+    { key: 'country', header: 'Country' },
+    { key: 'description', header: 'Description' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.name}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, brand: row }); }} />
+          </Can>
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -48,8 +70,9 @@ export function BrandsPanel() {
         </div>
       </div>
 
-      <BrandTable
-        brands={data?.data ?? []}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -59,8 +82,8 @@ export function BrandsPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(brand) => setFormState({ open: true, brand })}
-        onDelete={setDeleteTarget}
+        onRowClick={(brand) => setFormState({ open: true, brand })}
+        emptyMessage="No brands yet"
       />
 
       <BrandFormModal
