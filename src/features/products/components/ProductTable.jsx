@@ -1,10 +1,8 @@
-import { Download, Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
-import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DownloadButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
 function downloadProductPdf(row, categoriesById, brandsById) {
@@ -41,55 +39,24 @@ export function ProductTable({
     { key: 'productCode', header: 'Code' },
     { key: 'category', header: 'Category', render: (row) => categoriesById?.[row.categoryId]?.name ?? '—' },
     { key: 'brand', header: 'Brand', render: (row) => brandsById?.[row.brandId]?.name ?? '—' },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => (
-        <BaseBadge variant={STATUS_BADGE_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>
-      ),
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'actions',
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
-          <AppButton
-            variant="ghost"
-            size="sm"
+          <DownloadButton
+            label={`Download ${row.name}`}
             onClick={(event) => {
               event.stopPropagation();
               downloadProductPdf(row, categoriesById, brandsById);
             }}
-            aria-label={`Download ${row.name}`}
-          >
-            <Download className="size-4" />
-          </AppButton>
+          />
           <Can module={MODULES.PRODUCTS} action={ACTIONS.EDIT}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onEdit(row);
-              }}
-              aria-label={`Edit ${row.name}`}
-            >
-              <Pencil className="size-4" />
-            </AppButton>
+            <EditButton label={`Edit ${row.name}`} onClick={(event) => { event.stopPropagation(); onEdit(row); }} />
           </Can>
           <Can module={MODULES.PRODUCTS} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onDelete(row);
-              }}
-              aria-label={`Delete ${row.name}`}
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(event) => { event.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),
