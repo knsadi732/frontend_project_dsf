@@ -6,7 +6,7 @@ import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { GrnTable } from '@/features/goodsReceiptNotes/components/GrnTable';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
-import { AppSelect } from '@/components/ui/AppSelect';
+import { MultiFilter } from '@/components/ui/MultiFilter';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -51,27 +51,22 @@ export function GoodsReceiptNotesPanel() {
           placeholder="Search GRNs…"
           className="w-72"
         />
-        <AppSelect
-          value={vendorId}
-          onChange={(event) => {
-            setVendorId(event.target.value);
+        <MultiFilter
+          filters={[
+            { key: 'vendorId', label: 'Vendor', options: vendorOptions, placeholder: 'All vendors' },
+            { key: 'warehouseId', label: 'Warehouse', options: warehouseOptions, placeholder: 'All warehouses' },
+          ]}
+          values={{ vendorId, warehouseId }}
+          onChange={(key, value) => {
+            if (key === 'vendorId') setVendorId(value);
+            if (key === 'warehouseId') setWarehouseId(value);
             setPage(1);
           }}
-          options={vendorOptions}
-          placeholder="All vendors"
-          className="w-44"
-          aria-label="Filter by vendor"
-        />
-        <AppSelect
-          value={warehouseId}
-          onChange={(event) => {
-            setWarehouseId(event.target.value);
+          onClear={() => {
+            setVendorId('');
+            setWarehouseId('');
             setPage(1);
           }}
-          options={warehouseOptions}
-          placeholder="All warehouses"
-          className="w-44"
-          aria-label="Filter by warehouse"
         />
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>

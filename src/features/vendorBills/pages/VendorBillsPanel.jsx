@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { CreditCard, Plus } from 'lucide-react';
 import { useVendorBillsQuery } from '@/features/vendorBills/queries/useVendorBillsQuery';
 import { useCreateVendorBill } from '@/features/vendorBills/mutations/useCreateVendorBill';
 import { useDeleteVendorBill } from '@/features/vendorBills/mutations/useDeleteVendorBill';
@@ -7,14 +7,18 @@ import { useCreateVendorPayment } from '@/features/vendorBills/mutations/useCrea
 import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { usePurchasesQuery } from '@/features/purchases/queries/usePurchasesQuery';
 import { useGoodsReceiptNotesQuery } from '@/features/goodsReceiptNotes/queries/useGoodsReceiptNotesQuery';
-import { VendorBillTable } from '@/features/vendorBills/components/VendorBillTable';
 import { VendorBillFormModal } from '@/features/vendorBills/components/VendorBillFormModal';
 import { VendorPaymentFormModal } from '@/features/vendorBills/components/VendorPaymentFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+
+const BILL_STATUS_VARIANT = { pending: 'warning', partial: 'warning', paid: 'success', overdue: 'danger' };
 
 export function VendorBillsPanel() {
   const [page, setPage] = useState(1);
@@ -44,6 +48,34 @@ export function VendorBillsPanel() {
     deleteBill.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'billNumber', header: 'Bill Number' },
+    { key: 'vendor', header: 'Vendor', render: (row) => vendorsById?.[row.vendorId]?.name ?? '—' },
+    { key: 'po', header: 'Purchase Order', render: (row) => purchaseOrdersById?.[row.purchaseOrderId]?.poNumber ?? '—' },
+    { key: 'amount', header: 'Amount', render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}` },
+    { key: 'balanceDue', header: 'Balance due', render: (row) => `₹${Number(row.balanceDue ?? row.amount).toLocaleString('en-IN')}` },
+    { key: 'dueDate', header: 'Due date' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status ?? 'pending'} variantMap={BILL_STATUS_VARIANT} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          {row.status !== 'paid' && (
+            <Can module={MODULES.FINANCE} action={ACTIONS.EDIT}>
+              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setPaymentTarget(row); }} aria-label="Record payment" title="Record payment">
+                <CreditCard className="size-4" />
+              </AppButton>
+            </Can>
+          )}
+          <Can module={MODULES.FINANCE} action={ACTIONS.DELETE}>
+            <DeleteButton label="Delete bill" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -56,10 +88,9 @@ export function VendorBillsPanel() {
         </Can>
       </div>
 
-      <VendorBillTable
-        bills={data?.data ?? []}
-        vendorsById={vendorsById}
-        purchaseOrdersById={purchaseOrdersById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -69,8 +100,7 @@ export function VendorBillsPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onDelete={setDeleteTarget}
-        onRecordPayment={setPaymentTarget}
+        emptyMessage="No vendor bills yet"
       />
 
       <VendorBillFormModal

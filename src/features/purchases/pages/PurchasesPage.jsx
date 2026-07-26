@@ -1,19 +1,29 @@
 import { useMemo, useState } from 'react';
+import { Check, PackageCheck, PackageOpen, Send, SendHorizonal } from 'lucide-react';
 import { usePurchasesQuery } from '@/features/purchases/queries/usePurchasesQuery';
 import { useCreatePurchase } from '@/features/purchases/mutations/useCreatePurchase';
 import { useUpdatePurchase } from '@/features/purchases/mutations/useUpdatePurchase';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
-import { PurchaseTable } from '@/features/purchases/components/PurchaseTable';
+import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
+import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
+import { useCompanyQuery } from '@/features/company/queries/useCompanyQuery';
 import { PurchaseFormModal } from '@/features/purchases/components/PurchaseFormModal';
 import { PurchaseRequestsPanel, purchaseRequestApi } from '@/features/purchaseRequests';
 import { GoodsReceiptNotesPanel } from '@/features/goodsReceiptNotes';
+import { purchaseApi } from '@/features/purchases/api';
+import { generatePurchaseOrderPdf } from '@/features/purchases/utils/generatePurchaseOrderPdf';
 import { PURCHASE_ORDER_STATUS_PIPELINE, PURCHASE_ORDER_CANCELLED } from '@/features/purchases/validators/purchase.schema';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
-import { AppInput } from '@/components/ui/AppInput';
-import { AppSelect } from '@/components/ui/AppSelect';
+import { MultiFilter } from '@/components/ui/MultiFilter';
 import { RefreshButton } from '@/components/ui/RefreshButton';
+import { AppTable } from '@/components/ui/AppTable';
+import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DownloadButton, EditButton, CancelButton } from '@/components/ui/ActionButtons';
+import { Can } from '@/routes/PermissionGuard';
+import { MODULES, ACTIONS } from '@/constants/roles';
 import { Tabs } from '@/layouts/components/Tabs';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
@@ -25,6 +35,66 @@ const STATUS_OPTIONS = [...PURCHASE_ORDER_STATUS_PIPELINE, PURCHASE_ORDER_CANCEL
   value,
   label: value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
 }));
+
+function variantLabel(variantId, variantsById, productsById) {
+  const variant = variantsById?.[variantId];
+  if (!variant) return variantId;
+  return `${variant.sku} — ${productsById?.[variant.productId]?.name ?? 'Unknown product'}`;
+}
+
+function downloadPurchasePdf(row, productsById, variantsById, company, vendorsById, warehousesById) {
+  // The list endpoint (which feeds this table) never returns `items` — only
+  // GET /purchase-orders/:id joins them (same gap fixed for Convert-to-PO)
+  // — fetch the full record so the PDF's item table isn't empty.
+  purchaseApi.get(row.id).then((full) => {
+    generatePurchaseOrderPdf({
+      po: full,
+      company,
+      vendor: vendorsById[full.vendorId],
+      warehouse: warehousesById[full.warehouseId],
+      items: (full.items ?? []).map((item) => {
+        const variant = variantsById[item.productVariantId];
+        const product = productsById[variant?.productId];
+        return {
+          label: variantLabel(item.productVariantId, variantsById, productsById),
+          quantity: item.quantity,
+          unitCost: item.unitCost,
+          hsnCode: product?.hsnCode,
+          uom: product?.uom,
+        };
+      }),
+    });
+  });
+}
+
+const EDIT_LOCKED_STATUSES = ['completed', 'cancelled'];
+
+// This domain's status words ("approved", "sent", etc.) mean something
+// different here than in other modules, so it needs its own map rather
+// than the shared default in constants/statusEnums.js.
+const PO_STATUS_VARIANT = {
+  draft: 'default',
+  pending_approval: 'warning',
+  approved: 'success',
+  sent: 'info',
+  acknowledged: 'info',
+  partially_received: 'info',
+  completed: 'success',
+  cancelled: 'danger',
+};
+
+// Real pipeline (purchase.schema.js / backend PURCHASE_ORDER_STATUS_PIPELINE):
+// draft -> pending_approval -> approved -> sent -> acknowledged ->
+// partially_received -> completed, one step at a time. Each entry here is
+// the single next-step button shown for that status.
+const NEXT_STEP = {
+  draft: { status: 'pending_approval', label: 'Send for approval', icon: Send, variant: 'primary' },
+  pending_approval: { status: 'approved', label: 'Approve PO', icon: Check, variant: 'success' },
+  approved: { status: 'sent', label: 'Send to vendor', icon: SendHorizonal, variant: 'info' },
+  sent: { status: 'acknowledged', label: 'Mark acknowledged', icon: PackageOpen, variant: 'info' },
+  acknowledged: { status: 'partially_received', label: 'Mark partially received', icon: PackageCheck, variant: 'info' },
+  partially_received: { status: 'completed', label: 'Mark completed', icon: PackageCheck, variant: 'success' },
+};
 
 const TABS = [
   { key: 'purchases', label: 'Purchase Orders' },
@@ -65,6 +135,17 @@ export function PurchasesPage() {
     () => Object.fromEntries((variantsData?.data ?? []).map((variant) => [variant.id, variant])),
     [variantsData],
   );
+  const { data: vendorsData } = useVendorsQuery({ pageSize: 100 });
+  const vendorsById = useMemo(
+    () => Object.fromEntries((vendorsData?.data ?? []).map((vendor) => [vendor.id, vendor])),
+    [vendorsData],
+  );
+  const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
+  const warehousesById = useMemo(
+    () => Object.fromEntries((warehousesData?.data ?? []).map((warehouse) => [warehouse.id, warehouse])),
+    [warehousesData],
+  );
+  const { data: company } = useCompanyQuery();
 
   const createPurchase = useCreatePurchase();
   const updatePurchase = useUpdatePurchase();
@@ -87,6 +168,58 @@ export function PurchasesPage() {
   const handleTransitionStatus = (purchase, status) => {
     updatePurchase.mutate({ id: purchase.id, status });
   };
+
+  const columns = [
+    { key: 'poNumber', header: 'PO Number' },
+    { key: 'orderDate', header: 'Order Date' },
+    { key: 'total', header: 'Total', render: (row) => `₹${Number(row.total).toLocaleString('en-IN')}` },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={PO_STATUS_VARIANT} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => {
+        const next = NEXT_STEP[row.status];
+        const isCancellable = !EDIT_LOCKED_STATUSES.includes(row.status);
+        return (
+          <div className="flex justify-end gap-1">
+            <DownloadButton
+              label={`Download ${row.poNumber}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                downloadPurchasePdf(row, productsById, variantsById, company, vendorsById, warehousesById);
+              }}
+            />
+            {!EDIT_LOCKED_STATUSES.includes(row.status) && (
+              <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
+                <EditButton label={`Edit ${row.poNumber}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, purchase: row }); }} />
+              </Can>
+            )}
+            {next && (
+              <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
+                <AppButton
+                  variant={next.variant}
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleTransitionStatus(row, next.status);
+                  }}
+                  aria-label={next.label}
+                  title={next.label}
+                >
+                  <next.icon className="size-4" />
+                </AppButton>
+              </Can>
+            )}
+            {isCancellable && (
+              <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
+                <CancelButton label="Cancel order" onClick={(event) => { event.stopPropagation(); handleCancelOrder(row); }} />
+              </Can>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
 
   const handleConvertToPo = (request) => {
     setActiveTab('purchases');
@@ -142,44 +275,32 @@ export function PurchasesPage() {
               placeholder="Search purchase orders…"
               className="w-72"
             />
-            <AppSelect
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value);
+            <MultiFilter
+              filters={[
+                { key: 'status', label: 'Status', options: STATUS_OPTIONS },
+                { key: 'dateFrom', label: 'Order date from', type: 'date' },
+                { key: 'dateTo', label: 'Order date to', type: 'date' },
+              ]}
+              values={{ status, dateFrom, dateTo }}
+              onChange={(key, value) => {
+                if (key === 'status') setStatus(value);
+                if (key === 'dateFrom') setDateFrom(value);
+                if (key === 'dateTo') setDateTo(value);
                 setPage(1);
               }}
-              options={STATUS_OPTIONS}
-              placeholder="All statuses"
-              className="w-40"
-              aria-label="Filter by status"
-            />
-            <AppInput
-              type="date"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
+              onClear={() => {
+                setStatus('');
+                setDateFrom('');
+                setDateTo('');
                 setPage(1);
               }}
-              className="w-36"
-              aria-label="Order date from"
-            />
-            <AppInput
-              type="date"
-              value={dateTo}
-              onChange={(event) => {
-                setDateTo(event.target.value);
-                setPage(1);
-              }}
-              className="w-36"
-              aria-label="Order date to"
             />
             <RefreshButton onClick={refetch} isFetching={isFetching} />
           </FilterBar>
 
-          <PurchaseTable
-            purchases={data?.data ?? []}
-            productsById={productsById}
-            variantsById={variantsById}
+          <AppTable
+            columns={columns}
+            data={data?.data ?? []}
             total={data?.total ?? 0}
             page={page}
             pageSize={pageSize}
@@ -189,9 +310,8 @@ export function PurchasesPage() {
               setPageSize(size);
               setPage(1);
             }}
-            onEdit={(purchase) => setFormState({ open: true, purchase })}
-            onTransitionStatus={handleTransitionStatus}
-            onCancelOrder={handleCancelOrder}
+            onRowClick={(purchase) => setFormState({ open: true, purchase })}
+            emptyMessage="No purchase orders yet"
           />
 
           <PurchaseFormModal

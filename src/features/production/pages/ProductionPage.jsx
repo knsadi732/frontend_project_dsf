@@ -14,8 +14,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
-import { AppSelect } from '@/components/ui/AppSelect';
-import { AppInput } from '@/components/ui/AppInput';
+import { MultiFilter } from '@/components/ui/MultiFilter';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
@@ -129,36 +128,25 @@ export function ProductionPage() {
               placeholder="Search work orders…"
               className="w-72"
             />
-            <AppSelect
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value);
+            <MultiFilter
+              filters={[
+                { key: 'status', label: 'Stage', options: WORK_ORDER_STAGE_OPTIONS, placeholder: 'All stages' },
+                { key: 'dateFrom', label: 'Due date from', type: 'date' },
+                { key: 'dateTo', label: 'Due date to', type: 'date' },
+              ]}
+              values={{ status, dateFrom, dateTo }}
+              onChange={(key, value) => {
+                if (key === 'status') setStatus(value);
+                if (key === 'dateFrom') setDateFrom(value);
+                if (key === 'dateTo') setDateTo(value);
                 setPage(1);
               }}
-              options={WORK_ORDER_STAGE_OPTIONS}
-              placeholder="All stages"
-              className="w-40"
-              aria-label="Filter by stage"
-            />
-            <AppInput
-              type="date"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
+              onClear={() => {
+                setStatus('');
+                setDateFrom('');
+                setDateTo('');
                 setPage(1);
               }}
-              className="w-36"
-              aria-label="Due date from"
-            />
-            <AppInput
-              type="date"
-              value={dateTo}
-              onChange={(event) => {
-                setDateTo(event.target.value);
-                setPage(1);
-              }}
-              className="w-36"
-              aria-label="Due date to"
             />
             <RefreshButton onClick={refetch} isFetching={isFetching} />
           </FilterBar>

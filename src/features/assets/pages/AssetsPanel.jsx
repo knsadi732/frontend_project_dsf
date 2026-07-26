@@ -4,13 +4,16 @@ import { useAssetsQuery } from '@/features/assets/queries/useAssetsQuery';
 import { useCreateAsset } from '@/features/assets/mutations/useCreateAsset';
 import { useUpdateAsset } from '@/features/assets/mutations/useUpdateAsset';
 import { useDeleteAsset } from '@/features/assets/mutations/useDeleteAsset';
-import { AssetTable } from '@/features/assets/components/AssetTable';
 import { AssetFormModal } from '@/features/assets/components/AssetFormModal';
+import { AppTable } from '@/components/ui/AppTable';
+import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+import { getEmployeeFullName } from '@/utils/employeeName';
 
 export function AssetsPanel({ employeesById, employeeOptions }) {
   const [page, setPage] = useState(1);
@@ -35,6 +38,33 @@ export function AssetsPanel({ employeesById, employeeOptions }) {
     deleteAsset.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'employee', header: 'Employee', render: (row) => employeesById?.[row.employeeId] ? getEmployeeFullName(employeesById[row.employeeId]) : row.employeeId },
+    { key: 'assetType', header: 'Type', render: (row) => <span className="capitalize">{row.assetType?.replace(/_/g, ' ')}</span> },
+    { key: 'assetName', header: 'Asset' },
+    { key: 'serialNumber', header: 'Serial number' },
+    { key: 'assignedDate', header: 'Assigned' },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (row) => <BaseBadge variant={row.status === 'assigned' ? 'info' : 'default'}>{row.status}</BaseBadge>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
+            <EditButton label="Edit asset" onClick={(e) => { e.stopPropagation(); setFormState({ open: true, asset: row }); }} />
+          </Can>
+          <Can module={MODULES.USERS} action={ACTIONS.DELETE}>
+            <DeleteButton label="Delete asset" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -47,9 +77,9 @@ export function AssetsPanel({ employeesById, employeeOptions }) {
         </Can>
       </div>
 
-      <AssetTable
-        assets={data?.data ?? []}
-        employeesById={employeesById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -59,8 +89,8 @@ export function AssetsPanel({ employeesById, employeeOptions }) {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(asset) => setFormState({ open: true, asset })}
-        onDelete={setDeleteTarget}
+        onRowClick={(asset) => setFormState({ open: true, asset })}
+        emptyMessage="No assets assigned yet"
       />
 
       <AssetFormModal

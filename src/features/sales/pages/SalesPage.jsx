@@ -10,8 +10,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
-import { AppSelect } from '@/components/ui/AppSelect';
-import { AppInput } from '@/components/ui/AppInput';
+import { MultiFilter } from '@/components/ui/MultiFilter';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -90,36 +89,25 @@ export function SalesPage() {
           placeholder="Search sales orders…"
           className="w-72"
         />
-        <AppSelect
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value);
+        <MultiFilter
+          filters={[
+            { key: 'status', label: 'Status', options: STATUS_OPTIONS },
+            { key: 'dateFrom', label: 'Order date from', type: 'date' },
+            { key: 'dateTo', label: 'Order date to', type: 'date' },
+          ]}
+          values={{ status, dateFrom, dateTo }}
+          onChange={(key, value) => {
+            if (key === 'status') setStatus(value);
+            if (key === 'dateFrom') setDateFrom(value);
+            if (key === 'dateTo') setDateTo(value);
             setPage(1);
           }}
-          options={STATUS_OPTIONS}
-          placeholder="All statuses"
-          className="w-40"
-          aria-label="Filter by status"
-        />
-        <AppInput
-          type="date"
-          value={dateFrom}
-          onChange={(event) => {
-            setDateFrom(event.target.value);
+          onClear={() => {
+            setStatus('');
+            setDateFrom('');
+            setDateTo('');
             setPage(1);
           }}
-          className="w-36"
-          aria-label="Order date from"
-        />
-        <AppInput
-          type="date"
-          value={dateTo}
-          onChange={(event) => {
-            setDateTo(event.target.value);
-            setPage(1);
-          }}
-          className="w-36"
-          aria-label="Order date to"
         />
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>

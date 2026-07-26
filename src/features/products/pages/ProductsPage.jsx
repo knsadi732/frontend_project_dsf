@@ -15,7 +15,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
-import { AppSelect } from '@/components/ui/AppSelect';
+import { MultiFilter } from '@/components/ui/MultiFilter';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
@@ -106,16 +106,17 @@ export function ProductsPage() {
               placeholder="Search products…"
               className="w-72"
             />
-            <AppSelect
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value);
+            <MultiFilter
+              filters={[{ key: 'status', label: 'Status', options: STATUS_OPTIONS }]}
+              values={{ status }}
+              onChange={(key, value) => {
+                setStatus(value);
                 setPage(1);
               }}
-              options={STATUS_OPTIONS}
-              placeholder="All statuses"
-              className="w-40"
-              aria-label="Filter by status"
+              onClear={() => {
+                setStatus('');
+                setPage(1);
+              }}
             />
             <RefreshButton onClick={refetch} isFetching={isFetching} />
           </FilterBar>

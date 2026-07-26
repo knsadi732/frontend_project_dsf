@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { Ban, Check, Download, Pencil, Trash2, Upload, X } from 'lucide-react';
+import { Ban, Check, Download, ExternalLink, Pencil, Trash2, Upload, X } from 'lucide-react';
 import { AppButton } from '@/components/ui/AppButton';
 
 /**
@@ -27,7 +27,7 @@ export function DeleteButton({ label = 'Delete', variant = 'ghost', className = 
   return <IconActionButton icon={Trash2} label={label} variant={variant} className={className} {...props} />;
 }
 
-export function DownloadButton({ label = 'Download', variant = 'ghost', ...props }) {
+export function DownloadButton({ label = 'Download', variant = 'download', ...props }) {
   return <IconActionButton icon={Download} label={label} variant={variant} {...props} />;
 }
 
@@ -41,6 +41,27 @@ export function RejectButton({ label = 'Reject', variant = 'danger', ...props })
 
 export function CancelButton({ label = 'Cancel', variant = 'danger', ...props }) {
   return <IconActionButton icon={Ban} label={label} variant={variant} {...props} />;
+}
+
+/**
+ * Opens a link (e.g. a previously uploaded file) in a new tab — same
+ * h-8/px-3.5/hover-background box as every AppButton-based preset above,
+ * so a "view" action never looks like a bare, unstyled <a> next to real
+ * buttons in the same row.
+ */
+export function ViewButton({ label = 'View', href, className }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      title={label}
+      aria-label={label}
+      className={`inline-flex h-8 items-center justify-center rounded-md bg-transparent px-3.5 font-medium text-text transition-all hover:bg-gradient-to-b hover:from-surface hover:to-surface-hover hover:shadow-sm ${className ?? ''}`}
+    >
+      <ExternalLink className="size-4" />
+    </a>
+  );
 }
 
 /**
@@ -69,7 +90,7 @@ export function UploadButton({ label = 'Upload', variant = 'ghost', accept, disa
           disabled ? 'pointer-events-none opacity-50' : ''
         } ${
           variant === 'ghost'
-            ? 'bg-transparent text-text hover:bg-surface-hover'
+            ? 'bg-transparent text-text hover:bg-gradient-to-b hover:from-surface hover:to-surface-hover hover:shadow-sm'
             : 'bg-gradient-to-br from-primary to-primary-hover text-primary-fg shadow-md shadow-primary/20 hover:brightness-110'
         } ${className ?? ''}`}
       >

@@ -4,10 +4,11 @@ import { useCreditNotesQuery } from '@/features/creditNotes/queries/useCreditNot
 import { useCreateCreditNote } from '@/features/creditNotes/mutations/useCreateCreditNote';
 import { useDeleteCreditNote } from '@/features/creditNotes/mutations/useDeleteCreditNote';
 import { useInvoicesQuery } from '@/features/finance/queries/useInvoicesQuery';
-import { CreditNoteTable } from '@/features/creditNotes/components/CreditNoteTable';
 import { CreditNoteFormModal } from '@/features/creditNotes/components/CreditNoteFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -29,6 +30,26 @@ export function CreditNotesPanel() {
     deleteCreditNote.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'creditNoteNumber', header: 'Credit Note #' },
+    { key: 'invoiceNumber', header: 'Invoice', render: (row) => row.invoiceNumber ?? '—' },
+    { key: 'customer', header: 'Customer' },
+    { key: 'amount', header: 'Amount', render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}` },
+    { key: 'gstAmount', header: 'GST Adjustment', render: (row) => `₹${Number(row.gstAmount ?? 0).toLocaleString('en-IN')}` },
+    { key: 'createdDate', header: 'Date' },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.FINANCE} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.creditNoteNumber}`} onClick={(event) => { event.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -41,8 +62,9 @@ export function CreditNotesPanel() {
         </Can>
       </div>
 
-      <CreditNoteTable
-        creditNotes={data?.data ?? []}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -52,7 +74,7 @@ export function CreditNotesPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onDelete={setDeleteTarget}
+        emptyMessage="No credit notes yet"
       />
 
       <CreditNoteFormModal

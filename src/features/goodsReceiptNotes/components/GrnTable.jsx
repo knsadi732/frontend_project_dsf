@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ExternalLink } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { UploadButton } from '@/components/ui/ActionButtons';
+import { UploadButton, ViewButton } from '@/components/ui/ActionButtons';
 import { goodsReceiptNoteApi } from '@/features/goodsReceiptNotes/api';
 import { queryKeys } from '@/config/queryKeys';
 import { pushToast } from '@/utils/toastBus';
@@ -39,15 +38,7 @@ function VendorInvoiceCell({ row }) {
     <div className="flex items-center gap-3">
       {row.vendorInvoiceNumber && <span className="text-text-muted">{row.vendorInvoiceNumber}</span>}
       {row.vendorInvoiceUrl ? (
-        <a
-          href={row.vendorInvoiceUrl}
-          target="_blank"
-          rel="noreferrer"
-          title="View uploaded invoice"
-          className="inline-flex items-center text-text-muted hover:text-primary"
-        >
-          <ExternalLink className="size-4" />
-        </a>
+        <ViewButton label="View uploaded invoice" href={row.vendorInvoiceUrl} />
       ) : (
         <UploadButton
           label="Upload vendor invoice"
