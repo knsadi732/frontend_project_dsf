@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useLedgerQuery } from '@/features/ledger/queries/useLedgerQuery';
 import { useLedgerSummaryQuery } from '@/features/ledger/queries/useLedgerSummaryQuery';
 import { useRecordTransaction } from '@/features/ledger/mutations/useRecordTransaction';
 import { LedgerTable } from '@/features/ledger/components/LedgerTable';
 import { AddFundModal } from '@/features/ledger/components/AddFundModal';
-import { AppButton } from '@/components/ui/AppButton';
+import { CreateButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -44,10 +43,7 @@ export function LedgerPanel() {
             </span>
           </p>
           <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setAddFundOpen(true)}>
-              <Plus className="size-4" />
-              Add fund
-            </AppButton>
+            <CreateButton onClick={() => setAddFundOpen(true)}>Add fund</CreateButton>
           </Can>
           <RefreshButton
             onClick={() => {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Download, Pencil, Trash2, Plus } from 'lucide-react';
+import { Download, Pencil, Trash2 } from 'lucide-react';
 import { useInventoryListQuery } from '@/features/inventory/queries/useInventoryListQuery';
 import { useCreateInventoryItem } from '@/features/inventory/mutations/useCreateInventoryItem';
 import { useUpdateInventoryItem } from '@/features/inventory/mutations/useUpdateInventoryItem';
@@ -17,6 +17,7 @@ import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { CreateButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
@@ -176,10 +177,7 @@ export function InventoryPage() {
         </div>
         {activeTab === 'inventory' && (
           <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setFormState({ open: true, item: null })}>
-              <Plus className="size-4" />
-              New inventory item
-            </AppButton>
+            <CreateButton onClick={() => setFormState({ open: true, item: null })}>New inventory item</CreateButton>
           </Can>
         )}
       </div>

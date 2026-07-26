@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useCreateProduct } from '@/features/products/mutations/useCreateProduct';
 import { useUpdateProduct } from '@/features/products/mutations/useUpdateProduct';
@@ -9,12 +8,14 @@ import { useBrandsQuery } from '@/features/brands/queries/useBrandsQuery';
 import { CategoriesPanel } from '@/features/categories';
 import { BrandsPanel } from '@/features/brands';
 import { ProductVariantsPanel } from '@/features/productVariants';
-import { ProductTable } from '@/features/products/components/ProductTable';
 import { ProductFormModal } from '@/features/products/components/ProductFormModal';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DownloadButton, EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Tabs } from '@/layouts/components/Tabs';
@@ -23,8 +24,25 @@ import { MODULES, ACTIONS } from '@/constants/roles';
 import { RECORD_STATUS, toStatusOptions } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
 const STATUS_OPTIONS = toStatusOptions(RECORD_STATUS);
+
+function downloadProductPdf(row, categoriesById, brandsById) {
+  generateRecordPdf({
+    title: `Product - ${row.name}`,
+    fields: [
+      { label: 'Product code', value: row.productCode },
+      { label: 'Category', value: categoriesById?.[row.categoryId]?.name },
+      { label: 'Brand', value: brandsById?.[row.brandId]?.name },
+      { label: 'Gender', value: row.gender },
+      { label: 'HSN code', value: row.hsnCode },
+      { label: 'GST %', value: row.gstPercentage },
+      { label: 'Status', value: row.status },
+    ],
+    fileName: `${row.productCode || row.name}.pdf`,
+  });
+}
 
 const TABS = [
   { key: 'products', label: 'Products' },
@@ -75,6 +93,35 @@ export function ProductsPage() {
     deleteProduct.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'name', header: 'Name' },
+    { key: 'productCode', header: 'Code' },
+    { key: 'category', header: 'Category', render: (row) => categoriesById?.[row.categoryId]?.name ?? '—' },
+    { key: 'brand', header: 'Brand', render: (row) => brandsById?.[row.brandId]?.name ?? '—' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <DownloadButton
+            label={`Download ${row.name}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              downloadProductPdf(row, categoriesById, brandsById);
+            }}
+          />
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.name}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, product: row }); }} />
+          </Can>
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(event) => { event.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -84,10 +131,7 @@ export function ProductsPage() {
         </div>
         {activeTab === 'products' && (
           <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setFormState({ open: true, product: null })}>
-              <Plus className="size-4" />
-              New product
-            </AppButton>
+            <CreateButton onClick={() => setFormState({ open: true, product: null })}>New product</CreateButton>
           </Can>
         )}
       </div>
@@ -121,10 +165,9 @@ export function ProductsPage() {
             <RefreshButton onClick={refetch} isFetching={isFetching} />
           </FilterBar>
 
-          <ProductTable
-            products={data?.data ?? []}
-            categoriesById={categoriesById}
-            brandsById={brandsById}
+          <AppTable
+            columns={columns}
+            data={data?.data ?? []}
             total={data?.total ?? 0}
             page={page}
             pageSize={pageSize}
@@ -134,8 +177,8 @@ export function ProductsPage() {
               setPageSize(size);
               setPage(1);
             }}
-            onEdit={(product) => setFormState({ open: true, product })}
-            onDelete={setDeleteTarget}
+            onRowClick={(product) => setFormState({ open: true, product })}
+            emptyMessage="No products yet"
           />
 
           <ProductFormModal

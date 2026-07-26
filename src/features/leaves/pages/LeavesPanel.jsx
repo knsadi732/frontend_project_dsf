@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useLeavesQuery } from '@/features/leaves/queries/useLeavesQuery';
 import { useCreateLeave } from '@/features/leaves/mutations/useCreateLeave';
 import { useUpdateLeave } from '@/features/leaves/mutations/useUpdateLeave';
@@ -9,7 +8,7 @@ import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { ApproveButton, RejectButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
+import { ApproveButton, RejectButton, EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -74,10 +73,7 @@ export function LeavesPanel({ employeesById, employeeOptions }) {
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Leave requests and approvals.</p>
         <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, leave: null })}>
-            <Plus className="size-4" />
-            New leave request
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, leave: null })}>New leave request</CreateButton>
         </Can>
       </div>
 

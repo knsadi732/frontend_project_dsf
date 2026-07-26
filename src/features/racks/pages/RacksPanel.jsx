@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useRacksQuery } from '@/features/racks/queries/useRacksQuery';
 import { useCreateRack } from '@/features/racks/mutations/useCreateRack';
 import { useUpdateRack } from '@/features/racks/mutations/useUpdateRack';
 import { useDeleteRack } from '@/features/racks/mutations/useDeleteRack';
 import { useWarehouseZonesQuery } from '@/features/warehouseZones/queries/useWarehouseZonesQuery';
-import { RackTable } from '@/features/racks/components/RackTable';
 import { RackFormModal } from '@/features/racks/components/RackFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -41,21 +42,39 @@ export function RacksPanel() {
     deleteRack.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'code', header: 'Rack', render: (row) => <span className="font-medium text-text">{row.code}</span> },
+    { key: 'zone', header: 'Zone', render: (row) => zonesById?.[row.zoneId]?.name ?? '—' },
+    { key: 'maxCapacity', header: 'Max capacity' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.INVENTORY} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.code}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, rack: row }); }} />
+          </Can>
+          <Can module={MODULES.INVENTORY} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.code}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Racks belong to a zone.</p>
         <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, rack: null })}>
-            <Plus className="size-4" />
-            New rack
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, rack: null })}>New rack</CreateButton>
         </Can>
       </div>
 
-      <RackTable
-        racks={data?.data ?? []}
-        zonesById={zonesById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -65,8 +84,8 @@ export function RacksPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(rack) => setFormState({ open: true, rack })}
-        onDelete={setDeleteTarget}
+        onRowClick={(rack) => setFormState({ open: true, rack })}
+        emptyMessage="No racks yet"
       />
 
       <RackFormModal

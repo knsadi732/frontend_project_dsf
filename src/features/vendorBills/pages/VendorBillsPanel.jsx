@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CreditCard, Plus } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 import { useVendorBillsQuery } from '@/features/vendorBills/queries/useVendorBillsQuery';
 import { useCreateVendorBill } from '@/features/vendorBills/mutations/useCreateVendorBill';
 import { useDeleteVendorBill } from '@/features/vendorBills/mutations/useDeleteVendorBill';
@@ -13,7 +13,7 @@ import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { DeleteButton } from '@/components/ui/ActionButtons';
+import { DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -81,10 +81,7 @@ export function VendorBillsPanel() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Vendor bills and payments (Accounts Payable).</p>
         <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setBillFormOpen(true)}>
-            <Plus className="size-4" />
-            New vendor bill
-          </AppButton>
+          <CreateButton onClick={() => setBillFormOpen(true)}>New vendor bill</CreateButton>
         </Can>
       </div>
 

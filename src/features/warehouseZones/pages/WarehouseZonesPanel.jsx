@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useWarehouseZonesQuery } from '@/features/warehouseZones/queries/useWarehouseZonesQuery';
 import { useCreateWarehouseZone } from '@/features/warehouseZones/mutations/useCreateWarehouseZone';
 import { useUpdateWarehouseZone } from '@/features/warehouseZones/mutations/useUpdateWarehouseZone';
 import { useDeleteWarehouseZone } from '@/features/warehouseZones/mutations/useDeleteWarehouseZone';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
-import { WarehouseZoneTable } from '@/features/warehouseZones/components/WarehouseZoneTable';
 import { WarehouseZoneFormModal } from '@/features/warehouseZones/components/WarehouseZoneFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -41,21 +42,39 @@ export function WarehouseZonesPanel() {
     deleteZone.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'name', header: 'Zone', render: (row) => <span className="font-medium text-text">{row.name}</span> },
+    { key: 'warehouse', header: 'Warehouse', render: (row) => warehousesById?.[row.warehouseId]?.name ?? '—' },
+    { key: 'zoneType', header: 'Type', render: (row) => <span className="capitalize">{row.zoneType}</span> },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.INVENTORY} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.name}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, zone: row }); }} />
+          </Can>
+          <Can module={MODULES.INVENTORY} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Zones divide each warehouse into operational areas.</p>
         <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, zone: null })}>
-            <Plus className="size-4" />
-            New zone
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, zone: null })}>New zone</CreateButton>
         </Can>
       </div>
 
-      <WarehouseZoneTable
-        zones={data?.data ?? []}
-        warehousesById={warehousesById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -65,8 +84,8 @@ export function WarehouseZonesPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(zone) => setFormState({ open: true, zone })}
-        onDelete={setDeleteTarget}
+        onRowClick={(zone) => setFormState({ open: true, zone })}
+        emptyMessage="No zones yet"
       />
 
       <WarehouseZoneFormModal

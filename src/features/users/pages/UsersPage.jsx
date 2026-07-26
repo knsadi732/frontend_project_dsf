@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Download, Plus } from 'lucide-react';
+import { Download, Eye } from 'lucide-react';
 import { useUsersQuery } from '@/features/users/queries/useUsersQuery';
 import { useCreateUser } from '@/features/users/mutations/useCreateUser';
 import { useUpdateUser } from '@/features/users/mutations/useUpdateUser';
@@ -16,14 +16,18 @@ import { WarehousesPanel } from '@/features/warehouses';
 import { LeavesPanel } from '@/features/leaves';
 import { AssetsPanel } from '@/features/assets';
 import { AuditLogsPanel } from '@/features/auditLogs';
-import { UserTable } from '@/features/users/components/UserTable';
 import { UserFormModal } from '@/features/users/components/UserFormModal';
 import { UserDetailModal } from '@/features/users/components/UserDetailModal';
 import { RolePermissionsPanel } from '@/features/users/components/RolePermissionsPanel';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { AppTable } from '@/components/ui/AppTable';
+import { BaseBadge } from '@/components/ui/BaseBadge';
+import { BaseAvatar } from '@/components/ui/BaseAvatar';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Tabs } from '@/layouts/components/Tabs';
@@ -199,6 +203,73 @@ export function UsersPage() {
     );
   };
 
+  const userColumns = [
+    {
+      key: 'employeeCode',
+      header: 'Code',
+      render: (row) => <span className="text-xs font-medium text-text-muted">{row.employeeCode}</span>,
+    },
+    {
+      key: 'user',
+      header: 'Employee',
+      render: (row) => (
+        <div className="flex items-center gap-3">
+          <BaseAvatar name={getEmployeeFullName(row)} src={row.photo} size="sm" />
+          <div className="flex flex-col">
+            <span className="font-medium text-text">{getEmployeeFullName(row)}</span>
+            <span className="text-xs text-text-muted">{row.phone}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'department',
+      header: 'Department',
+      render: (row) => <span className="text-text-muted">{departmentsById?.[row.departmentId]?.name ?? row.departmentName ?? '—'}</span>,
+    },
+    {
+      key: 'role',
+      header: 'Role',
+      render: (row) => (
+        <div className="flex flex-wrap gap-1">
+          <BaseBadge variant="info">{rolesById?.[row.primaryRole]?.name ?? row.primaryRole}</BaseBadge>
+          {row.additionalRoles?.map((role) => (
+            <BaseBadge key={role} variant="default">
+              {rolesById?.[role]?.name ?? role}
+            </BaseBadge>
+          ))}
+        </div>
+      ),
+    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.employmentStatus} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <AppButton
+            variant="view"
+            size="sm"
+            onClick={(event) => {
+              event.stopPropagation();
+              setViewTarget(row);
+            }}
+            aria-label={`View ${getEmployeeFullName(row)}`}
+            title="View"
+          >
+            <Eye className="size-4" />
+          </AppButton>
+          <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${getEmployeeFullName(row)}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, user: row }); }} />
+          </Can>
+          <Can module={MODULES.USERS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${getEmployeeFullName(row)}`} onClick={(event) => { event.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div>
@@ -218,10 +289,7 @@ export function UsersPage() {
                 Download list
               </AppButton>
               <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-                <AppButton onClick={() => setFormState({ open: true, user: null })}>
-                  <Plus className="size-4" />
-                  New employee
-                </AppButton>
+                <CreateButton onClick={() => setFormState({ open: true, user: null })}>New employee</CreateButton>
               </Can>
             </div>
           </div>
@@ -251,10 +319,9 @@ export function UsersPage() {
             <RefreshButton onClick={refetch} isFetching={isFetching} />
           </FilterBar>
 
-          <UserTable
-            users={data?.data ?? []}
-            departmentsById={departmentsById}
-            rolesById={rolesById}
+          <AppTable
+            columns={userColumns}
+            data={data?.data ?? []}
             total={data?.total ?? 0}
             page={page}
             pageSize={pageSize}
@@ -264,9 +331,8 @@ export function UsersPage() {
               setPageSize(size);
               setPage(1);
             }}
-            onView={setViewTarget}
-            onEdit={(user) => setFormState({ open: true, user })}
-            onDelete={setDeleteTarget}
+            onRowClick={setViewTarget}
+            emptyMessage="No employees yet"
           />
         </div>
       )}

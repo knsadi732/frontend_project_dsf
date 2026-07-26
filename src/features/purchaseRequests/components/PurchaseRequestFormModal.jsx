@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { purchaseRequestSchema } from '@/features/purchaseRequests/validators/purchaseRequest.schema';
@@ -12,6 +12,7 @@ import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppComboSelect } from '@/components/ui/AppComboSelect';
 import { AppButton } from '@/components/ui/AppButton';
+import { CreateButton } from '@/components/ui/ActionButtons';
 
 const EMPTY_ITEM = { productVariantId: '', quantity: '', remarks: '' };
 const DEFAULT_VALUES = {
@@ -119,10 +120,7 @@ export function PurchaseRequestFormModal({
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-text">Items requested</span>
-            <AppButton type="button" variant="secondary" size="sm" onClick={() => append(EMPTY_ITEM)}>
-              <Plus className="size-4" />
-              Add item
-            </AppButton>
+            <CreateButton type="button" variant="secondary" size="sm" onClick={() => append(EMPTY_ITEM)}>Add item</CreateButton>
           </div>
           {errors.items?.message && <p className="text-xs text-danger">{errors.items.message}</p>}
           {fields.map((field, index) => (

@@ -1,20 +1,25 @@
 import { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { ClipboardCheck } from 'lucide-react';
 import { useWorkOrdersQuery } from '@/features/production/queries/useWorkOrdersQuery';
 import { useCreateWorkOrder } from '@/features/production/mutations/useCreateWorkOrder';
 import { useUpdateWorkOrder } from '@/features/production/mutations/useUpdateWorkOrder';
 import { useDeleteWorkOrder } from '@/features/production/mutations/useDeleteWorkOrder';
 import { useUpdateProductionRequest } from '@/features/productionRequests/mutations/useUpdateProductionRequest';
-import { WorkOrderTable } from '@/features/production/components/WorkOrderTable';
+import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { WorkOrderFormModal } from '@/features/production/components/WorkOrderFormModal';
 import { ProductionRequestsPanel } from '@/features/productionRequests';
 import { QualityInspectionFormModal } from '@/features/qualityInspections';
 import { useCreateQualityInspection } from '@/features/qualityInspections/mutations/useCreateQualityInspection';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { AppTable } from '@/components/ui/AppTable';
+import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DownloadButton, EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
+import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
@@ -23,6 +28,32 @@ import { WORK_ORDER_STAGE_OPTIONS } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+import { generateRecordPdf } from '@/utils/generateRecordPdf';
+
+function totalCost(row) {
+  return (
+    Number(row.rawMaterialCost || 0) +
+    Number(row.labourCost || 0) +
+    Number(row.machineCost || 0) +
+    Number(row.electricityCost || 0) +
+    Number(row.packagingCost || 0) +
+    Number(row.overheadCost || 0)
+  );
+}
+
+function downloadWorkOrderPdf(row, productName) {
+  generateRecordPdf({
+    title: `Work Order - ${row.workOrderNumber}`,
+    fields: [
+      { label: 'Product', value: productName },
+      { label: 'Quantity', value: row.quantity },
+      { label: 'Due Date', value: row.dueDate },
+      { label: 'Stage', value: row.stage },
+      { label: 'Total Production Cost', value: `Rs.${totalCost(row).toLocaleString('en-IN')}` },
+    ],
+    fileName: `${row.workOrderNumber}.pdf`,
+  });
+}
 
 const TABS = [
   { key: 'workOrders', label: 'Work Orders' },
@@ -55,6 +86,8 @@ export function ProductionPage() {
   );
 
   const { data, isLoading, isFetching, refetch } = useWorkOrdersQuery(filters);
+  const { data: productsData } = useProductsQuery({ pageSize: 100 });
+  const productNameById = new Map((productsData?.data ?? []).map((product) => [product.id, product.name]));
   const createWorkOrder = useCreateWorkOrder();
   const updateWorkOrder = useUpdateWorkOrder();
   const deleteWorkOrder = useDeleteWorkOrder();
@@ -97,6 +130,62 @@ export function ProductionPage() {
     });
   };
 
+  const columns = [
+    { key: 'workOrderNumber', header: 'Work Order #' },
+    { key: 'product', header: 'Product', render: (row) => productNameById.get(row.productId) ?? row.productId },
+    { key: 'quantity', header: 'Quantity' },
+    { key: 'dueDate', header: 'Due Date' },
+    { key: 'totalCost', header: 'Total Cost', render: (row) => `₹${totalCost(row).toLocaleString('en-IN')}` },
+    { key: 'stage', header: 'Stage', render: (row) => <StatusBadge status={row.stage} /> },
+    {
+      key: 'linkedSo',
+      header: 'Linked SO',
+      render: (row) =>
+        row.salesOrderNumber ? (
+          <BaseBadge variant="info">{row.salesOrderNumber}</BaseBadge>
+        ) : (
+          <span className="text-xs text-text-muted">—</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <DownloadButton
+            label={`Download ${row.workOrderNumber}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              downloadWorkOrderPdf(row, productNameById.get(row.productId) ?? row.productId);
+            }}
+          />
+          {row.stage !== 'completed' && row.stage !== 'cancelled' && (
+            <Can module={MODULES.PRODUCTION} action={ACTIONS.EDIT}>
+              <AppButton
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setInspectionTarget(row);
+                }}
+                aria-label={`Record inspection for ${row.workOrderNumber}`}
+                title="Record inspection"
+              >
+                <ClipboardCheck className="size-4" />
+              </AppButton>
+            </Can>
+          )}
+          <Can module={MODULES.PRODUCTION} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.workOrderNumber}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, workOrder: row }); }} />
+          </Can>
+          <Can module={MODULES.PRODUCTION} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.workOrderNumber}`} onClick={(event) => { event.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -106,10 +195,7 @@ export function ProductionPage() {
         </div>
         {activeTab === 'workOrders' && (
           <Can module={MODULES.PRODUCTION} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setFormState({ open: true, workOrder: null })}>
-              <Plus className="size-4" />
-              New work order
-            </AppButton>
+            <CreateButton onClick={() => setFormState({ open: true, workOrder: null })}>New work order</CreateButton>
           </Can>
         )}
       </div>
@@ -129,30 +215,43 @@ export function ProductionPage() {
               className="w-72"
             />
             <MultiFilter
-              filters={[
-                { key: 'status', label: 'Stage', options: WORK_ORDER_STAGE_OPTIONS, placeholder: 'All stages' },
-                { key: 'dateFrom', label: 'Due date from', type: 'date' },
-                { key: 'dateTo', label: 'Due date to', type: 'date' },
-              ]}
-              values={{ status, dateFrom, dateTo }}
+              filters={[{ key: 'status', label: 'Stage', options: WORK_ORDER_STAGE_OPTIONS, placeholder: 'All stages' }]}
+              values={{ status }}
               onChange={(key, value) => {
-                if (key === 'status') setStatus(value);
-                if (key === 'dateFrom') setDateFrom(value);
-                if (key === 'dateTo') setDateTo(value);
+                setStatus(value);
                 setPage(1);
               }}
               onClear={() => {
                 setStatus('');
-                setDateFrom('');
-                setDateTo('');
                 setPage(1);
               }}
+            />
+            <AppInput
+              type="date"
+              value={dateFrom}
+              onChange={(event) => {
+                setDateFrom(event.target.value);
+                setPage(1);
+              }}
+              className="w-36"
+              aria-label="Due date from"
+            />
+            <AppInput
+              type="date"
+              value={dateTo}
+              onChange={(event) => {
+                setDateTo(event.target.value);
+                setPage(1);
+              }}
+              className="w-36"
+              aria-label="Due date to"
             />
             <RefreshButton onClick={refetch} isFetching={isFetching} />
           </FilterBar>
 
-          <WorkOrderTable
-            workOrders={data?.data ?? []}
+          <AppTable
+            columns={columns}
+            data={data?.data ?? []}
             total={data?.total ?? 0}
             page={page}
             pageSize={pageSize}
@@ -162,9 +261,8 @@ export function ProductionPage() {
               setPageSize(size);
               setPage(1);
             }}
-            onEdit={(workOrder) => setFormState({ open: true, workOrder })}
-            onDelete={setDeleteTarget}
-            onRecordInspection={setInspectionTarget}
+            onRowClick={(workOrder) => setFormState({ open: true, workOrder })}
+            emptyMessage="No work orders yet"
           />
 
           <QualityInspectionFormModal

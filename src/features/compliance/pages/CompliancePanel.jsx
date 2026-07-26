@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useGstProfileQuery } from '@/features/compliance/queries/useGstProfileQuery';
 import { useStatutoryAuditsQuery } from '@/features/compliance/queries/useStatutoryAuditsQuery';
 import { useCreateStatutoryAudit } from '@/features/compliance/mutations/useCreateStatutoryAudit';
@@ -8,7 +7,7 @@ import { GstProfileCard } from '@/features/compliance/components/GstProfileCard'
 import { LedgerCrossVerifyCard } from '@/features/compliance/components/LedgerCrossVerifyCard';
 import { StatutoryAuditTable } from '@/features/compliance/components/StatutoryAuditTable';
 import { StatutoryAuditFormModal } from '@/features/compliance/components/StatutoryAuditFormModal';
-import { AppButton } from '@/components/ui/AppButton';
+import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -41,10 +40,7 @@ export function CompliancePanel() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Statutory audit records.</p>
         <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormOpen(true)}>
-            <Plus className="size-4" />
-            Record audit
-          </AppButton>
+          <CreateButton onClick={() => setFormOpen(true)}>Record audit</CreateButton>
         </Can>
       </div>
 

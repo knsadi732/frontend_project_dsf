@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useAssetsQuery } from '@/features/assets/queries/useAssetsQuery';
 import { useCreateAsset } from '@/features/assets/mutations/useCreateAsset';
 import { useUpdateAsset } from '@/features/assets/mutations/useUpdateAsset';
@@ -9,7 +8,7 @@ import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
-import { EditButton, DeleteButton } from '@/components/ui/ActionButtons';
+import { EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -70,10 +69,7 @@ export function AssetsPanel({ employeesById, employeeOptions }) {
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Company assets assigned to employees.</p>
         <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, asset: null })}>
-            <Plus className="size-4" />
-            New assignment
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, asset: null })}>New assignment</CreateButton>
         </Can>
       </div>
 

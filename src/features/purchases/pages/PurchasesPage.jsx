@@ -10,6 +10,7 @@ import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQ
 import { useCompanyQuery } from '@/features/company/queries/useCompanyQuery';
 import { PurchaseFormModal } from '@/features/purchases/components/PurchaseFormModal';
 import { PurchaseRequestsPanel, purchaseRequestApi } from '@/features/purchaseRequests';
+import { usePurchaseRequestsQuery } from '@/features/purchaseRequests/queries/usePurchaseRequestsQuery';
 import { GoodsReceiptNotesPanel } from '@/features/goodsReceiptNotes';
 import { purchaseApi } from '@/features/purchases/api';
 import { generatePurchaseOrderPdf } from '@/features/purchases/utils/generatePurchaseOrderPdf';
@@ -17,6 +18,7 @@ import { PURCHASE_ORDER_STATUS_PIPELINE, PURCHASE_ORDER_CANCELLED } from '@/feat
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { MultiFilter } from '@/components/ui/MultiFilter';
+import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
@@ -146,6 +148,11 @@ export function PurchasesPage() {
     [warehousesData],
   );
   const { data: company } = useCompanyQuery();
+  const { data: purchaseRequestsData } = usePurchaseRequestsQuery({ pageSize: 500 });
+  const purchaseRequestsById = useMemo(
+    () => Object.fromEntries((purchaseRequestsData?.data ?? []).map((pr) => [pr.id, pr])),
+    [purchaseRequestsData],
+  );
 
   const createPurchase = useCreatePurchase();
   const updatePurchase = useUpdatePurchase();
@@ -171,6 +178,7 @@ export function PurchasesPage() {
 
   const columns = [
     { key: 'poNumber', header: 'PO Number' },
+    { key: 'prNumber', header: 'PR Number', render: (row) => purchaseRequestsById[row.purchaseRequestId]?.prNumber ?? '—' },
     { key: 'orderDate', header: 'Order Date' },
     { key: 'total', header: 'Total', render: (row) => `₹${Number(row.total).toLocaleString('en-IN')}` },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={PO_STATUS_VARIANT} /> },
@@ -276,24 +284,36 @@ export function PurchasesPage() {
               className="w-72"
             />
             <MultiFilter
-              filters={[
-                { key: 'status', label: 'Status', options: STATUS_OPTIONS },
-                { key: 'dateFrom', label: 'Order date from', type: 'date' },
-                { key: 'dateTo', label: 'Order date to', type: 'date' },
-              ]}
-              values={{ status, dateFrom, dateTo }}
+              filters={[{ key: 'status', label: 'Status', options: STATUS_OPTIONS }]}
+              values={{ status }}
               onChange={(key, value) => {
-                if (key === 'status') setStatus(value);
-                if (key === 'dateFrom') setDateFrom(value);
-                if (key === 'dateTo') setDateTo(value);
+                setStatus(value);
                 setPage(1);
               }}
               onClear={() => {
                 setStatus('');
-                setDateFrom('');
-                setDateTo('');
                 setPage(1);
               }}
+            />
+            <AppInput
+              type="date"
+              value={dateFrom}
+              onChange={(event) => {
+                setDateFrom(event.target.value);
+                setPage(1);
+              }}
+              className="w-36"
+              aria-label="Order date from"
+            />
+            <AppInput
+              type="date"
+              value={dateTo}
+              onChange={(event) => {
+                setDateTo(event.target.value);
+                setPage(1);
+              }}
+              className="w-36"
+              aria-label="Order date to"
             />
             <RefreshButton onClick={refetch} isFetching={isFetching} />
           </FilterBar>

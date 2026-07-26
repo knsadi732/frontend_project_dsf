@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { useCreateCustomer } from '@/features/customers/mutations/useCreateCustomer';
 import { useUpdateCustomer } from '@/features/customers/mutations/useUpdateCustomer';
 import { useDeleteCustomer } from '@/features/customers/mutations/useDeleteCustomer';
-import { CustomerTable } from '@/features/customers/components/CustomerTable';
 import { CustomerFormModal } from '@/features/customers/components/CustomerFormModal';
 import { CustomerCommunicationsPanel } from '@/features/customerCommunications';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
@@ -51,6 +52,29 @@ export function CustomersPage() {
     deleteCustomer.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'name', header: 'Name', render: (row) => <span className="font-medium text-text">{row.name}</span> },
+    { key: 'customerType', header: 'Type', render: (row) => <span className="capitalize">{row.customerType}</span> },
+    { key: 'phone', header: 'Phone' },
+    { key: 'email', header: 'Email' },
+    { key: 'gstNumber', header: 'GST Number' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.CUSTOMERS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.name}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, customer: row }); }} />
+          </Can>
+          <Can module={MODULES.CUSTOMERS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -60,10 +84,7 @@ export function CustomersPage() {
         </div>
         {activeTab === 'customers' && (
           <Can module={MODULES.CUSTOMERS} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setFormState({ open: true, customer: null })}>
-              <Plus className="size-4" />
-              New customer
-            </AppButton>
+            <CreateButton onClick={() => setFormState({ open: true, customer: null })}>New customer</CreateButton>
           </Can>
         )}
       </div>
@@ -85,8 +106,9 @@ export function CustomersPage() {
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
 
-      <CustomerTable
-        customers={data?.data ?? []}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -96,8 +118,8 @@ export function CustomersPage() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(customer) => setFormState({ open: true, customer })}
-        onDelete={setDeleteTarget}
+        onRowClick={(customer) => setFormState({ open: true, customer })}
+        emptyMessage="No customers yet"
       />
 
       <CustomerFormModal

@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
 import { useCreateProductVariant } from '@/features/productVariants/mutations/useCreateProductVariant';
 import { useUpdateProductVariant } from '@/features/productVariants/mutations/useUpdateProductVariant';
 import { useDeleteProductVariant } from '@/features/productVariants/mutations/useDeleteProductVariant';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
-import { ProductVariantTable } from '@/features/productVariants/components/ProductVariantTable';
 import { ProductVariantFormModal } from '@/features/productVariants/components/ProductVariantFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -42,6 +43,32 @@ export function ProductVariantsPanel() {
     deleteVariant.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'product', header: 'Product', render: (row) => productsById?.[row.productId]?.name ?? row.productId },
+    { key: 'size', header: 'Size' },
+    { key: 'color', header: 'Color' },
+    { key: 'sku', header: 'SKU' },
+    { key: 'barcode', header: 'Barcode' },
+    { key: 'mrp', header: 'MRP', render: (row) => `₹${Number(row.mrp).toLocaleString('en-IN')}` },
+    { key: 'sellingPrice', header: 'Selling Price', render: (row) => `₹${Number(row.sellingPrice).toLocaleString('en-IN')}` },
+    { key: 'costPrice', header: 'Cost Price', render: (row) => `₹${Number(row.costPrice).toLocaleString('en-IN')}` },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.sku}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, variant: row }); }} />
+          </Can>
+          <Can module={MODULES.PRODUCTS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.sku}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -49,17 +76,14 @@ export function ProductVariantsPanel() {
         <div className="flex items-center gap-2">
           <RefreshButton onClick={refetch} isFetching={isFetching} />
           <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setFormState({ open: true, variant: null })}>
-              <Plus className="size-4" />
-              New variant
-            </AppButton>
+            <CreateButton onClick={() => setFormState({ open: true, variant: null })}>New variant</CreateButton>
           </Can>
         </div>
       </div>
 
-      <ProductVariantTable
-        variants={data?.data ?? []}
-        productsById={productsById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -69,8 +93,8 @@ export function ProductVariantsPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(variant) => setFormState({ open: true, variant })}
-        onDelete={setDeleteTarget}
+        onRowClick={(variant) => setFormState({ open: true, variant })}
+        emptyMessage="No product variants yet"
       />
 
       <ProductVariantFormModal

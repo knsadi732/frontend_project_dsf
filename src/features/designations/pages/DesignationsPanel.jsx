@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useDesignationsQuery } from '@/features/designations/queries/useDesignationsQuery';
 import { useCreateDesignation } from '@/features/designations/mutations/useCreateDesignation';
 import { useUpdateDesignation } from '@/features/designations/mutations/useUpdateDesignation';
 import { useDeleteDesignation } from '@/features/designations/mutations/useDeleteDesignation';
-import { DesignationTable } from '@/features/designations/components/DesignationTable';
 import { DesignationFormModal } from '@/features/designations/components/DesignationFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -35,20 +36,37 @@ export function DesignationsPanel() {
     deleteDesignation.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'title', header: 'Designation', render: (row) => <span className="font-medium text-text">{row.title}</span> },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.title}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, designation: row }); }} />
+          </Can>
+          <Can module={MODULES.USERS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.title}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Designations are company-wide job titles.</p>
         <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, designation: null })}>
-            <Plus className="size-4" />
-            New designation
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, designation: null })}>New designation</CreateButton>
         </Can>
       </div>
 
-      <DesignationTable
-        designations={data?.data ?? []}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -58,8 +76,8 @@ export function DesignationsPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(designation) => setFormState({ open: true, designation })}
-        onDelete={setDeleteTarget}
+        onRowClick={(designation) => setFormState({ open: true, designation })}
+        emptyMessage="No designations yet"
       />
 
       <DesignationFormModal

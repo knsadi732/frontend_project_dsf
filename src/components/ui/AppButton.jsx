@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { BaseButton } from '@/components/ui/BaseButton';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { cn } from '@/utils/cn';
 
 const VARIANTS = {
@@ -24,6 +25,14 @@ const VARIANTS = {
   // hover-reveal like ghost) since it's a deliberately distinct action.
   download:
     'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20 hover:brightness-110 hover:shadow-lg hover:shadow-emerald-500/25 active:brightness-95',
+  // Violet -> Purple: reserved for View specifically — kept distinct from
+  // Download's emerald/teal so the two never get visually confused.
+  view:
+    'bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-violet-500/20 hover:brightness-110 hover:shadow-lg hover:shadow-violet-500/25 active:brightness-95',
+  // Blue -> Cyan: reserved for Upload specifically — trust/freshness feel,
+  // kept distinct from Download (emerald/teal) and View (violet/purple).
+  upload:
+    'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-md shadow-blue-500/20 hover:brightness-110 hover:shadow-lg hover:shadow-blue-500/25 active:brightness-95',
 };
 
 const SIZES = {
@@ -33,10 +42,10 @@ const SIZES = {
 };
 
 export const AppButton = forwardRef(function AppButton(
-  { variant = 'primary', size = 'md', loading = false, className, disabled, children, ...props },
+  { variant = 'primary', size = 'md', loading = false, className, disabled, title, children, ...props },
   ref,
 ) {
-  return (
+  const button = (
     <BaseButton
       ref={ref}
       disabled={disabled || loading}
@@ -47,4 +56,9 @@ export const AppButton = forwardRef(function AppButton(
       {children}
     </BaseButton>
   );
+
+  // `title` is deliberately intercepted here instead of spreading onto the
+  // native button — a real `title` attribute triggers the browser's own
+  // delayed, unstyled tooltip on top of this one.
+  return title ? <Tooltip label={title}>{button}</Tooltip> : button;
 });

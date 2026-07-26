@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useBranchesQuery } from '@/features/branches/queries/useBranchesQuery';
 import { useCreateBranch } from '@/features/branches/mutations/useCreateBranch';
 import { useUpdateBranch } from '@/features/branches/mutations/useUpdateBranch';
 import { useDeleteBranch } from '@/features/branches/mutations/useDeleteBranch';
-import { BranchTable } from '@/features/branches/components/BranchTable';
 import { BranchFormModal } from '@/features/branches/components/BranchFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -35,20 +36,37 @@ export function BranchesPanel() {
     deleteBranch.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'name', header: 'Branch', render: (row) => <span className="font-medium text-text">{row.name}</span> },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.name}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, branch: row }); }} />
+          </Can>
+          <Can module={MODULES.USERS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Branches represent physical or operational business locations.</p>
         <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, branch: null })}>
-            <Plus className="size-4" />
-            New branch
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, branch: null })}>New branch</CreateButton>
         </Can>
       </div>
 
-      <BranchTable
-        branches={data?.data ?? []}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -58,8 +76,8 @@ export function BranchesPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(branch) => setFormState({ open: true, branch })}
-        onDelete={setDeleteTarget}
+        onRowClick={(branch) => setFormState({ open: true, branch })}
+        emptyMessage="No branches yet"
       />
 
       <BranchFormModal

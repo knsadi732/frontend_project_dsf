@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useDepartmentsQuery } from '@/features/departments/queries/useDepartmentsQuery';
 import { useCreateDepartment } from '@/features/departments/mutations/useCreateDepartment';
 import { useUpdateDepartment } from '@/features/departments/mutations/useUpdateDepartment';
 import { useDeleteDepartment } from '@/features/departments/mutations/useDeleteDepartment';
-import { DepartmentTable } from '@/features/departments/components/DepartmentTable';
 import { DepartmentFormModal } from '@/features/departments/components/DepartmentFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -35,20 +36,37 @@ export function DepartmentsPanel() {
     deleteDepartment.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'name', header: 'Department', render: (row) => <span className="font-medium text-text">{row.name}</span> },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.name}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, department: row }); }} />
+          </Can>
+          <Can module={MODULES.USERS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Departments group users for reporting and org structure.</p>
         <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, department: null })}>
-            <Plus className="size-4" />
-            New department
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, department: null })}>New department</CreateButton>
         </Can>
       </div>
 
-      <DepartmentTable
-        departments={data?.data ?? []}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -58,8 +76,8 @@ export function DepartmentsPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(department) => setFormState({ open: true, department })}
-        onDelete={setDeleteTarget}
+        onRowClick={(department) => setFormState({ open: true, department })}
+        emptyMessage="No departments yet"
       />
 
       <DepartmentFormModal

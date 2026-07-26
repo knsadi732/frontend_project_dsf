@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useLoanEsignRequestsQuery } from '@/features/loanEsignRequests/queries/useLoanEsignRequestsQuery';
 import { useCreateLoanEsignRequest } from '@/features/loanEsignRequests/mutations/useCreateLoanEsignRequest';
 import { LoanEsignRequestTable } from '@/features/loanEsignRequests/components/LoanEsignRequestTable';
 import { LoanEsignRequestFormModal } from '@/features/loanEsignRequests/components/LoanEsignRequestFormModal';
 import { LoanEsignLinkModal } from '@/features/loanEsignRequests/components/LoanEsignLinkModal';
-import { AppButton } from '@/components/ui/AppButton';
+import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -40,10 +39,7 @@ export function LoanEsignRequestsPanel() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Loan agreements sent for e-signature — pending until the counter-party signs.</p>
         <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormOpen(true)}>
-            <Plus className="size-4" />
-            New loan request
-          </AppButton>
+          <CreateButton onClick={() => setFormOpen(true)}>New loan request</CreateButton>
         </Can>
       </div>
 

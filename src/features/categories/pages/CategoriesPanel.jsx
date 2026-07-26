@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useCategoriesQuery } from '@/features/categories/queries/useCategoriesQuery';
 import { useCreateCategory } from '@/features/categories/mutations/useCreateCategory';
 import { useUpdateCategory } from '@/features/categories/mutations/useUpdateCategory';
@@ -8,6 +7,7 @@ import { CategoryTable } from '@/features/categories/components/CategoryTable';
 import { CategoryFormModal } from '@/features/categories/components/CategoryFormModal';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { CreateButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -48,10 +48,7 @@ export function CategoriesPanel() {
         <div className="flex items-center gap-2">
           <RefreshButton onClick={refetch} isFetching={isFetching} />
           <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setFormState({ open: true, category: null })}>
-              <Plus className="size-4" />
-              New category
-            </AppButton>
+            <CreateButton onClick={() => setFormState({ open: true, category: null })}>New category</CreateButton>
           </Can>
         </div>
       </div>

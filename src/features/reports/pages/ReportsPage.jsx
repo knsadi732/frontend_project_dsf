@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useReportsQuery } from '@/features/reports/queries/useReportsQuery';
 import { useGenerateReport } from '@/features/reports/mutations/useGenerateReport';
 import { reportApi } from '@/features/reports/api';
@@ -15,8 +14,7 @@ import { EmployeeReportsPanel } from '@/features/reports/components/EmployeeRepo
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { DownloadButton } from '@/components/ui/ActionButtons';
-import { AppButton } from '@/components/ui/AppButton';
+import { DownloadButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -95,10 +93,7 @@ export function ReportsPage() {
         </div>
         {activeTab === 'overview' && (
           <Can module={MODULES.REPORTS} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setModalOpen(true)}>
-              <Plus className="size-4" />
-              Generate report
-            </AppButton>
+            <CreateButton onClick={() => setModalOpen(true)}>Generate report</CreateButton>
           </Can>
         )}
       </div>

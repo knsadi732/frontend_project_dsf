@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useBrandsQuery } from '@/features/brands/queries/useBrandsQuery';
 import { useCreateBrand } from '@/features/brands/mutations/useCreateBrand';
 import { useUpdateBrand } from '@/features/brands/mutations/useUpdateBrand';
@@ -8,6 +7,7 @@ import { BrandTable } from '@/features/brands/components/BrandTable';
 import { BrandFormModal } from '@/features/brands/components/BrandFormModal';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { CreateButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -43,10 +43,7 @@ export function BrandsPanel() {
         <div className="flex items-center gap-2">
           <RefreshButton onClick={refetch} isFetching={isFetching} />
           <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setFormState({ open: true, brand: null })}>
-              <Plus className="size-4" />
-              New brand
-            </AppButton>
+            <CreateButton onClick={() => setFormState({ open: true, brand: null })}>New brand</CreateButton>
           </Can>
         </div>
       </div>

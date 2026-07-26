@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { useCustomerCommunicationsQuery } from '@/features/customerCommunications/queries/useCustomerCommunicationsQuery';
 import { useCreateCustomerCommunication } from '@/features/customerCommunications/mutations/useCreateCustomerCommunication';
 import { CustomerCommunicationTable } from '@/features/customerCommunications/components/CustomerCommunicationTable';
 import { CustomerCommunicationFormModal } from '@/features/customerCommunications/components/CustomerCommunicationFormModal';
 import { AppSelect } from '@/components/ui/AppSelect';
-import { AppButton } from '@/components/ui/AppButton';
+import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { useAuth } from '@/hooks/useAuth';
@@ -43,10 +42,7 @@ export function CustomerCommunicationsPanel() {
           aria-label="Filter by customer"
         />
         <Can module={MODULES.CUSTOMERS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormOpen(true)} disabled={!customerId}>
-            <Plus className="size-4" />
-            Log communication
-          </AppButton>
+          <CreateButton onClick={() => setFormOpen(true)} disabled={!customerId}>Log communication</CreateButton>
         </Can>
       </div>
 

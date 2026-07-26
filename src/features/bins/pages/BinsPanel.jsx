@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useBinsQuery } from '@/features/bins/queries/useBinsQuery';
 import { useCreateBin } from '@/features/bins/mutations/useCreateBin';
 import { useUpdateBin } from '@/features/bins/mutations/useUpdateBin';
@@ -9,6 +8,7 @@ import { BinTable } from '@/features/bins/components/BinTable';
 import { BinFormModal } from '@/features/bins/components/BinFormModal';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -46,10 +46,7 @@ export function BinsPanel() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Bins are the smallest physical storage unit — every inventory movement references a bin.</p>
         <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, bin: null })}>
-            <Plus className="size-4" />
-            New bin
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, bin: null })}>New bin</CreateButton>
         </Can>
       </div>
 

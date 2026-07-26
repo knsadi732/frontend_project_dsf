@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { vendorSchema, VENDOR_TYPE_OPTIONS } from '@/features/vendors/validators/vendor.schema';
@@ -7,6 +7,7 @@ import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
+import { CreateButton } from '@/components/ui/ActionButtons';
 
 const EMPTY_ADDRESS = { label: '', address: '' };
 const DEFAULT_VALUES = {
@@ -104,10 +105,7 @@ export function VendorFormModal({ open, onClose, initialValues, onSubmit, isSubm
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-text">Addresses</span>
-            <AppButton type="button" variant="secondary" size="sm" onClick={() => append(EMPTY_ADDRESS)}>
-              <Plus className="size-4" />
-              Add address
-            </AppButton>
+            <CreateButton type="button" variant="secondary" size="sm" onClick={() => append(EMPTY_ADDRESS)}>Add address</CreateButton>
           </div>
 
           {fields.map((field, index) => (

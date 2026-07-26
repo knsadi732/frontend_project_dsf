@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useInvoicesQuery } from '@/features/finance/queries/useInvoicesQuery';
 import { useCreateInvoice } from '@/features/finance/mutations/useCreateInvoice';
 import { useUpdateInvoice } from '@/features/finance/mutations/useUpdateInvoice';
 import { useDeleteInvoice } from '@/features/finance/mutations/useDeleteInvoice';
-import { InvoiceTable } from '@/features/finance/components/InvoiceTable';
 import { InvoiceFormModal } from '@/features/finance/components/InvoiceFormModal';
 import { PaymentsPanel } from '@/features/payments';
 import { VendorBillsPanel } from '@/features/vendorBills';
@@ -15,9 +13,14 @@ import { LedgerPanel } from '@/features/ledger';
 import { CompliancePanel } from '@/features/compliance';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { AppTable } from '@/components/ui/AppTable';
+import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton, DownloadButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
+import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
@@ -26,8 +29,24 @@ import { PAYMENT_STATUS, toStatusOptions } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
 const STATUS_OPTIONS = toStatusOptions(PAYMENT_STATUS);
+
+function downloadInvoicePdf(row) {
+  generateRecordPdf({
+    title: `Invoice - ${row.invoiceNumber}`,
+    fields: [
+      { label: 'Party', value: row.party },
+      { label: 'Linked SO', value: row.salesOrderNumber ?? '-' },
+      { label: 'Amount', value: `Rs.${Number(row.amount).toLocaleString('en-IN')}` },
+      { label: 'GST', value: row.gstAmount ? `${row.gstRate}% (Rs.${Number(row.gstAmount).toLocaleString('en-IN')})` : '-' },
+      { label: 'Due Date', value: row.dueDate },
+      { label: 'Status', value: row.status },
+    ],
+    fileName: `${row.invoiceNumber}.pdf`,
+  });
+}
 
 const TABS = [
   { key: 'invoices', label: 'Invoices' },
@@ -80,6 +99,49 @@ export function FinancePage() {
     deleteInvoice.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'invoiceNumber', header: 'Invoice #' },
+    { key: 'party', header: 'Party' },
+    { key: 'amount', header: 'Amount', render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}` },
+    {
+      key: 'gst',
+      header: 'GST',
+      render: (row) => (row.gstAmount ? `${row.gstRate}% (₹${Number(row.gstAmount).toLocaleString('en-IN')})` : '—'),
+    },
+    {
+      key: 'balanceDue',
+      header: 'Balance Due',
+      render: (row) => (row.status === 'partial' && row.balanceDue != null ? `₹${Number(row.balanceDue).toLocaleString('en-IN')}` : '—'),
+    },
+    { key: 'dueDate', header: 'Due Date' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'linkedSo',
+      header: 'Linked SO',
+      render: (row) =>
+        row.salesOrderNumber ? (
+          <BaseBadge variant="info">{row.salesOrderNumber}</BaseBadge>
+        ) : (
+          <span className="text-xs text-text-muted">—</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <DownloadButton label={`Download ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); downloadInvoicePdf(row); }} />
+          <Can module={MODULES.FINANCE} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, invoice: row }); }} />
+          </Can>
+          <Can module={MODULES.FINANCE} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -89,10 +151,7 @@ export function FinancePage() {
         </div>
         {activeTab === 'invoices' && (
           <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-            <AppButton onClick={() => setFormState({ open: true, invoice: null })}>
-              <Plus className="size-4" />
-              New invoice
-            </AppButton>
+            <CreateButton onClick={() => setFormState({ open: true, invoice: null })}>New invoice</CreateButton>
           </Can>
         )}
       </div>
@@ -112,30 +171,43 @@ export function FinancePage() {
           className="w-72"
         />
         <MultiFilter
-          filters={[
-            { key: 'status', label: 'Status', options: STATUS_OPTIONS },
-            { key: 'dateFrom', label: 'Due date from', type: 'date' },
-            { key: 'dateTo', label: 'Due date to', type: 'date' },
-          ]}
-          values={{ status, dateFrom, dateTo }}
+          filters={[{ key: 'status', label: 'Status', options: STATUS_OPTIONS }]}
+          values={{ status }}
           onChange={(key, value) => {
-            if (key === 'status') setStatus(value);
-            if (key === 'dateFrom') setDateFrom(value);
-            if (key === 'dateTo') setDateTo(value);
+            setStatus(value);
             setPage(1);
           }}
           onClear={() => {
             setStatus('');
-            setDateFrom('');
-            setDateTo('');
             setPage(1);
           }}
+        />
+        <AppInput
+          type="date"
+          value={dateFrom}
+          onChange={(event) => {
+            setDateFrom(event.target.value);
+            setPage(1);
+          }}
+          className="w-36"
+          aria-label="Due date from"
+        />
+        <AppInput
+          type="date"
+          value={dateTo}
+          onChange={(event) => {
+            setDateTo(event.target.value);
+            setPage(1);
+          }}
+          className="w-36"
+          aria-label="Due date to"
         />
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
 
-      <InvoiceTable
-        invoices={data?.data ?? []}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -145,8 +217,8 @@ export function FinancePage() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(invoice) => setFormState({ open: true, invoice })}
-        onDelete={setDeleteTarget}
+        onRowClick={(invoice) => setFormState({ open: true, invoice })}
+        emptyMessage="No invoices yet"
       />
 
       <InvoiceFormModal

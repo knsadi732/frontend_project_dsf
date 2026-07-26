@@ -1,23 +1,30 @@
 import { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Repeat } from 'lucide-react';
 import { useReturnsQuery } from '@/features/returns/queries/useReturnsQuery';
 import { useCreateReturn } from '@/features/returns/mutations/useCreateReturn';
 import { useUpdateReturn } from '@/features/returns/mutations/useUpdateReturn';
 import { useDeleteReturn } from '@/features/returns/mutations/useDeleteReturn';
-import { ReturnTable } from '@/features/returns/components/ReturnTable';
 import { ReturnFormModal } from '@/features/returns/components/ReturnFormModal';
 import { SalesOrderFormModal } from '@/features/sales/components/SalesOrderFormModal';
 import { useCreateSalesOrder } from '@/features/sales/mutations/useCreateSalesOrder';
 import { StatCard } from '@/features/dashboard/components/StatCard';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { AppTable } from '@/components/ui/AppTable';
+import { BaseBadge } from '@/components/ui/BaseBadge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { ORDER_STATUS } from '@/constants/statusEnums';
+import { ORDER_STATUS, RETURN_REASON_OPTIONS, RETURN_STATUS } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+
+function reasonLabel(reason) {
+  return RETURN_REASON_OPTIONS.find((option) => option.value === reason)?.label ?? reason;
+}
 
 export function ReturnsPage() {
   const [search, setSearch] = useState('');
@@ -90,6 +97,47 @@ export function ReturnsPage() {
     });
   };
 
+  const columns = [
+    { key: 'returnNumber', header: 'Return #' },
+    { key: 'soNumber', header: 'Linked SO' },
+    { key: 'type', header: 'Type', render: (row) => <BaseBadge variant={row.type === 'customer' ? 'warning' : 'default'}>{row.type}</BaseBadge> },
+    { key: 'quantity', header: 'Qty' },
+    { key: 'amount', header: 'Amount', render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}` },
+    { key: 'reason', header: 'Reason', render: (row) => reasonLabel(row.reason) },
+    { key: 'createdDate', header: 'Date' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          {row.status === RETURN_STATUS.RESOLVED && row.resolutionType === 'replacement' && !row.replacementOrderId && (
+            <Can module={MODULES.RETURNS} action={ACTIONS.EDIT}>
+              <AppButton
+                variant="ghost"
+                size="sm"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleConvertToReplacement(row);
+                }}
+                aria-label={`Convert ${row.returnNumber} to replacement order`}
+                title="Convert to replacement order"
+              >
+                <Repeat className="size-4" />
+              </AppButton>
+            </Can>
+          )}
+          <Can module={MODULES.RETURNS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.returnNumber}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, returnItem: row }); }} />
+          </Can>
+          <Can module={MODULES.RETURNS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.returnNumber}`} onClick={(event) => { event.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -98,10 +146,7 @@ export function ReturnsPage() {
           <p className="text-sm text-text-muted">Customer and courier returns, warehouse verification and cost impact.</p>
         </div>
         <Can module={MODULES.RETURNS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, returnItem: null })}>
-            <Plus className="size-4" />
-            New return
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, returnItem: null })}>New return</CreateButton>
         </Can>
       </div>
 
@@ -117,8 +162,9 @@ export function ReturnsPage() {
         <SearchInput value={search} onChange={setSearch} placeholder="Search returns…" className="w-72" />
       </FilterBar>
 
-      <ReturnTable
-        returns={returnsList}
+      <AppTable
+        columns={columns}
+        data={returnsList}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -128,9 +174,8 @@ export function ReturnsPage() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(returnItem) => setFormState({ open: true, returnItem })}
-        onDelete={setDeleteTarget}
-        onConvertToReplacement={handleConvertToReplacement}
+        onRowClick={(returnItem) => setFormState({ open: true, returnItem })}
+        emptyMessage="No returns yet"
       />
 
       <ReturnFormModal

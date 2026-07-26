@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
 import { useCreateWarehouse } from '@/features/warehouses/mutations/useCreateWarehouse';
 import { useUpdateWarehouse } from '@/features/warehouses/mutations/useUpdateWarehouse';
 import { useDeleteWarehouse } from '@/features/warehouses/mutations/useDeleteWarehouse';
 import { useBranchesQuery } from '@/features/branches/queries/useBranchesQuery';
-import { WarehouseTable } from '@/features/warehouses/components/WarehouseTable';
 import { WarehouseFormModal } from '@/features/warehouses/components/WarehouseFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -41,21 +42,38 @@ export function WarehousesPanel() {
     deleteWarehouse.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'name', header: 'Warehouse', render: (row) => <span className="font-medium text-text">{row.name}</span> },
+    { key: 'branch', header: 'Branch', render: (row) => branchesById?.[row.branchId]?.name ?? '—' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.name}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, warehouse: row }); }} />
+          </Can>
+          <Can module={MODULES.USERS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Warehouses store inventory and belong to a branch.</p>
         <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, warehouse: null })}>
-            <Plus className="size-4" />
-            New warehouse
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, warehouse: null })}>New warehouse</CreateButton>
         </Can>
       </div>
 
-      <WarehouseTable
-        warehouses={data?.data ?? []}
-        branchesById={branchesById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -65,8 +83,8 @@ export function WarehousesPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(warehouse) => setFormState({ open: true, warehouse })}
-        onDelete={setDeleteTarget}
+        onRowClick={(warehouse) => setFormState({ open: true, warehouse })}
+        emptyMessage="No warehouses yet"
       />
 
       <WarehouseFormModal

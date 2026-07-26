@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { usePaymentsQuery } from '@/features/payments/queries/usePaymentsQuery';
 import { useCreatePayment } from '@/features/payments/mutations/useCreatePayment';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { PaymentTable } from '@/features/payments/components/PaymentTable';
 import { PaymentFormModal } from '@/features/payments/components/PaymentFormModal';
-import { AppButton } from '@/components/ui/AppButton';
+import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -32,10 +31,7 @@ export function PaymentsPanel() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Customer payments recorded (Accounts Receivable / collections).</p>
         <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormOpen(true)}>
-            <Plus className="size-4" />
-            Record payment
-          </AppButton>
+          <CreateButton onClick={() => setFormOpen(true)}>Record payment</CreateButton>
         </Can>
       </div>
 

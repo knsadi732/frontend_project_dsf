@@ -1,18 +1,28 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { FileOutput } from 'lucide-react';
 import { useProductionRequestsQuery } from '@/features/productionRequests/queries/useProductionRequestsQuery';
 import { useCreateProductionRequest } from '@/features/productionRequests/mutations/useCreateProductionRequest';
 import { useUpdateProductionRequest } from '@/features/productionRequests/mutations/useUpdateProductionRequest';
 import { useDeleteProductionRequest } from '@/features/productionRequests/mutations/useDeleteProductionRequest';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
-import { ProductionRequestTable } from '@/features/productionRequests/components/ProductionRequestTable';
 import { ProductionRequestFormModal } from '@/features/productionRequests/components/ProductionRequestFormModal';
+import { AppTable } from '@/components/ui/AppTable';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { ApproveButton, RejectButton, EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+
+const PRODUCTION_REQUEST_STATUS_VARIANT = {
+  draft: 'default',
+  pending_approval: 'warning',
+  approved: 'success',
+  rejected: 'danger',
+  converted_to_production_order: 'success',
+};
 
 export function ProductionRequestsPanel({ onConvertToWorkOrder }) {
   const [page, setPage] = useState(1);
@@ -46,22 +56,55 @@ export function ProductionRequestsPanel({ onConvertToWorkOrder }) {
     deleteRequest.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'prNumber', header: 'PR Number' },
+    { key: 'product', header: 'Product', render: (row) => productsById?.[row.productId]?.name ?? '—' },
+    { key: 'quantity', header: 'Quantity' },
+    { key: 'warehouse', header: 'Warehouse', render: (row) => warehousesById?.[row.warehouseId]?.name ?? '—' },
+    { key: 'requiredDate', header: 'Required date' },
+    { key: 'priority', header: 'Priority', render: (row) => <span className="capitalize">{row.priority}</span> },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={PRODUCTION_REQUEST_STATUS_VARIANT} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          {row.status === 'pending_approval' && (
+            <Can module={MODULES.PRODUCTION} action={ACTIONS.EDIT}>
+              <ApproveButton label="Approve PR" onClick={(e) => { e.stopPropagation(); updateRequest.mutate({ id: row.id, payload: { status: 'approved' } }); }} />
+              <RejectButton label="Reject PR" onClick={(e) => { e.stopPropagation(); updateRequest.mutate({ id: row.id, payload: { status: 'rejected' } }); }} />
+            </Can>
+          )}
+          {row.status === 'approved' && (
+            <Can module={MODULES.PRODUCTION} action={ACTIONS.CREATE}>
+              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onConvertToWorkOrder(row); }} aria-label="Convert to work order" title="Convert to work order">
+                <FileOutput className="size-4" />
+              </AppButton>
+            </Can>
+          )}
+          <Can module={MODULES.PRODUCTION} action={ACTIONS.EDIT}>
+            <EditButton label="Edit PR" onClick={(e) => { e.stopPropagation(); setFormState({ open: true, request: row }); }} />
+          </Can>
+          <Can module={MODULES.PRODUCTION} action={ACTIONS.DELETE}>
+            <DeleteButton label="Delete PR" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Internal production requests — approve, then convert to a Work Order.</p>
         <Can module={MODULES.PRODUCTION} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, request: null })}>
-            <Plus className="size-4" />
-            New production request
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, request: null })}>New production request</CreateButton>
         </Can>
       </div>
 
-      <ProductionRequestTable
-        requests={data?.data ?? []}
-        productsById={productsById}
-        warehousesById={warehousesById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -71,11 +114,8 @@ export function ProductionRequestsPanel({ onConvertToWorkOrder }) {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(request) => setFormState({ open: true, request })}
-        onDelete={setDeleteTarget}
-        onApprove={(request) => updateRequest.mutate({ id: request.id, payload: { status: 'approved' } })}
-        onReject={(request) => updateRequest.mutate({ id: request.id, payload: { status: 'rejected' } })}
-        onConvertToWorkOrder={onConvertToWorkOrder}
+        onRowClick={(request) => setFormState({ open: true, request })}
+        emptyMessage="No production requests yet"
       />
 
       <ProductionRequestFormModal

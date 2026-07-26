@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { useAttendanceQuery } from '@/features/attendance/queries/useAttendanceQuery';
-import { AttendanceTable } from '@/features/attendance/components/AttendanceTable';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppInput } from '@/components/ui/AppInput';
+import { AppTable } from '@/components/ui/AppTable';
+import { BaseBadge } from '@/components/ui/BaseBadge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+import { getEmployeeFullName } from '@/utils/employeeName';
+
+const ATTENDANCE_STATUS_VARIANT = { present: 'success', absent: 'danger', half_day: 'warning', on_leave: 'info' };
 
 // Read-only: the backend has no create/update/delete for attendance, only
 // GET /attendance. Records are created automatically on login (see
@@ -22,6 +27,24 @@ export function AttendancePanel({ employeesById, employeeOptions }) {
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
   });
+
+  const columns = [
+    { key: 'employee', header: 'Employee', render: (row) => employeesById?.[row.employeeId] ? getEmployeeFullName(employeesById[row.employeeId]) : row.employeeId },
+    { key: 'date', header: 'Date' },
+    { key: 'checkIn', header: 'Check-in', render: (row) => row.checkIn || '—' },
+    { key: 'checkOut', header: 'Check-out', render: (row) => row.checkOut || '—' },
+    {
+      key: 'flags',
+      header: 'Flags',
+      render: (row) => (
+        <div className="flex gap-1">
+          {row.lateEntry && <BaseBadge variant="warning">Late</BaseBadge>}
+          {row.earlyExit && <BaseBadge variant="warning">Early exit</BaseBadge>}
+        </div>
+      ),
+    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status ?? 'present'} variantMap={ATTENDANCE_STATUS_VARIANT} /> },
+  ];
 
   return (
     <div className="flex flex-col gap-3">
@@ -56,9 +79,9 @@ export function AttendancePanel({ employeesById, employeeOptions }) {
         />
       </div>
 
-      <AttendanceTable
-        records={data?.data ?? []}
-        employeesById={employeesById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -68,6 +91,7 @@ export function AttendancePanel({ employeesById, employeeOptions }) {
           setPageSize(size);
           setPage(1);
         }}
+        emptyMessage="No attendance records yet"
       />
     </div>
   );

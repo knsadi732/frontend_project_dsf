@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useCreditNotesQuery } from '@/features/creditNotes/queries/useCreditNotesQuery';
 import { useCreateCreditNote } from '@/features/creditNotes/mutations/useCreateCreditNote';
 import { useDeleteCreditNote } from '@/features/creditNotes/mutations/useDeleteCreditNote';
@@ -8,7 +7,7 @@ import { CreditNoteFormModal } from '@/features/creditNotes/components/CreditNot
 import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
-import { DeleteButton } from '@/components/ui/ActionButtons';
+import { DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -55,10 +54,7 @@ export function CreditNotesPanel() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Credit notes issued for approved returns and refunds.</p>
         <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormOpen(true)}>
-            <Plus className="size-4" />
-            New credit note
-          </AppButton>
+          <CreateButton onClick={() => setFormOpen(true)}>New credit note</CreateButton>
         </Can>
       </div>
 

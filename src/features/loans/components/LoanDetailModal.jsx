@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Ban } from 'lucide-react';
+import { Ban } from 'lucide-react';
 import { useLoanQuery } from '@/features/loans/queries/useLoanQuery';
 import { useLoanRepaymentsQuery } from '@/features/loans/queries/useLoanRepaymentsQuery';
 import { useCreateRepayment } from '@/features/loans/mutations/useCreateRepayment';
@@ -9,6 +9,7 @@ import { AppModal } from '@/components/ui/AppModal';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppTable } from '@/components/ui/AppTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 
@@ -57,10 +58,7 @@ export function LoanDetailModal({ loanId, onClose }) {
                 </AppButton>
               </Can>
               <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-                <AppButton onClick={() => setRepaymentOpen(true)}>
-                  <Plus className="size-4" />
-                  Record repayment
-                </AppButton>
+                <CreateButton onClick={() => setRepaymentOpen(true)}>Record repayment</CreateButton>
               </Can>
             </>
           )}

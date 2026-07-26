@@ -69,17 +69,6 @@ export function MultiFilter({ filters = [], values = {}, onChange, onClear, clas
                   />
                 );
               }
-              if (filter.type === 'date') {
-                return (
-                  <AppInput
-                    key={filter.key}
-                    type="date"
-                    label={filter.label}
-                    value={values[filter.key] ?? ''}
-                    onChange={(event) => onChange(filter.key, event.target.value)}
-                  />
-                );
-              }
               return (
                 <AppSelect
                   key={filter.key}

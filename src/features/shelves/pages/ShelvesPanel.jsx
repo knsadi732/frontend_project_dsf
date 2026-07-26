@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useShelvesQuery } from '@/features/shelves/queries/useShelvesQuery';
 import { useCreateShelf } from '@/features/shelves/mutations/useCreateShelf';
 import { useUpdateShelf } from '@/features/shelves/mutations/useUpdateShelf';
 import { useDeleteShelf } from '@/features/shelves/mutations/useDeleteShelf';
 import { useRacksQuery } from '@/features/racks/queries/useRacksQuery';
-import { ShelfTable } from '@/features/shelves/components/ShelfTable';
 import { ShelfFormModal } from '@/features/shelves/components/ShelfFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -41,21 +42,39 @@ export function ShelvesPanel() {
     deleteShelf.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'code', header: 'Shelf', render: (row) => <span className="font-medium text-text">{row.code}</span> },
+    { key: 'rack', header: 'Rack', render: (row) => racksById?.[row.rackId]?.code ?? '—' },
+    { key: 'capacity', header: 'Capacity' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.INVENTORY} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.code}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, shelf: row }); }} />
+          </Can>
+          <Can module={MODULES.INVENTORY} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.code}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Shelves belong to a rack.</p>
         <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, shelf: null })}>
-            <Plus className="size-4" />
-            New shelf
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, shelf: null })}>New shelf</CreateButton>
         </Can>
       </div>
 
-      <ShelfTable
-        shelves={data?.data ?? []}
-        racksById={racksById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -65,8 +84,8 @@ export function ShelvesPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(shelf) => setFormState({ open: true, shelf })}
-        onDelete={setDeleteTarget}
+        onRowClick={(shelf) => setFormState({ open: true, shelf })}
+        emptyMessage="No shelves yet"
       />
 
       <ShelfFormModal

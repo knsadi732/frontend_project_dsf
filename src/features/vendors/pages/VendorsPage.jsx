@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react';
-import { Plus } from 'lucide-react';
 import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { useCreateVendor } from '@/features/vendors/mutations/useCreateVendor';
 import { useUpdateVendor } from '@/features/vendors/mutations/useUpdateVendor';
 import { useDeleteVendor } from '@/features/vendors/mutations/useDeleteVendor';
 import { vendorApi } from '@/features/vendors/api';
-import { VendorTable } from '@/features/vendors/components/VendorTable';
 import { VendorFormModal } from '@/features/vendors/components/VendorFormModal';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -51,6 +52,30 @@ export function VendorsPage() {
     deleteVendor.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'name', header: 'Name', render: (row) => <span className="font-medium text-text">{row.name}</span> },
+    { key: 'vendorType', header: 'Type', render: (row) => <span className="capitalize">{row.vendorType?.replace(/_/g, ' ')}</span> },
+    { key: 'phone', header: 'Phone' },
+    { key: 'email', header: 'Email' },
+    { key: 'gstNumber', header: 'GST Number' },
+    { key: 'qualityRating', header: 'Quality Rating', render: (row) => (row.qualityRating ? '★'.repeat(row.qualityRating) : '—') },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.VENDORS} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.name}`} onClick={(e) => { e.stopPropagation(); handleEdit(row); }} />
+          </Can>
+          <Can module={MODULES.VENDORS} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.name}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -59,10 +84,7 @@ export function VendorsPage() {
           <p className="text-sm text-text-muted">Manage your supplier accounts.</p>
         </div>
         <Can module={MODULES.VENDORS} action={ACTIONS.CREATE}>
-          <AppButton onClick={() => setFormState({ open: true, vendor: null })}>
-            <Plus className="size-4" />
-            New vendor
-          </AppButton>
+          <CreateButton onClick={() => setFormState({ open: true, vendor: null })}>New vendor</CreateButton>
         </Can>
       </div>
 
@@ -79,8 +101,9 @@ export function VendorsPage() {
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
 
-      <VendorTable
-        vendors={data?.data ?? []}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -90,8 +113,8 @@ export function VendorsPage() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={handleEdit}
-        onDelete={setDeleteTarget}
+        onRowClick={handleEdit}
+        emptyMessage="No vendors yet"
       />
 
       <VendorFormModal
