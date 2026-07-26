@@ -1,7 +1,6 @@
-import { Ban } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
-import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CancelButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 
@@ -14,11 +13,7 @@ export function LoanTable({ loans, isLoading, page, pageSize, total, onPageChang
     { key: 'principalAmount', header: 'Principal', render: (row) => `₹${row.principalAmount.toLocaleString('en-IN')}` },
     { key: 'interestRate', header: 'Interest', render: (row) => `${row.interestRate}% (${row.interestType})` },
     { key: 'startDate', header: 'Start date' },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <BaseBadge variant={STATUS_VARIANT[row.status] ?? 'default'}>{row.status?.replace(/_/g, ' ')}</BaseBadge>,
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={STATUS_VARIANT} /> },
     {
       key: 'actions',
       header: '',
@@ -26,15 +21,7 @@ export function LoanTable({ loans, isLoading, page, pageSize, total, onPageChang
         row.status === 'active' && (
           <div className="flex justify-end">
             <Can module={MODULES.FINANCE} action={ACTIONS.EDIT}>
-              <AppButton
-                variant="ghost"
-                size="sm"
-                onClick={(e) => { e.stopPropagation(); onWriteOff(row); }}
-                aria-label="Write off loan"
-                className="text-danger hover:bg-danger/10"
-              >
-                <Ban className="size-4" />
-              </AppButton>
+              <CancelButton label="Write off loan" onClick={(e) => { e.stopPropagation(); onWriteOff(row); }} />
             </Can>
           </div>
         ),

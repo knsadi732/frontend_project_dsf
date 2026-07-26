@@ -1,7 +1,6 @@
-import { Check, Pencil, Trash2, X } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
-import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { ApproveButton, RejectButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { getEmployeeFullName } from '@/utils/employeeName';
@@ -28,11 +27,7 @@ export function LeaveTable({
     { key: 'fromDate', header: 'From' },
     { key: 'toDate', header: 'To' },
     { key: 'reason', header: 'Reason' },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <BaseBadge variant={STATUS_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>,
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={STATUS_VARIANT} /> },
     {
       key: 'actions',
       header: '',
@@ -40,29 +35,15 @@ export function LeaveTable({
         <div className="flex justify-end gap-1">
           {row.status === 'pending' && (
             <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
-              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onApprove(row); }} aria-label="Approve leave" className="text-success hover:bg-success/10">
-                <Check className="size-4" />
-              </AppButton>
-              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onReject(row); }} aria-label="Reject leave" className="text-danger hover:bg-danger/10">
-                <X className="size-4" />
-              </AppButton>
+              <ApproveButton label="Approve leave" onClick={(e) => { e.stopPropagation(); onApprove(row); }} />
+              <RejectButton label="Reject leave" onClick={(e) => { e.stopPropagation(); onReject(row); }} />
             </Can>
           )}
           <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(row); }} aria-label="Edit leave">
-              <Pencil className="size-4" />
-            </AppButton>
+            <EditButton label="Edit leave" onClick={(e) => { e.stopPropagation(); onEdit(row); }} />
           </Can>
           <Can module={MODULES.USERS} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onDelete(row); }}
-              aria-label="Delete leave"
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label="Delete leave" onClick={(e) => { e.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),

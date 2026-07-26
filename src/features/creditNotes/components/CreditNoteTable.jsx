@@ -1,6 +1,5 @@
-import { Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { AppButton } from '@/components/ui/AppButton';
+import { DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 
@@ -27,18 +26,7 @@ export function CreditNoteTable({
       render: (row) => (
         <div className="flex justify-end gap-1">
           <Can module={MODULES.FINANCE} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onDelete(row);
-              }}
-              aria-label={`Delete ${row.creditNoteNumber}`}
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label={`Delete ${row.creditNoteNumber}`} onClick={(event) => { event.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),

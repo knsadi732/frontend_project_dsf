@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Download } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
-import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DownloadButton } from '@/components/ui/ActionButtons';
 import { reportApi } from '@/features/reports/api';
 import { pushToast } from '@/utils/toastBus';
 
@@ -40,26 +40,18 @@ export function ReportTable({ reports, isLoading, page, pageSize, total, onPageC
       header: 'Generated At',
       render: (row) => new Date(row.generatedAt).toLocaleString(),
     },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <BaseBadge variant={STATUS_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>,
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={STATUS_VARIANT} /> },
     {
       key: 'actions',
       header: '',
       render: (row) =>
         row.status === 'ready' && (
           <div className="flex justify-end">
-            <AppButton
-              variant="ghost"
-              size="sm"
+            <DownloadButton
+              label={`Download ${row.name}`}
               loading={downloadingId === row.id}
               onClick={() => handleDownload(row)}
-              aria-label={`Download ${row.name}`}
-            >
-              <Download className="size-4" />
-            </AppButton>
+            />
           </div>
         ),
     },

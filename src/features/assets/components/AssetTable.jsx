@@ -1,7 +1,6 @@
-import { Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
-import { AppButton } from '@/components/ui/AppButton';
+import { EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { getEmployeeFullName } from '@/utils/employeeName';
@@ -35,20 +34,10 @@ export function AssetTable({
       render: (row) => (
         <div className="flex justify-end gap-1">
           <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(row); }} aria-label="Edit asset">
-              <Pencil className="size-4" />
-            </AppButton>
+            <EditButton label="Edit asset" onClick={(e) => { e.stopPropagation(); onEdit(row); }} />
           </Can>
           <Can module={MODULES.USERS} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onDelete(row); }}
-              aria-label="Delete asset"
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label="Delete asset" onClick={(e) => { e.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),

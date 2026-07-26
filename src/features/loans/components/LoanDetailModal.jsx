@@ -8,7 +8,7 @@ import { RepaymentFormModal } from '@/features/loans/components/RepaymentFormMod
 import { AppModal } from '@/components/ui/AppModal';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 
@@ -86,7 +86,7 @@ export function LoanDetailModal({ loanId, onClose }) {
             </div>
             <div>
               <p className="text-xs text-text-muted">Status</p>
-              <BaseBadge variant={STATUS_VARIANT[loan.status] ?? 'default'}>{loan.status?.replace(/_/g, ' ')}</BaseBadge>
+              <StatusBadge status={loan.status} variantMap={STATUS_VARIANT} />
             </div>
             <div>
               <p className="text-xs text-text-muted">Repaid (principal)</p>

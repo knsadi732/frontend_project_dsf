@@ -1,7 +1,8 @@
-import { Check, FileOutput, Pencil, Trash2, X } from 'lucide-react';
+import { FileOutput } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AppButton } from '@/components/ui/AppButton';
+import { ApproveButton, RejectButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 
@@ -36,11 +37,7 @@ export function ProductionRequestTable({
     { key: 'warehouse', header: 'Warehouse', render: (row) => warehousesById?.[row.warehouseId]?.name ?? '—' },
     { key: 'requiredDate', header: 'Required date' },
     { key: 'priority', header: 'Priority', render: (row) => <span className="capitalize">{row.priority}</span> },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <BaseBadge variant={STATUS_VARIANT[row.status] ?? 'default'}>{row.status?.replace(/_/g, ' ')}</BaseBadge>,
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={STATUS_VARIANT} /> },
     {
       key: 'actions',
       header: '',
@@ -48,36 +45,22 @@ export function ProductionRequestTable({
         <div className="flex justify-end gap-1">
           {row.status === 'pending_approval' && (
             <Can module={MODULES.PRODUCTION} action={ACTIONS.EDIT}>
-              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onApprove(row); }} aria-label="Approve PR" className="text-success hover:bg-success/10">
-                <Check className="size-4" />
-              </AppButton>
-              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onReject(row); }} aria-label="Reject PR" className="text-danger hover:bg-danger/10">
-                <X className="size-4" />
-              </AppButton>
+              <ApproveButton label="Approve PR" onClick={(e) => { e.stopPropagation(); onApprove(row); }} />
+              <RejectButton label="Reject PR" onClick={(e) => { e.stopPropagation(); onReject(row); }} />
             </Can>
           )}
           {row.status === 'approved' && (
             <Can module={MODULES.PRODUCTION} action={ACTIONS.CREATE}>
-              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onConvertToWorkOrder(row); }} aria-label="Convert to work order">
+              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onConvertToWorkOrder(row); }} aria-label="Convert to work order" title="Convert to work order">
                 <FileOutput className="size-4" />
               </AppButton>
             </Can>
           )}
           <Can module={MODULES.PRODUCTION} action={ACTIONS.EDIT}>
-            <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(row); }} aria-label="Edit PR">
-              <Pencil className="size-4" />
-            </AppButton>
+            <EditButton label="Edit PR" onClick={(e) => { e.stopPropagation(); onEdit(row); }} />
           </Can>
           <Can module={MODULES.PRODUCTION} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onDelete(row); }}
-              aria-label="Delete PR"
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label="Delete PR" onClick={(e) => { e.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),

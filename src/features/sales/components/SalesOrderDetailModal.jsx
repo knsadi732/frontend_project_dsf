@@ -2,8 +2,8 @@ import { useSalesOrderQuery } from '@/features/sales/queries/useSalesOrderQuery'
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { BaseBadge } from '@/components/ui/BaseBadge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { BaseLoader } from '@/components/ui/BaseLoader';
-import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 
 function DetailRow({ label, value }) {
   return (
@@ -28,10 +28,7 @@ export function SalesOrderDetailModal({ open, onClose, salesOrderId }) {
           <div className="flex flex-col">
             <DetailRow label="Customer" value={order.customer} />
             <DetailRow label="Order date" value={order.orderDate} />
-            <DetailRow
-              label="Status"
-              value={<BaseBadge variant={STATUS_BADGE_VARIANT[order.status] ?? 'default'}>{order.status}</BaseBadge>}
-            />
+            <DetailRow label="Status" value={<StatusBadge status={order.status} />} />
             <DetailRow label="Dispatch / ETA" value={order.dispatchDate ? `Dispatch ${order.dispatchDate}` : order.productionEta ? `ETA ${order.productionEta}` : '—'} />
             <DetailRow label="Invoice" value={order.invoiceNumber} />
           </div>

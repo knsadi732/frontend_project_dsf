@@ -1,10 +1,12 @@
-import { Pencil, Trash2, Repeat } from 'lucide-react';
+import { Repeat } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AppButton } from '@/components/ui/AppButton';
+import { EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { STATUS_BADGE_VARIANT, RETURN_REASON_OPTIONS, RETURN_STATUS } from '@/constants/statusEnums';
+import { RETURN_REASON_OPTIONS, RETURN_STATUS } from '@/constants/statusEnums';
 
 function reasonLabel(reason) {
   return RETURN_REASON_OPTIONS.find((option) => option.value === reason)?.label ?? reason;
@@ -40,13 +42,7 @@ export function ReturnTable({
     },
     { key: 'reason', header: 'Reason', render: (row) => reasonLabel(row.reason) },
     { key: 'createdDate', header: 'Date' },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => (
-        <BaseBadge variant={STATUS_BADGE_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>
-      ),
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'actions',
       header: '',
@@ -62,37 +58,17 @@ export function ReturnTable({
                   onConvertToReplacement(row);
                 }}
                 aria-label={`Convert ${row.returnNumber} to replacement order`}
+                title="Convert to replacement order"
               >
                 <Repeat className="size-4" />
               </AppButton>
             </Can>
           )}
           <Can module={MODULES.RETURNS} action={ACTIONS.EDIT}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onEdit(row);
-              }}
-              aria-label={`Edit ${row.returnNumber}`}
-            >
-              <Pencil className="size-4" />
-            </AppButton>
+            <EditButton label={`Edit ${row.returnNumber}`} onClick={(event) => { event.stopPropagation(); onEdit(row); }} />
           </Can>
           <Can module={MODULES.RETURNS} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onDelete(row);
-              }}
-              aria-label={`Delete ${row.returnNumber}`}
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label={`Delete ${row.returnNumber}`} onClick={(event) => { event.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),

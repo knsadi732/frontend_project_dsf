@@ -2,7 +2,7 @@ import { Check, X } from 'lucide-react';
 import { AppModal } from '@/components/ui/AppModal';
 import { BaseAvatar } from '@/components/ui/BaseAvatar';
 import { BaseBadge } from '@/components/ui/BaseBadge';
-import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { getEmployeeFullName } from '@/utils/employeeName';
 
 const DOCUMENT_FIELDS = [
@@ -82,14 +82,7 @@ export function UserDetailModal({ open, onClose, user, departmentsById, designat
             }
           />
           <DetailRow label="Joining date" value={user.joiningDate} />
-          <DetailRow
-            label="Employment status"
-            value={
-              <BaseBadge variant={STATUS_BADGE_VARIANT[user.employmentStatus] ?? 'default'}>
-                {user.employmentStatus}
-              </BaseBadge>
-            }
-          />
+          <DetailRow label="Employment status" value={<StatusBadge status={user.employmentStatus} />} />
         </div>
 
         <div className="flex flex-col">

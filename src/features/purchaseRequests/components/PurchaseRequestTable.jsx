@@ -1,7 +1,8 @@
-import { Check, FileOutput, Send, SendHorizonal, X } from 'lucide-react';
+import { FileOutput, Send, SendHorizonal } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AppButton } from '@/components/ui/AppButton';
+import { ApproveButton, RejectButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 
@@ -37,11 +38,7 @@ export function PurchaseRequestTable({
     { key: 'warehouse', header: 'Warehouse', render: (row) => warehousesById?.[row.warehouseId]?.name ?? '—' },
     { key: 'items', header: 'Items', render: (row) => row.items?.length ?? 0 },
     { key: 'remarks', header: 'Remarks', render: (row) => row.remarks || '—' },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <BaseBadge variant={STATUS_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>,
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={STATUS_VARIANT} /> },
     {
       key: 'actions',
       header: '',
@@ -63,12 +60,8 @@ export function PurchaseRequestTable({
           )}
           {row.status === 'pending_approval' && (
             <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
-              <AppButton variant="success" size="sm" title="Approve PR" onClick={(e) => { e.stopPropagation(); onApprove(row); }} aria-label="Approve PR">
-                <Check className="size-4" />
-              </AppButton>
-              <AppButton variant="danger" size="sm" title="Reject PR" onClick={(e) => { e.stopPropagation(); onReject(row); }} aria-label="Reject PR">
-                <X className="size-4" />
-              </AppButton>
+              <ApproveButton label="Approve PR" onClick={(e) => { e.stopPropagation(); onApprove(row); }} />
+              <RejectButton label="Reject PR" onClick={(e) => { e.stopPropagation(); onReject(row); }} />
             </Can>
           )}
           {row.status === 'approved' && (

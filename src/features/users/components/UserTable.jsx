@@ -1,11 +1,12 @@
-import { Eye, Pencil, Trash2 } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { BaseAvatar } from '@/components/ui/BaseAvatar';
 import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 import { getEmployeeFullName } from '@/utils/employeeName';
 
 export function UserTable({
@@ -60,13 +61,7 @@ export function UserTable({
         </div>
       ),
     },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => (
-        <BaseBadge variant={STATUS_BADGE_VARIANT[row.employmentStatus] ?? 'default'}>{row.employmentStatus}</BaseBadge>
-      ),
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.employmentStatus} /> },
     {
       key: 'actions',
       header: '',
@@ -80,35 +75,15 @@ export function UserTable({
               onView(row);
             }}
             aria-label={`View ${getEmployeeFullName(row)}`}
+            title="View"
           >
             <Eye className="size-4" />
           </AppButton>
           <Can module={MODULES.USERS} action={ACTIONS.EDIT}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onEdit(row);
-              }}
-              aria-label={`Edit ${getEmployeeFullName(row)}`}
-            >
-              <Pencil className="size-4" />
-            </AppButton>
+            <EditButton label={`Edit ${getEmployeeFullName(row)}`} onClick={(event) => { event.stopPropagation(); onEdit(row); }} />
           </Can>
           <Can module={MODULES.USERS} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onDelete(row);
-              }}
-              aria-label={`Delete ${getEmployeeFullName(row)}`}
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label={`Delete ${getEmployeeFullName(row)}`} onClick={(event) => { event.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),

@@ -1,5 +1,6 @@
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { getEmployeeFullName } from '@/utils/employeeName';
 
 const STATUS_VARIANT = { present: 'success', absent: 'danger', half_day: 'warning', on_leave: 'info' };
@@ -23,7 +24,7 @@ export function AttendanceTable({ records, employeesById, isLoading, page, pageS
     {
       key: 'status',
       header: 'Status',
-      render: (row) => <BaseBadge variant={STATUS_VARIANT[row.status] ?? 'default'}>{row.status ?? 'present'}</BaseBadge>,
+      render: (row) => <StatusBadge status={row.status ?? 'present'} variantMap={STATUS_VARIANT} />,
     },
   ];
 

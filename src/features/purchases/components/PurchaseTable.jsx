@@ -1,10 +1,10 @@
-import { Ban, Check, Download, Pencil, PackageCheck, PackageOpen, Send, SendHorizonal } from 'lucide-react';
+import { Check, PackageCheck, PackageOpen, Send, SendHorizonal } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DownloadButton, EditButton, CancelButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 import { generatePurchaseOrderPdf } from '@/features/purchases/utils/generatePurchaseOrderPdf';
 import { purchaseApi } from '@/features/purchases/api';
 import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
@@ -43,6 +43,20 @@ function downloadPurchasePdf(row, productsById, variantsById, company, vendorsBy
 }
 
 const EDIT_LOCKED_STATUSES = ['completed', 'cancelled'];
+
+// This domain's status words ("approved", "sent", etc.) mean something
+// different here than in other modules, so it needs its own map rather
+// than the shared default in constants/statusEnums.js.
+const PO_STATUS_VARIANT = {
+  draft: 'default',
+  pending_approval: 'warning',
+  approved: 'success',
+  sent: 'info',
+  acknowledged: 'info',
+  partially_received: 'info',
+  completed: 'success',
+  cancelled: 'danger',
+};
 
 // Real pipeline (purchase.schema.js / backend PURCHASE_ORDER_STATUS_PIPELINE):
 // draft -> pending_approval -> approved -> sent -> acknowledged ->
@@ -87,13 +101,7 @@ export function PurchaseTable({
       header: 'Total',
       render: (row) => `₹${Number(row.total).toLocaleString('en-IN')}`,
     },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => (
-        <BaseBadge variant={STATUS_BADGE_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>
-      ),
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={PO_STATUS_VARIANT} /> },
     {
       key: 'actions',
       header: '',
@@ -102,32 +110,16 @@ export function PurchaseTable({
         const isCancellable = !EDIT_LOCKED_STATUSES.includes(row.status);
         return (
           <div className="flex justify-end gap-1">
-            <AppButton
-              variant="ghost"
-              size="sm"
+            <DownloadButton
+              label={`Download ${row.poNumber}`}
               onClick={(event) => {
                 event.stopPropagation();
                 downloadPurchasePdf(row, productsById, variantsById, company, vendorsById, warehousesById);
               }}
-              aria-label={`Download ${row.poNumber}`}
-              title="Download PDF"
-            >
-              <Download className="size-4" />
-            </AppButton>
+            />
             {!EDIT_LOCKED_STATUSES.includes(row.status) && (
               <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
-                <AppButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onEdit(row);
-                  }}
-                  aria-label={`Edit ${row.poNumber}`}
-                  title="View / edit"
-                >
-                  <Pencil className="size-4" />
-                </AppButton>
+                <EditButton label={`Edit ${row.poNumber}`} onClick={(event) => { event.stopPropagation(); onEdit(row); }} />
               </Can>
             )}
             {next && (
@@ -148,18 +140,7 @@ export function PurchaseTable({
             )}
             {isCancellable && (
               <Can module={MODULES.PURCHASES} action={ACTIONS.EDIT}>
-                <AppButton
-                  variant="danger"
-                  size="sm"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onCancelOrder(row);
-                  }}
-                  aria-label="Cancel PO"
-                  title="Cancel order"
-                >
-                  <Ban className="size-4" />
-                </AppButton>
+                <CancelButton label="Cancel order" onClick={(event) => { event.stopPropagation(); onCancelOrder(row); }} />
               </Can>
             )}
           </div>

@@ -1,7 +1,8 @@
-import { CreditCard, Trash2 } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 
@@ -27,11 +28,7 @@ export function VendorBillTable({
     { key: 'amount', header: 'Amount', render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}` },
     { key: 'balanceDue', header: 'Balance due', render: (row) => `₹${Number(row.balanceDue ?? row.amount).toLocaleString('en-IN')}` },
     { key: 'dueDate', header: 'Due date' },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <BaseBadge variant={STATUS_VARIANT[row.status ?? 'pending'] ?? 'default'}>{row.status ?? 'pending'}</BaseBadge>,
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status ?? 'pending'} variantMap={STATUS_VARIANT} /> },
     {
       key: 'actions',
       header: '',
@@ -39,21 +36,13 @@ export function VendorBillTable({
         <div className="flex justify-end gap-1">
           {row.status !== 'paid' && (
             <Can module={MODULES.FINANCE} action={ACTIONS.EDIT}>
-              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onRecordPayment(row); }} aria-label="Record payment">
+              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onRecordPayment(row); }} aria-label="Record payment" title="Record payment">
                 <CreditCard className="size-4" />
               </AppButton>
             </Can>
           )}
           <Can module={MODULES.FINANCE} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onDelete(row); }}
-              aria-label="Delete bill"
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label="Delete bill" onClick={(e) => { e.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),

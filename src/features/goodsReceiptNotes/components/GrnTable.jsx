@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, Upload } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { UploadButton } from '@/components/ui/ActionButtons';
 import { goodsReceiptNoteApi } from '@/features/goodsReceiptNotes/api';
 import { queryKeys } from '@/config/queryKeys';
 import { pushToast } from '@/utils/toastBus';
@@ -17,12 +18,8 @@ const ACCEPTED_INVOICE_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 function VendorInvoiceCell({ row }) {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
-  const inputId = `grn-invoice-upload-${row.id}`;
 
-  const handleFileChange = (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
+  const handleFileSelected = (file) => {
     if (!ACCEPTED_INVOICE_TYPES.includes(file.type)) {
       pushToast('error', 'Only PDF, JPEG, or PNG files are accepted for a vendor invoice');
       return;
@@ -41,30 +38,24 @@ function VendorInvoiceCell({ row }) {
   return (
     <div className="flex items-center gap-3">
       {row.vendorInvoiceNumber && <span className="text-text-muted">{row.vendorInvoiceNumber}</span>}
-      <div className="flex items-center gap-2">
-        {row.vendorInvoiceUrl ? (
-          <a
-            href={row.vendorInvoiceUrl}
-            target="_blank"
-            rel="noreferrer"
-            title="View uploaded invoice"
-            className="inline-flex items-center text-text-muted hover:text-primary"
-          >
-            <ExternalLink className="size-4" />
-          </a>
-        ) : (
-          <>
-            <label
-              htmlFor={inputId}
-              title="Upload vendor invoice"
-              className={`inline-flex cursor-pointer items-center text-primary hover:opacity-80 ${uploading ? 'pointer-events-none opacity-50' : ''}`}
-            >
-              <Upload className="size-4" />
-            </label>
-            <input id={inputId} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleFileChange} disabled={uploading} />
-          </>
-        )}
-      </div>
+      {row.vendorInvoiceUrl ? (
+        <a
+          href={row.vendorInvoiceUrl}
+          target="_blank"
+          rel="noreferrer"
+          title="View uploaded invoice"
+          className="inline-flex items-center text-text-muted hover:text-primary"
+        >
+          <ExternalLink className="size-4" />
+        </a>
+      ) : (
+        <UploadButton
+          label="Upload vendor invoice"
+          accept=".pdf,.jpg,.jpeg,.png"
+          disabled={uploading}
+          onFileSelected={handleFileSelected}
+        />
+      )}
     </div>
   );
 }
@@ -86,11 +77,7 @@ export function GrnTable({
     { key: 'warehouse', header: 'Warehouse', render: (row) => warehousesById?.[row.warehouseId]?.name ?? '—' },
     { key: 'vendorInvoiceNumber', header: 'Vendor Invoice', render: (row) => <VendorInvoiceCell row={row} /> },
     { key: 'receivedDate', header: 'Received Date', render: (row) => (row.receivedDate ? String(row.receivedDate).slice(0, 10) : '—') },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <BaseBadge variant={STATUS_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>,
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={STATUS_VARIANT} /> },
   ];
 
   return (

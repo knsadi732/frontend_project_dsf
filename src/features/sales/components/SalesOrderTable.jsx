@@ -1,10 +1,11 @@
-import { CheckCircle2, ClipboardList, Download, Package, Pencil, Trash2 } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Package } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DownloadButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 import { generateRecordPdf } from '@/utils/generateRecordPdf';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useInventoryListQuery } from '@/features/inventory/queries/useInventoryListQuery';
@@ -89,13 +90,7 @@ export function SalesOrderTable({
       header: 'Total',
       render: (row) => `₹${Number(row.total).toLocaleString('en-IN')}`,
     },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => (
-        <BaseBadge variant={STATUS_BADGE_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>
-      ),
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'eta',
       header: 'Dispatch / ETA',
@@ -124,17 +119,7 @@ export function SalesOrderTable({
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
-          <AppButton
-            variant="ghost"
-            size="sm"
-            onClick={(event) => {
-              event.stopPropagation();
-              downloadSalesOrderPdf(row);
-            }}
-            aria-label={`Download ${row.soNumber}`}
-          >
-            <Download className="size-4" />
-          </AppButton>
+          <DownloadButton label={`Download ${row.soNumber}`} onClick={(event) => { event.stopPropagation(); downloadSalesOrderPdf(row); }} />
           {row.pickListGeneratedAt && (
             <AppButton
               variant="ghost"
@@ -144,6 +129,7 @@ export function SalesOrderTable({
                 downloadPickList(row, productsById, inventoryByProductId);
               }}
               aria-label={`Download pick list for ${row.soNumber}`}
+              title="Download pick list"
             >
               <ClipboardList className="size-4" />
             </AppButton>
@@ -157,6 +143,7 @@ export function SalesOrderTable({
                 downloadPackingSlip(row);
               }}
               aria-label={`Download packing slip for ${row.soNumber}`}
+              title="Download packing slip"
             >
               <Package className="size-4" />
             </AppButton>
@@ -171,6 +158,7 @@ export function SalesOrderTable({
                   onMarkDelivered(row);
                 }}
                 aria-label={`Mark ${row.soNumber} as delivered`}
+                title="Mark as delivered"
                 className="text-success hover:bg-success/10"
               >
                 <CheckCircle2 className="size-4" />
@@ -178,31 +166,10 @@ export function SalesOrderTable({
             </Can>
           )}
           <Can module={MODULES.SALES} action={ACTIONS.EDIT}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onEdit(row);
-              }}
-              aria-label={`Edit ${row.soNumber}`}
-            >
-              <Pencil className="size-4" />
-            </AppButton>
+            <EditButton label={`Edit ${row.soNumber}`} onClick={(event) => { event.stopPropagation(); onEdit(row); }} />
           </Can>
           <Can module={MODULES.SALES} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onDelete(row);
-              }}
-              aria-label={`Delete ${row.soNumber}`}
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label={`Delete ${row.soNumber}`} onClick={(event) => { event.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),

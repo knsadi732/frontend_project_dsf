@@ -1,10 +1,9 @@
-import { Download, Pencil, Trash2 } from 'lucide-react';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
-import { AppButton } from '@/components/ui/AppButton';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { DownloadButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { STATUS_BADGE_VARIANT } from '@/constants/statusEnums';
 import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
 function downloadInvoicePdf(row) {
@@ -56,13 +55,7 @@ export function InvoiceTable({
           : '—',
     },
     { key: 'dueDate', header: 'Due Date' },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => (
-        <BaseBadge variant={STATUS_BADGE_VARIANT[row.status] ?? 'default'}>{row.status}</BaseBadge>
-      ),
-    },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
     {
       key: 'linkedSo',
       header: 'Linked SO',
@@ -78,43 +71,12 @@ export function InvoiceTable({
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
-          <AppButton
-            variant="ghost"
-            size="sm"
-            onClick={(event) => {
-              event.stopPropagation();
-              downloadInvoicePdf(row);
-            }}
-            aria-label={`Download ${row.invoiceNumber}`}
-          >
-            <Download className="size-4" />
-          </AppButton>
+          <DownloadButton label={`Download ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); downloadInvoicePdf(row); }} />
           <Can module={MODULES.FINANCE} action={ACTIONS.EDIT}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onEdit(row);
-              }}
-              aria-label={`Edit ${row.invoiceNumber}`}
-            >
-              <Pencil className="size-4" />
-            </AppButton>
+            <EditButton label={`Edit ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); onEdit(row); }} />
           </Can>
           <Can module={MODULES.FINANCE} action={ACTIONS.DELETE}>
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                onDelete(row);
-              }}
-              aria-label={`Delete ${row.invoiceNumber}`}
-              className="text-danger hover:bg-danger/10"
-            >
-              <Trash2 className="size-4" />
-            </AppButton>
+            <DeleteButton label={`Delete ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); onDelete(row); }} />
           </Can>
         </div>
       ),
