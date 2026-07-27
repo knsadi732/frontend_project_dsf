@@ -5,8 +5,8 @@ import { useCreateStatutoryAudit } from '@/features/compliance/mutations/useCrea
 import { useCrossVerifyLedger } from '@/features/compliance/mutations/useCrossVerifyLedger';
 import { GstProfileCard } from '@/features/compliance/components/GstProfileCard';
 import { LedgerCrossVerifyCard } from '@/features/compliance/components/LedgerCrossVerifyCard';
-import { StatutoryAuditTable } from '@/features/compliance/components/StatutoryAuditTable';
 import { StatutoryAuditFormModal } from '@/features/compliance/components/StatutoryAuditFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -26,6 +26,13 @@ export function CompliancePanel() {
     createAudit.mutateAsync(values).then(() => setFormOpen(false));
   };
 
+  const columns = [
+    { key: 'conductedAt', header: 'Conducted', render: (row) => new Date(row.conductedAt).toLocaleDateString('en-IN') },
+    { key: 'auditorName', header: 'Auditor' },
+    { key: 'findings', header: 'Findings', render: (row) => row.findings || '—' },
+    { key: 'remarks', header: 'Remarks', render: (row) => row.remarks || '—' },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
@@ -44,8 +51,9 @@ export function CompliancePanel() {
         </Can>
       </div>
 
-      <StatutoryAuditTable
-        audits={data?.data ?? []}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -55,6 +63,7 @@ export function CompliancePanel() {
           setPageSize(size);
           setPage(1);
         }}
+        emptyMessage="No statutory audits recorded yet"
       />
 
       <StatutoryAuditFormModal

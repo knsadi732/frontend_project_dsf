@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import { useLoanEsignRequestsQuery } from '@/features/loanEsignRequests/queries/useLoanEsignRequestsQuery';
 import { useCreateLoanEsignRequest } from '@/features/loanEsignRequests/mutations/useCreateLoanEsignRequest';
-import { LoanEsignRequestTable } from '@/features/loanEsignRequests/components/LoanEsignRequestTable';
 import { LoanEsignRequestFormModal } from '@/features/loanEsignRequests/components/LoanEsignRequestFormModal';
 import { LoanEsignLinkModal } from '@/features/loanEsignRequests/components/LoanEsignLinkModal';
+import { AppTable } from '@/components/ui/AppTable';
+import { BaseBadge } from '@/components/ui/BaseBadge';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+
+const ESIGN_STATUS_LABEL = { pending: 'Pending', signed: 'eSign Verified' };
+const ESIGN_STATUS_VARIANT = { pending: 'warning', signed: 'success' };
+
+function formatDateTime(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
 
 function buildEsignLink(token) {
   return `${window.location.origin}/esign/${token}`;
@@ -34,6 +43,21 @@ export function LoanEsignRequestsPanel() {
     if (row.status === 'pending') setActiveRequest({ ...row, link: buildEsignLink(row.token) });
   };
 
+  const columns = [
+    { key: 'partyName', header: 'Party' },
+    { key: 'email', header: 'Email' },
+    { key: 'loanAmount', header: 'Loan Amount', render: (row) => `₹${Number(row.loanAmount).toLocaleString('en-IN')}` },
+    { key: 'interestRatePercent', header: 'Interest', render: (row) => `${row.interestRatePercent}%` },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (row) => <BaseBadge variant={ESIGN_STATUS_VARIANT[row.status] ?? 'default'}>{ESIGN_STATUS_LABEL[row.status] ?? row.status}</BaseBadge>,
+    },
+    { key: 'signerName', header: 'Signed By', render: (row) => row.signerName || '—' },
+    { key: 'signedAt', header: 'Signed At', render: (row) => formatDateTime(row.signedAt) },
+    { key: 'createdDate', header: 'Sent On' },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -43,8 +67,9 @@ export function LoanEsignRequestsPanel() {
         </Can>
       </div>
 
-      <LoanEsignRequestTable
-        requests={data?.data ?? []}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -55,6 +80,7 @@ export function LoanEsignRequestsPanel() {
           setPage(1);
         }}
         onRowClick={handleRowClick}
+        emptyMessage="No loan e-sign requests yet"
       />
 
       <LoanEsignRequestFormModal

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useLedgerQuery } from '@/features/ledger/queries/useLedgerQuery';
 import { useLedgerSummaryQuery } from '@/features/ledger/queries/useLedgerSummaryQuery';
 import { useRecordTransaction } from '@/features/ledger/mutations/useRecordTransaction';
-import { LedgerTable } from '@/features/ledger/components/LedgerTable';
 import { AddFundModal } from '@/features/ledger/components/AddFundModal';
+import { AppTable } from '@/components/ui/AppTable';
+import { BaseBadge } from '@/components/ui/BaseBadge';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
@@ -30,6 +31,22 @@ export function LedgerPanel() {
     });
   };
 
+  const columns = [
+    { key: 'date', header: 'Date', render: (row) => new Date(row.date).toLocaleDateString('en-IN') },
+    { key: 'particulars', header: 'Particulars' },
+    { key: 'voucher', header: 'Voucher', render: (row) => <BaseBadge variant="info">{row.voucher}</BaseBadge> },
+    {
+      key: 'debit',
+      header: 'Debit (₹)',
+      render: (row) => (row.debit ? <span className="text-danger">{row.debit.toLocaleString('en-IN')}</span> : '—'),
+    },
+    {
+      key: 'credit',
+      header: 'Credit (₹)',
+      render: (row) => (row.credit ? <span className="text-success">{row.credit.toLocaleString('en-IN')}</span> : '—'),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -55,8 +72,9 @@ export function LedgerPanel() {
         </div>
       </div>
 
-      <LedgerTable
-        entries={pageEntries}
+      <AppTable
+        columns={columns}
+        data={pageEntries}
         total={allEntries.length}
         page={page}
         pageSize={pageSize}
@@ -66,6 +84,7 @@ export function LedgerPanel() {
           setPageSize(size);
           setPage(1);
         }}
+        emptyMessage="No ledger entries yet"
       />
 
       <AddFundModal

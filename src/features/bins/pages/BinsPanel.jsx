@@ -4,11 +4,12 @@ import { useCreateBin } from '@/features/bins/mutations/useCreateBin';
 import { useUpdateBin } from '@/features/bins/mutations/useUpdateBin';
 import { useDeleteBin } from '@/features/bins/mutations/useDeleteBin';
 import { useShelvesQuery } from '@/features/shelves/queries/useShelvesQuery';
-import { BinTable } from '@/features/bins/components/BinTable';
 import { BinFormModal } from '@/features/bins/components/BinFormModal';
+import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
-import { CreateButton } from '@/components/ui/ActionButtons';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -41,6 +42,28 @@ export function BinsPanel() {
     deleteBin.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  const columns = [
+    { key: 'code', header: 'Bin', render: (row) => <span className="font-medium text-text">{row.code}</span> },
+    { key: 'shelf', header: 'Shelf', render: (row) => shelvesById?.[row.shelfId]?.code ?? '—' },
+    { key: 'currentQuantity', header: 'Current qty' },
+    { key: 'capacity', header: 'Capacity' },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'actions',
+      header: '',
+      render: (row) => (
+        <div className="flex justify-end gap-1">
+          <Can module={MODULES.INVENTORY} action={ACTIONS.EDIT}>
+            <EditButton label={`Edit ${row.code}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, bin: row }); }} />
+          </Can>
+          <Can module={MODULES.INVENTORY} action={ACTIONS.DELETE}>
+            <DeleteButton label={`Delete ${row.code}`} onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
+          </Can>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -50,9 +73,9 @@ export function BinsPanel() {
         </Can>
       </div>
 
-      <BinTable
-        bins={data?.data ?? []}
-        shelvesById={shelvesById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -62,8 +85,8 @@ export function BinsPanel() {
           setPageSize(size);
           setPage(1);
         }}
-        onEdit={(bin) => setFormState({ open: true, bin })}
-        onDelete={setDeleteTarget}
+        onRowClick={(bin) => setFormState({ open: true, bin })}
+        emptyMessage="No bins yet"
       />
 
       <BinFormModal

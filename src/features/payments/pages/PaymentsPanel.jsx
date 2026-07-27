@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { usePaymentsQuery } from '@/features/payments/queries/usePaymentsQuery';
 import { useCreatePayment } from '@/features/payments/mutations/useCreatePayment';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
-import { PaymentTable } from '@/features/payments/components/PaymentTable';
 import { PaymentFormModal } from '@/features/payments/components/PaymentFormModal';
+import { AppTable } from '@/components/ui/AppTable';
+import { BaseBadge } from '@/components/ui/BaseBadge';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -26,6 +27,17 @@ export function PaymentsPanel() {
     createPayment.mutateAsync(values).then(() => setFormOpen(false));
   };
 
+  const columns = [
+    { key: 'slipNumber', header: 'Slip #' },
+    { key: 'customer', header: 'Customer', render: (row) => customersById?.[row.customerId]?.name ?? row.customerId },
+    { key: 'amount', header: 'Amount', render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}` },
+    {
+      key: 'paymentMode',
+      header: 'Mode',
+      render: (row) => (row.paymentMode ? <BaseBadge variant="info">{row.paymentMode.replace(/_/g, ' ')}</BaseBadge> : '—'),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -35,9 +47,9 @@ export function PaymentsPanel() {
         </Can>
       </div>
 
-      <PaymentTable
-        payments={data?.data ?? []}
-        customersById={customersById}
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
         total={data?.total ?? 0}
         page={page}
         pageSize={pageSize}
@@ -47,6 +59,7 @@ export function PaymentsPanel() {
           setPageSize(size);
           setPage(1);
         }}
+        emptyMessage="No payments recorded yet"
       />
 
       <PaymentFormModal
