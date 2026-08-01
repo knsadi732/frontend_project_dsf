@@ -30,7 +30,11 @@ const DEFAULT_VALUES = {
 
 export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
-  const products = productsData?.data ?? [];
+  // A customer is only ever sold the finished item — whether it was
+  // manufactured in-house or bought ready-made for trading (low production
+  // capacity means both happen), raw materials/packaging/consumables never
+  // go out the door directly, so they're excluded here.
+  const products = (productsData?.data ?? []).filter((product) => product.productType === 'finished_goods');
   const productOptions = products.map((product) => ({
     value: product.id,
     label: `${product.name} (₹${product.sellingPrice})`,
