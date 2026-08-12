@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Repeat } from 'lucide-react';
 import { useReturnsQuery } from '@/features/returns/queries/useReturnsQuery';
 import { useCreateReturn } from '@/features/returns/mutations/useCreateReturn';
 import { useUpdateReturn } from '@/features/returns/mutations/useUpdateReturn';
 import { useDeleteReturn } from '@/features/returns/mutations/useDeleteReturn';
 import { ReturnFormModal } from '@/features/returns/components/ReturnFormModal';
-import { SalesOrderFormModal } from '@/features/sales/components/SalesOrderFormModal';
-import { useCreateSalesOrder } from '@/features/sales/mutations/useCreateSalesOrder';
 import { StatCard } from '@/features/dashboard/components/StatCard';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
@@ -18,7 +15,7 @@ import { AppModal } from '@/components/ui/AppModal';
 import { EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { ORDER_STATUS, RETURN_REASON_OPTIONS, RETURN_STATUS } from '@/constants/statusEnums';
+import { RETURN_REASON_OPTIONS } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
@@ -32,7 +29,6 @@ export function ReturnsPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, returnItem: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [replacementState, setReplacementState] = useState({ open: false, returnId: null, initialValues: null });
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
@@ -44,7 +40,6 @@ export function ReturnsPage() {
   const createReturn = useCreateReturn();
   const updateReturn = useUpdateReturn();
   const deleteReturn = useDeleteReturn();
-  const createSalesOrder = useCreateSalesOrder();
 
   const returnsList = data?.data ?? [];
 
@@ -74,29 +69,6 @@ export function ReturnsPage() {
     deleteReturn.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
-  const handleConvertToReplacement = (returnItem) => {
-    setReplacementState({
-      open: true,
-      returnId: returnItem.id,
-      initialValues: {
-        soNumber: '',
-        customerId: '',
-        customer: returnItem.customer ?? '',
-        salesChannel: 'manual',
-        orderDate: new Date().toISOString().slice(0, 10),
-        status: ORDER_STATUS.PENDING,
-        items: [{ productId: returnItem.productId, quantity: returnItem.quantity, rate: '' }],
-      },
-    });
-  };
-
-  const handleReplacementSubmit = (values) => {
-    createSalesOrder.mutateAsync(values).then((result) => {
-      updateReturn.mutate({ id: replacementState.returnId, payload: { replacementOrderId: result.id } });
-      setReplacementState({ open: false, returnId: null, initialValues: null });
-    });
-  };
-
   const columns = [
     { key: 'returnNumber', header: 'Return #' },
     { key: 'soNumber', header: 'Linked SO' },
@@ -111,22 +83,6 @@ export function ReturnsPage() {
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
-          {row.status === RETURN_STATUS.RESOLVED && row.resolutionType === 'replacement' && !row.replacementOrderId && (
-            <Can module={MODULES.RETURNS} action={ACTIONS.EDIT}>
-              <AppButton
-                variant="ghost"
-                size="sm"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleConvertToReplacement(row);
-                }}
-                aria-label={`Convert ${row.returnNumber} to replacement order`}
-                title="Convert to replacement order"
-              >
-                <Repeat className="size-4" />
-              </AppButton>
-            </Can>
-          )}
           <Can module={MODULES.RETURNS} action={ACTIONS.EDIT}>
             <EditButton label={`Edit ${row.returnNumber}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, returnItem: row }); }} />
           </Can>
@@ -184,14 +140,6 @@ export function ReturnsPage() {
         onClose={() => setFormState({ open: false, returnItem: null })}
         onSubmit={handleSubmit}
         isSubmitting={createReturn.isPending || updateReturn.isPending}
-      />
-
-      <SalesOrderFormModal
-        open={replacementState.open}
-        initialValues={replacementState.initialValues}
-        onClose={() => setReplacementState({ open: false, returnId: null, initialValues: null })}
-        onSubmit={handleReplacementSubmit}
-        isSubmitting={createSalesOrder.isPending}
       />
 
       <AppModal

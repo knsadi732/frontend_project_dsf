@@ -3,14 +3,18 @@
 // a ReportSection. Kept separate from components so the math is easy to
 // read/verify independently of rendering.
 
-export function productWiseSales(salesOrders, productsById) {
+// Real order items carry productVariantId (not productId) and no client-side
+// `rate` — revenue per line comes from the server-computed lineTotal
+// (order.service.js createOrder), falling back to quantity*unitPrice.
+export function productWiseSales(salesOrders, variantsById, productsById) {
   const totals = new Map();
   salesOrders.forEach((so) => {
     (so.items ?? []).forEach((item) => {
-      const key = item.productId;
+      const variant = variantsById?.[item.productVariantId];
+      const key = variant?.productId ?? item.productVariantId;
       const entry = totals.get(key) ?? { id: key, productId: key, quantity: 0, revenue: 0 };
       entry.quantity += Number(item.quantity);
-      entry.revenue += Number(item.quantity) * Number(item.rate);
+      entry.revenue += Number(item.lineTotal ?? Number(item.quantity) * Number(item.unitPrice ?? 0));
       totals.set(key, entry);
     });
   });
@@ -19,13 +23,16 @@ export function productWiseSales(salesOrders, productsById) {
     .sort((a, b) => b.revenue - a.revenue);
 }
 
-export function customerSalesSummary(salesOrders) {
+// Real orders carry customerId (not a customer name string) — resolve the
+// display name via customersById.
+export function customerSalesSummary(salesOrders, customersById) {
   const totals = new Map();
   salesOrders.forEach((so) => {
-    const entry = totals.get(so.customer) ?? { id: so.customer, customer: so.customer, orders: 0, revenue: 0 };
+    const key = so.customerId;
+    const entry = totals.get(key) ?? { id: key, customer: customersById?.[key]?.name ?? key, orders: 0, revenue: 0 };
     entry.orders += 1;
     entry.revenue += Number(so.total ?? 0);
-    totals.set(so.customer, entry);
+    totals.set(key, entry);
   });
   return Array.from(totals.values()).sort((a, b) => b.revenue - a.revenue);
 }
@@ -98,16 +105,19 @@ export function outstandingByKey(records, keyField, balanceField = 'balanceDue')
 
 // Ch5.11 Customer Analytics: Total Orders, Total Revenue, AOV, Return Rate,
 // Last Purchase Date, ranked by revenue for "Top Customers".
-export function customerAnalytics(salesOrders, returns) {
+export function customerAnalytics(salesOrders, returns, customersById) {
   const totals = new Map();
   salesOrders.forEach((so) => {
-    const entry = totals.get(so.customer) ?? { id: so.customer, customer: so.customer, totalOrders: 0, totalRevenue: 0, lastPurchaseDate: null };
+    const key = so.customerId;
+    const entry = totals.get(key) ?? { id: key, customer: customersById?.[key]?.name ?? key, totalOrders: 0, totalRevenue: 0, lastPurchaseDate: null };
     entry.totalOrders += 1;
     entry.totalRevenue += Number(so.total ?? 0);
     if (!entry.lastPurchaseDate || so.orderDate > entry.lastPurchaseDate) entry.lastPurchaseDate = so.orderDate;
-    totals.set(so.customer, entry);
+    totals.set(key, entry);
   });
 
+  // Returns are keyed by customer display name (its own `customer` field,
+  // not a customerId), so match on the resolved name rather than the id.
   const returnCounts = new Map();
   returns.forEach((ret) => {
     returnCounts.set(ret.customer, (returnCounts.get(ret.customer) ?? 0) + 1);

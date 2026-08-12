@@ -1,26 +1,29 @@
 import { z } from 'zod';
-import { ORDER_STATUS } from '@/constants/statusEnums';
+
+// Real backend pipeline (order.service.js transitionOrder / order.validator.js
+// transitionStatus): pending -> confirmed -> packed -> dispatched -> delivered
+// -> completed, strictly one step at a time (assertTransition). No draft/
+// approved/rejected/cancelled states exist here — those were mock-era values.
+export const ORDER_STATUS_PIPELINE = ['pending', 'confirmed', 'packed', 'dispatched', 'delivered', 'completed'];
+export const PAYMENT_STATUS_OPTIONS = ['partial', 'paid', 'refunded'];
 
 export const salesOrderItemSchema = z.object({
-  productId: z.string().min(1, 'Product is required'),
-  quantity: z.coerce.number().int().positive('Quantity must be greater than 0'),
-  rate: z.coerce.number().positive('Rate must be greater than 0'),
+  productVariantId: z.string().min(1, 'Product variant is required'),
+  quantity: z.coerce.number().positive('Quantity must be greater than 0'),
 });
 
-export const SALES_CHANNEL_OPTIONS = [
-  { value: 'website', label: 'Website' },
-  { value: 'marketplace', label: 'Marketplace' },
-  { value: 'pos', label: 'Retail POS' },
-  { value: 'wholesale', label: 'Wholesale' },
-  { value: 'manual', label: 'Manual' },
-];
-
+// Real backend body (order.validator.js createOrder): { branchId?, warehouseId
+// (required), customerId (required), items: [{productVariantId, quantity}] }.
+// unitPrice/taxRate/lineTotal are computed server-side from the variant's
+// selling_price/gst_percentage — never sent by the client, and there's no
+// soNumber/rate field at all (order.service.js createOrder).
 export const salesOrderSchema = z.object({
-  soNumber: z.string().min(1, 'SO number is required'),
+  branchId: z.string().optional(),
+  warehouseId: z.string().min(1, 'Warehouse is required'),
   customerId: z.string().min(1, 'Customer is required'),
-  customer: z.string().min(1, 'Customer is required'),
-  salesChannel: z.enum(['website', 'marketplace', 'pos', 'wholesale', 'manual']).default('manual'),
-  orderDate: z.string().min(1, 'Order date is required'),
-  status: z.enum(Object.values(ORDER_STATUS)).default(ORDER_STATUS.DRAFT),
   items: z.array(salesOrderItemSchema).min(1, 'Add at least one item'),
+  // Only present/used in edit mode (see SalesOrderFormModal's status
+  // dropdown) — zod strips unlisted keys by default, so without this field
+  // here the chosen status would silently never reach the submit handler.
+  status: z.string().optional(),
 });

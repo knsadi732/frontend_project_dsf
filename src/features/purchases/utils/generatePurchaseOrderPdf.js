@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { drawLetterhead } from '@/utils/pdfLetterhead';
 
 const MARGIN = 14;
 const PAGE_RIGHT = 196;
@@ -28,16 +29,13 @@ const formatDate = (value) => (value ? String(value).slice(0, 10) : '-');
  */
 export function generatePurchaseOrderPdf({ po, company, vendor, warehouse, items }) {
   const doc = new jsPDF();
-  let y = 0;
+  let y = drawLetterhead(doc, { gstin: company?.gstNumber });
 
-  // Title band
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, 210, 16, 'F');
-  doc.setTextColor(255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('PURCHASE ORDER', 105, 10.5, { align: 'center' });
-  y = 26;
+  doc.setFontSize(13);
+  doc.setTextColor(...NAVY);
+  doc.text('PURCHASE ORDER', 105, y, { align: 'center' });
+  y += 10;
 
   // FROM (Buyer = Company) / TO (Supplier = Vendor)
   const colWidth = (CONTENT_WIDTH - 8) / 2;

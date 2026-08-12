@@ -4,12 +4,12 @@ import { useWorkOrdersQuery } from '@/features/production/queries/useWorkOrdersQ
 import { useCreateWorkOrder } from '@/features/production/mutations/useCreateWorkOrder';
 import { useUpdateWorkOrder } from '@/features/production/mutations/useUpdateWorkOrder';
 import { useDeleteWorkOrder } from '@/features/production/mutations/useDeleteWorkOrder';
-import { useUpdateProductionRequest } from '@/features/productionRequests/mutations/useUpdateProductionRequest';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { WorkOrderFormModal } from '@/features/production/components/WorkOrderFormModal';
-import { ProductionRequestsPanel } from '@/features/productionRequests';
 import { QualityInspectionFormModal } from '@/features/qualityInspections';
 import { useCreateQualityInspection } from '@/features/qualityInspections/mutations/useCreateQualityInspection';
+import { MaterialIssueRequestsPanel } from '@/features/materialIssueRequests';
+import { BomPanel } from '@/features/bom';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppTable } from '@/components/ui/AppTable';
@@ -30,6 +30,12 @@ import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
+const TABS = [
+  { key: 'workOrders', label: 'Work Orders' },
+  { key: 'materialRequests', label: 'Material Requests' },
+  { key: 'bom', label: 'Bill of Materials' },
+];
+
 function totalCost(row) {
   return (
     Number(row.rawMaterialCost || 0) +
@@ -46,6 +52,7 @@ function downloadWorkOrderPdf(row, productName) {
     title: `Work Order - ${row.workOrderNumber}`,
     fields: [
       { label: 'Product', value: productName },
+      { label: 'Variant', value: [row.sku, row.size, row.color].filter(Boolean).join(' — ') || '-' },
       { label: 'Quantity', value: row.quantity },
       { label: 'Due Date', value: row.dueDate },
       { label: 'Stage', value: row.stage },
@@ -55,11 +62,10 @@ function downloadWorkOrderPdf(row, productName) {
   });
 }
 
-const TABS = [
-  { key: 'workOrders', label: 'Work Orders' },
-  { key: 'requests', label: 'Production Requests' },
-];
-
+// A Work Order IS the production requirement — raised manually here, or
+// auto-raised by the backend off a sales-order stock shortfall / low-stock
+// dispatch (order.service.js, see ApiList.md "Work Orders"). No separate
+// "Production Request" step exists on top of it.
 export function ProductionPage() {
   const [activeTab, setActiveTab] = useState('workOrders');
   const [search, setSearch] = useState('');
@@ -69,7 +75,6 @@ export function ProductionPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, workOrder: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [convertingRequestId, setConvertingRequestId] = useState(null);
   const [inspectionTarget, setInspectionTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
@@ -91,7 +96,6 @@ export function ProductionPage() {
   const createWorkOrder = useCreateWorkOrder();
   const updateWorkOrder = useUpdateWorkOrder();
   const deleteWorkOrder = useDeleteWorkOrder();
-  const updateProductionRequest = useUpdateProductionRequest();
   const createQualityInspection = useCreateQualityInspection();
 
   const handleSubmit = (values) => {
@@ -99,41 +103,23 @@ export function ProductionPage() {
       ? updateWorkOrder.mutateAsync({ id: formState.workOrder.id, payload: values })
       : createWorkOrder.mutateAsync(values);
 
-    action.then((result) => {
-      if (convertingRequestId) {
-        updateProductionRequest.mutate({
-          id: convertingRequestId,
-          payload: { status: 'converted_to_production_order', linkedWorkOrderId: result.id },
-        });
-        setConvertingRequestId(null);
-      }
-      setFormState({ open: false, workOrder: null });
-    });
+    action.then(() => setFormState({ open: false, workOrder: null }));
   };
 
   const handleConfirmDelete = () => {
     deleteWorkOrder.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
-  const handleConvertToWorkOrder = (request) => {
-    setConvertingRequestId(request.id);
-    setActiveTab('workOrders');
-    setFormState({
-      open: true,
-      workOrder: {
-        workOrderNumber: '',
-        productId: request.productId,
-        quantity: request.quantity,
-        stage: 'pending',
-        dueDate: request.requiredDate,
-      },
-    });
-  };
-
   const columns = [
     { key: 'workOrderNumber', header: 'Work Order #' },
     { key: 'product', header: 'Product', render: (row) => productNameById.get(row.productId) ?? row.productId },
+    {
+      key: 'variant',
+      header: 'Variant',
+      render: (row) => (row.sku || row.size || row.color ? [row.sku, row.size, row.color].filter(Boolean).join(' — ') : '—'),
+    },
     { key: 'quantity', header: 'Quantity' },
+    { key: 'warehouse', header: 'Warehouse', render: (row) => row.warehouseName ?? '—' },
     { key: 'dueDate', header: 'Due Date' },
     { key: 'totalCost', header: 'Total Cost', render: (row) => `₹${totalCost(row).toLocaleString('en-IN')}` },
     { key: 'stage', header: 'Stage', render: (row) => <StatusBadge status={row.stage} /> },
@@ -191,7 +177,7 @@ export function ProductionPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-text">Production</h1>
-          <p className="text-sm text-text-muted">Production requests and work orders.</p>
+          <p className="text-sm text-text-muted">Work orders and raw-material issue approvals.</p>
         </div>
         {activeTab === 'workOrders' && (
           <Can module={MODULES.PRODUCTION} action={ACTIONS.CREATE}>
@@ -204,111 +190,109 @@ export function ProductionPage() {
 
       {activeTab === 'workOrders' && (
         <>
-          <FilterBar>
-            <SearchInput
-              value={search}
-              onChange={(value) => {
-                setSearch(value);
-                setPage(1);
-              }}
-              placeholder="Search work orders…"
-              className="w-72"
-            />
-            <MultiFilter
-              filters={[{ key: 'status', label: 'Stage', options: WORK_ORDER_STAGE_OPTIONS, placeholder: 'All stages' }]}
-              values={{ status }}
-              onChange={(key, value) => {
-                setStatus(value);
-                setPage(1);
-              }}
-              onClear={() => {
-                setStatus('');
-                setPage(1);
-              }}
-            />
-            <AppInput
-              type="date"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
-                setPage(1);
-              }}
-              className="w-36"
-              aria-label="Due date from"
-            />
-            <AppInput
-              type="date"
-              value={dateTo}
-              onChange={(event) => {
-                setDateTo(event.target.value);
-                setPage(1);
-              }}
-              className="w-36"
-              aria-label="Due date to"
-            />
-            <RefreshButton onClick={refetch} isFetching={isFetching} />
-          </FilterBar>
+      <FilterBar>
+        <SearchInput
+          value={search}
+          onChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          placeholder="Search work orders…"
+          className="w-72"
+        />
+        <MultiFilter
+          filters={[{ key: 'status', label: 'Stage', options: WORK_ORDER_STAGE_OPTIONS, placeholder: 'All stages' }]}
+          values={{ status }}
+          onChange={(key, value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          onClear={() => {
+            setStatus('');
+            setPage(1);
+          }}
+        />
+        <AppInput
+          type="date"
+          value={dateFrom}
+          onChange={(event) => {
+            setDateFrom(event.target.value);
+            setPage(1);
+          }}
+          className="w-36"
+          aria-label="Due date from"
+        />
+        <AppInput
+          type="date"
+          value={dateTo}
+          onChange={(event) => {
+            setDateTo(event.target.value);
+            setPage(1);
+          }}
+          className="w-36"
+          aria-label="Due date to"
+        />
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
+      </FilterBar>
 
-          <AppTable
-            columns={columns}
-            data={data?.data ?? []}
-            total={data?.total ?? 0}
-            page={page}
-            pageSize={pageSize}
-            isLoading={isLoading}
-            onPageChange={setPage}
-            onPageSizeChange={(size) => {
-              setPageSize(size);
-              setPage(1);
-            }}
-            onRowClick={(workOrder) => setFormState({ open: true, workOrder })}
-            emptyMessage="No work orders yet"
-          />
+      <AppTable
+        columns={columns}
+        data={data?.data ?? []}
+        total={data?.total ?? 0}
+        page={page}
+        pageSize={pageSize}
+        isLoading={isLoading}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+        onRowClick={(workOrder) => setFormState({ open: true, workOrder })}
+        emptyMessage="No work orders yet"
+      />
 
-          <QualityInspectionFormModal
-            open={Boolean(inspectionTarget)}
-            workOrder={inspectionTarget}
-            onClose={() => setInspectionTarget(null)}
-            onSubmit={(values) => createQualityInspection.mutateAsync(values).then(() => setInspectionTarget(null))}
-            isSubmitting={createQualityInspection.isPending}
-          />
+      <QualityInspectionFormModal
+        open={Boolean(inspectionTarget)}
+        workOrder={inspectionTarget}
+        onClose={() => setInspectionTarget(null)}
+        onSubmit={(values) => createQualityInspection.mutateAsync(values).then(() => setInspectionTarget(null))}
+        isSubmitting={createQualityInspection.isPending}
+      />
 
-          <WorkOrderFormModal
-            open={formState.open}
-            initialValues={formState.workOrder}
-            onClose={() => {
-              setFormState({ open: false, workOrder: null });
-              setConvertingRequestId(null);
-            }}
-            onSubmit={handleSubmit}
-            isSubmitting={createWorkOrder.isPending || updateWorkOrder.isPending}
-          />
+      <WorkOrderFormModal
+        open={formState.open}
+        initialValues={formState.workOrder}
+        onClose={() => setFormState({ open: false, workOrder: null })}
+        onSubmit={handleSubmit}
+        isSubmitting={createWorkOrder.isPending || updateWorkOrder.isPending}
+      />
 
-          <AppModal
-            open={Boolean(deleteTarget)}
-            onClose={() => setDeleteTarget(null)}
-            title="Delete work order"
-            footer={
-              <>
-                <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
-                  Cancel
-                </AppButton>
-                <AppButton variant="danger" loading={deleteWorkOrder.isPending} onClick={handleConfirmDelete}>
-                  Delete
-                </AppButton>
-              </>
-            }
-          >
-            <p className="text-sm text-text-muted">
-              Are you sure you want to delete{' '}
-              <span className="font-medium text-text">{deleteTarget?.workOrderNumber}</span>? This action cannot be
-              undone.
-            </p>
-          </AppModal>
+      <AppModal
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete work order"
+        footer={
+          <>
+            <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </AppButton>
+            <AppButton variant="danger" loading={deleteWorkOrder.isPending} onClick={handleConfirmDelete}>
+              Delete
+            </AppButton>
+          </>
+        }
+      >
+        <p className="text-sm text-text-muted">
+          Are you sure you want to delete{' '}
+          <span className="font-medium text-text">{deleteTarget?.workOrderNumber}</span>? This action cannot be
+          undone.
+        </p>
+      </AppModal>
         </>
       )}
 
-      {activeTab === 'requests' && <ProductionRequestsPanel onConvertToWorkOrder={handleConvertToWorkOrder} />}
+      {activeTab === 'materialRequests' && <MaterialIssueRequestsPanel />}
+      {activeTab === 'bom' && <BomPanel />}
     </div>
   );
 }

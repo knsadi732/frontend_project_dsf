@@ -3,6 +3,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  /* Without this, native controls (select dropdown popup, checkboxes,
+     scrollbars) always render with light OS chrome regardless of .dark —
+     color-scheme is what tells the browser which palette to use for them. */
+  color-scheme: light;
   --app-bg: #f6f6f8;
   --app-surface: #ffffff;
   --app-surface-hover: #f1f1f4;
@@ -19,6 +23,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --app-bg: #101014;
   --app-surface: #18181d;
   --app-surface-hover: #202027;
@@ -74,4 +79,14 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/* `color-scheme` alone doesn't reliably darken the native <select> popup on
+   Chromium/Electron on Windows — it's rendered as a lightweight OS-drawn
+   listbox that mostly ignores CSS except colors set directly on <option>,
+   so set those explicitly instead of relying on inherited theme tokens. */
+.dark select,
+.dark select option {
+  background-color: var(--app-surface);
+  color: var(--app-text);
 }

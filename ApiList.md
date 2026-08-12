@@ -3,127 +3,221 @@
 Base URL: `http://localhost:4000/api/v1`
 (port/prefix override hoga agar `.env` me `PORT` / `API_PREFIX` set hai)
 
+All responses follow the standard API envelope:
+```json
+{
+  "success": true,
+  "message": "...",
+  "data": ...,         
+  "meta": { ... }?    
+}
+```
+Errors use:
+```json
+{
+  "success": false,
+  "error_code": "...",
+  "message": "...",
+  "details": [ ... ]
+}
+```
+
+**Response field casing note:** below, each endpoint's `— response:` documents the actual shape of `data` (and `meta` for paginated lists). This codebase has **no automatic snake_case→camelCase mapping layer** — most repositories do `SELECT *`/`RETURNING *` and return raw Postgres rows, so most entity fields come back **snake_case exactly as the DB columns are named** (e.g. `company_id`, `full_name`, `created_at`). camelCase only shows up where a controller/service hand-builds a plain object (e.g. auth's `user`, loan's derived `repaidPrincipal`/`outstandingBalance`, analytics widgets). Paginated list `meta` is always `{ page, limit, total_records, total_pages }` (from `utils/pagination.js`) — note `total_records`/`total_pages` are snake_case even though `page`/`limit` aren't.
+
 ## Auth
 - POST `localhost:4000/api/v1/auth/login`  — body: `{ "identifier": "email or phone", "password": "...", "latitude"?: number, "longitude"?: number, "locationLabel"?: string }`. IP, user-agent, and `x-device-signature` header are captured automatically; `latitude`/`longitude` must come from the client's device (browser/app geolocation) — the server has no way to read GPS itself. A successful login auto-marks that day's attendance for the user (see Attendance below); this never blocks or fails the login response.
-- POST `localhost:4000/api/v1/auth/refresh`  — body: `{ refreshToken (required) }`
-- POST `localhost:4000/api/v1/auth/logout`  — body: `{ refreshToken (required) }`
-- GET  `localhost:4000/api/v1/auth/me`
+  — response: `{ accessToken, refreshToken, user: { id, fullName, email, companyId, roleKey } }` (this `user` object is hand-built camelCase, not a raw row)
+- POST `localhost:4000/api/v1/auth/refresh`  — body: `{ refreshToken (required) }`  — response: `{ accessToken, refreshToken }`
+- POST `localhost:4000/api/v1/auth/logout`  — body: `{ refreshToken (required) }`  — response: `{}` (empty object)
+- GET  `localhost:4000/api/v1/auth/me`  — response: raw `users` row (snake_case: `id, company_id, branch_id, warehouse_id, role_id, employee_id, full_name, email, phone, department, job_title, status, created_at, updated_at`) plus `role: { id, key, name } | null` and `additionalRoles: [{ id, key, name }]`
 
 ## Users
-- GET    `localhost:4000/api/v1/users`  — paginated list
-- POST   `localhost:4000/api/v1/users`  — body: `{ branchId?, warehouseId?, roleId (required), additionalRoleIds?: [guid] (default []), fullName (required), email (required), phone?, password (required, min 6), department?, jobTitle? }`
-- GET    `localhost:4000/api/v1/users/:id`
-- PATCH  `localhost:4000/api/v1/users/:id`  — body (all optional): `{ fullName?, roleId?, additionalRoleIds?: [guid], department?, jobTitle?, status?: "active"|"inactive"|"suspended"|"terminated" }`
-- DELETE `localhost:4000/api/v1/users/:id`
+- GET    `localhost:4000/api/v1/users`  — paginated list — response: `{ data: [ {row} ], meta: { page, limit, total_records, total_pages } }` where each row is the raw `users` row: `id, company_id, branch_id, warehouse_id, role_id, employee_id, full_name, email, phone, department, job_title, status, created_at, updated_at` (no `password_hash`)
+- POST   `localhost:4000/api/v1/users`  — body: `{ branchId?, warehouseId?, roleId (required), additionalRoleIds?: [guid] (default []), fullName (required), email (required), phone?, password (required, min 6), department?, jobTitle? }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/users/:id`  — response: same row shape as above
+- PATCH  `localhost:4000/api/v1/users/:id`  — body (all optional): `{ fullName?, roleId?, additionalRoleIds?: [guid], department?, jobTitle?, status?: "active"|"inactive"|"suspended"|"terminated" }`  — response: same row shape as above
+- DELETE `localhost:4000/api/v1/users/:id`  — response: `{}` (empty object)
 
 ## Attendance
-- GET `localhost:4000/api/v1/attendance`  — query: `user_id?`, `from?` (YYYY-MM-DD), `to?` (YYYY-MM-DD). Rows are auto-created by login (see Auth above), not created via this API.
+- GET `localhost:4000/api/v1/attendance`  — query: `user_id?`, `from?` (YYYY-MM-DD), `to?` (YYYY-MM-DD). Rows are auto-created by login (see Auth above), not created via this API. — response: `{ data: [ {row} ], meta }`; row is the raw `attendances` row (`SELECT *`): `id, company_id, user_id, attendance_date, device_signature, user_agent, ip_address, latitude, longitude, location_label, created_at, updated_at, ...`
 ## Roles
-- GET `localhost:4000/api/v1/roles`  — list of roles (read-only, no create/update/delete API — roles are seeded)
+- GET `localhost:4000/api/v1/roles`  — list of roles (read-only, no create/update/delete API — roles are seeded) — response: plain array (no pagination meta) of `{ id, company_id, key, name, description, status }`
 ## Audit Logs
-- GET `localhost:4000/api/v1/audit-logs`  — paginated, read-only
+- GET `localhost:4000/api/v1/audit-logs`  — paginated, read-only — response: `{ data: [ {row} ], meta }`; row is the raw `audit_logs` row (`SELECT *`): `id, company_id, user_id, action, http_method, route, request_payload, status_code, ip_address, user_agent, created_at`
 ## Documents
-- GET    `localhost:4000/api/v1/documents/:id/download`  (public, token-based, no auth header needed)
-- GET    `localhost:4000/api/v1/documents`  — paginated list
-- POST   `localhost:4000/api/v1/documents`  — multipart/form-data upload. Fields: `entityType` (required, one of `"product"|"vendor"|"employee"|"invoice"|"gst_certificate"`), `entityId?` (guid), `branchId?`, `warehouseId?`, `isPublic?` (boolean, default `false`), plus the file itself
-- GET    `localhost:4000/api/v1/documents/:id`
-- GET    `localhost:4000/api/v1/documents/:id/download-url`  — returns a signed/temporary URL
-- DELETE `localhost:4000/api/v1/documents/:id`
+- GET    `localhost:4000/api/v1/documents/:id/download`  (public, token-based, no auth header needed) — response: raw file stream (not the JSON envelope); `Content-Type`/`Content-Disposition` set from the document's `mime_type`/`file_name`
+- GET    `localhost:4000/api/v1/documents`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `documents` row (`SELECT *`): `id, company_id, branch_id, warehouse_id, entity_type, entity_id, file_key, file_name, mime_type, size_bytes, is_public, uploaded_by, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/documents`  — multipart/form-data upload. Fields: `entityType` (required, one of `"product"|"vendor"|"employee"|"invoice"|"gst_certificate"`), `entityId?` (guid), `branchId?`, `warehouseId?`, `isPublic?` (boolean, default `false`), plus the file itself — response: same `documents` row shape as above
+- GET    `localhost:4000/api/v1/documents/:id`  — response: same `documents` row shape as above
+- GET    `localhost:4000/api/v1/documents/:id/download-url`  — returns a signed/temporary URL — response: `{ url, expiresIn }` (`expiresIn` is `null` for public documents, which get a stable un-signed URL)
+- DELETE `localhost:4000/api/v1/documents/:id`  — response: `{}` (empty object)
 ## Products
-- GET    `localhost:4000/api/v1/products/categories`  — paginated list
-- POST   `localhost:4000/api/v1/products/categories`  — body: `{ parentId? (guid, for sub-categories), name (required), categoryCode? }`
-- PATCH  `localhost:4000/api/v1/products/categories/:id`  — body (all optional): `{ name?, categoryCode?, status?: "active"|"inactive" }`
-- DELETE `localhost:4000/api/v1/products/categories/:id`
-- GET    `localhost:4000/api/v1/products/stock`  — paginated stock levels
-- POST   `localhost:4000/api/v1/products/stock/receive`  — manual/ad-hoc stock-in (not linked to a PO). body: `{ warehouseId (required), productVariantId (required), quantity (required, > 0) }`
-- GET    `localhost:4000/api/v1/products`  — paginated list
-- POST   `localhost:4000/api/v1/products`  — body: `{ categoryId?, brandId?, productCode?, name (required), description?, gender?: "men"|"women"|"kids_boys"|"kids_girls"|"unisex", uom? (default "pair"), hsnCode?, gstPercentage? (0-100, default 0), productType?: "finished_goods"|"raw_material"|"packaging_material"|"semi_finished_goods"|"consumable"|"service" (default "finished_goods"), bomRequired?, productionRequired?, packagingRequired? }`. `productCode` is a product-level identifier distinct from any variant's `sku` — unique per company when set. `gender` is a customer-facing classification, separate from `productType` (an inventory classification) — neither implies the other.
-- GET    `localhost:4000/api/v1/products/:id`  — response now includes a nested `brand: { id, name, brand_code, country, tagline } | null` object
-- PATCH  `localhost:4000/api/v1/products/:id`  — same body shape as create (all fields optional), plus `status?: "active"|"inactive"|"discontinued"`
-- DELETE `localhost:4000/api/v1/products/:id`
+- GET    `localhost:4000/api/v1/products/categories`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `product_categories` row plus a joined `parent_name` (name of `parent_id`, or `null`): `id, company_id, parent_id, name, category_code, status, parent_name, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/products/categories`  — body: `{ parentId? (guid, for sub-categories), name (required), categoryCode? }`  — response: raw `product_categories` row (no `parent_name` on create)
+- PATCH  `localhost:4000/api/v1/products/categories/:id`  — body (all optional): `{ name?, categoryCode?, status?: "active"|"inactive" }`  — response: raw `product_categories` row (no `parent_name`)
+- DELETE `localhost:4000/api/v1/products/categories/:id`  — response: `{}` (empty object)
+- GET    `localhost:4000/api/v1/products/stock`  — paginated stock levels — response: `{ data: [ {row} ], meta }`; row is the raw `warehouse_stock` row (`SELECT *`): `id, company_id, warehouse_id, product_variant_id, quantity_on_hand, quantity_reserved, version, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/products/stock/receive`  — manual/ad-hoc stock-in (not linked to a PO). body: `{ warehouseId (required), productVariantId (required), quantity (required, > 0) }`  — response: the updated `warehouse_stock` row (same shape as above)
+- GET    `localhost:4000/api/v1/products`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `products` row plus a nested `brand: { id, name, brand_code, country, tagline } | null`: `id, company_id, category_id, brand_id, product_code, name, description, gender, uom, hsn_code, gst_percentage, product_type, is_sellable, bom_required, production_required, packaging_required, status, brand, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/products`  — body: `{ categoryId?, brandId?, productCode?, name (required), description?, gender?: "men"|"women"|"kids_boys"|"kids_girls"|"unisex", uom? (default "pair"), hsnCode?, gstPercentage? (0-100, default 0), productType?: "finished_goods"|"raw_material"|"packaging_material"|"semi_finished_goods"|"consumable"|"service"|"asset" (default "finished_goods"), isSellable? (boolean; default depends on productType — `true` unless productType is `raw_material`/`packaging_material`/`consumable`/`asset`, in which case `false`; always overridable), bomRequired?, productionRequired?, packagingRequired? }`. `productCode` is a product-level identifier distinct from any variant's `sku` — unique per company when set. `gender` is a customer-facing classification, separate from `productType` (an inventory classification) — neither implies the other. `isSellable` is independent of `productType`: a product can be `raw_material` for production AND `isSellable: true` at the same time (e.g. "Sole" is both an input to the assembly stage and directly sellable in the market) — `productType` describes what the item IS, `isSellable` describes whether it CAN be sold, and neither implies the other.
+  — response: raw `products` row (`RETURNING *`, no nested `brand` on create)
+- GET    `localhost:4000/api/v1/products/:id`  — response now includes a nested `brand: { id, name, brand_code, country, tagline } | null` object (rest of the row is the same snake_case `products` columns as above, minus a separate `brand_id`/`brand_name` since those are folded into `brand`)
+- PATCH  `localhost:4000/api/v1/products/:id`  — same body shape as create (all fields optional), plus `status?: "active"|"inactive"|"discontinued"`  — response: raw `products` row (no nested `brand`)
+- DELETE `localhost:4000/api/v1/products/:id`  — response: `{}` (empty object)
 ## Product Variants
 A variant is a specific SKU (size/color/etc.) of a product — most other modules (orders, PRs, POs, stock) reference `productVariantId`, not `productId`.
-- GET    `localhost:4000/api/v1/product-variants/generate-sku`  — reserves and returns the next variant SKU
-- GET    `localhost:4000/api/v1/product-variants`  — paginated list
-- POST   `localhost:4000/api/v1/product-variants`  — body: `{ productId (required), variantGroupId?, sku? (auto-generated if omitted), barcode?, size?, color?, weight?, mrp?, sellingPrice?, wholesalePrice?, dealerPrice?, costPrice? }`
-- GET    `localhost:4000/api/v1/product-variants/:id`
-- PATCH  `localhost:4000/api/v1/product-variants/:id`  — body (all optional): `{ variantGroupId?, barcode?, size?, color?, weight?, mrp?, sellingPrice?, wholesalePrice?, dealerPrice?, costPrice?, status?: "active"|"inactive"|"discontinued" }`
-- DELETE `localhost:4000/api/v1/product-variants/:id`
+- GET    `localhost:4000/api/v1/product-variants/generate-sku`  — reserves and returns the next variant SKU — response: `{ sku }` (e.g. `"DSF-SKU-000123"`)
+- GET    `localhost:4000/api/v1/product-variants`  — paginated list — query: `product_id?`, `variant_group_id?`, `status?`, `product_type?` (`"finished_goods"|"raw_material"|"packaging_material"|"semi_finished_goods"|"consumable"|"service"|"asset"` — filters to variants whose parent product has this `product_type`, via a subquery on `products`; narrows the list instead of paging through all variants) — response: `{ data: [ {row} ], meta }`; row is the raw `product_variants` row (`SELECT *`): `id, company_id, product_id, variant_group_id, sku, barcode, size, color, weight, mrp, selling_price, wholesale_price, dealer_price, cost_price, status, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/product-variants`  — body: `{ productId (required), variantGroupId?, sku? (auto-generated if omitted), barcode?, size?, color?, weight?, mrp?, sellingPrice?, wholesalePrice?, dealerPrice?, costPrice? }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/product-variants/:id`  — response: same row shape as above
+- PATCH  `localhost:4000/api/v1/product-variants/:id`  — body (all optional): `{ variantGroupId?, barcode?, size?, color?, weight?, mrp?, sellingPrice?, wholesalePrice?, dealerPrice?, costPrice?, status?: "active"|"inactive"|"discontinued" }`  — response: same row shape as above
+- DELETE `localhost:4000/api/v1/product-variants/:id`  — response: `{}` (empty object)
 ## Product Variant Groups
 Groups related variants of a product (e.g. same style across colors) under one `groupSku`.
-- GET    `localhost:4000/api/v1/product-variant-groups`  — paginated list
-- POST   `localhost:4000/api/v1/product-variant-groups`  — body: `{ productId (required), groupSku (required), variantName (required), color? }`
-- GET    `localhost:4000/api/v1/product-variant-groups/:id`
-- PATCH  `localhost:4000/api/v1/product-variant-groups/:id`  — body (all optional): `{ variantName?, color?, status?: "active"|"inactive" }`
-- DELETE `localhost:4000/api/v1/product-variant-groups/:id`
+- GET    `localhost:4000/api/v1/product-variant-groups`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `product_variant_groups` row (`SELECT *`): `id, company_id, product_id, group_sku, variant_name, color, status, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/product-variant-groups`  — body: `{ productId (required), groupSku (required), variantName (required), color? }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/product-variant-groups/:id`  — response: same row shape as above
+- PATCH  `localhost:4000/api/v1/product-variant-groups/:id`  — body (all optional): `{ variantName?, color?, status?: "active"|"inactive" }`  — response: same row shape as above
+- DELETE `localhost:4000/api/v1/product-variant-groups/:id`  — response: `{}` (empty object)
 ## Brands
-- GET    `localhost:4000/api/v1/brands`  — paginated list
-- POST   `localhost:4000/api/v1/brands`  — body: `{ name (required), brandCode?, country?, description?, tagline? }`
-- GET    `localhost:4000/api/v1/brands/:id`
-- PATCH  `localhost:4000/api/v1/brands/:id`  — same body shape as create (all fields optional), plus `status?: "active"|"inactive"`
-- DELETE `localhost:4000/api/v1/brands/:id`
+- GET    `localhost:4000/api/v1/brands`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `brands` row (`SELECT *`): `id, company_id, name, brand_code, country, description, tagline, status, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/brands`  — body: `{ name (required), brandCode?, country?, description?, tagline? }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/brands/:id`  — response: same row shape as above
+- PATCH  `localhost:4000/api/v1/brands/:id`  — same body shape as create (all fields optional), plus `status?: "active"|"inactive"`  — response: same row shape as above
+- DELETE `localhost:4000/api/v1/brands/:id`  — response: `{}` (empty object)
 ## Departments
-- GET    `localhost:4000/api/v1/departments`  — paginated list
-- POST   `localhost:4000/api/v1/departments`  — body: `{ name (required) }`
-- GET    `localhost:4000/api/v1/departments/:id`
-- PATCH  `localhost:4000/api/v1/departments/:id`  — body (all optional): `{ name?, status?: "active"|"inactive" }`
-- DELETE `localhost:4000/api/v1/departments/:id`
+- GET    `localhost:4000/api/v1/departments`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `departments` row: `id, company_id, name, status, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/departments`  — body: `{ name (required) }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/departments/:id`  — response: same row shape as above
+- PATCH  `localhost:4000/api/v1/departments/:id`  — body (all optional): `{ name?, status?: "active"|"inactive" }`  — response: same row shape as above
+- DELETE `localhost:4000/api/v1/departments/:id`  — response: `{}` (empty object)
 ## Designations
-- GET    `localhost:4000/api/v1/designations`  — paginated list
-- POST   `localhost:4000/api/v1/designations`  — body: `{ name (required) }`
-- GET    `localhost:4000/api/v1/designations/:id`
-- PATCH  `localhost:4000/api/v1/designations/:id`  — body (all optional): `{ name?, status?: "active"|"inactive" }`
-- DELETE `localhost:4000/api/v1/designations/:id`
+- GET    `localhost:4000/api/v1/designations`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `designations` row: `id, company_id, name, status, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/designations`  — body: `{ name (required) }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/designations/:id`  — response: same row shape as above
+- PATCH  `localhost:4000/api/v1/designations/:id`  — body (all optional): `{ name?, status?: "active"|"inactive" }`  — response: same row shape as above
+- DELETE `localhost:4000/api/v1/designations/:id`  — response: `{}` (empty object)
 ## Customers
-- GET    `localhost:4000/api/v1/customers`  — paginated list
-- POST   `localhost:4000/api/v1/customers`  — body: `{ name (required), phone?, email?, gstin?, billingAddress?, shippingAddress? }`
-- GET    `localhost:4000/api/v1/customers/:id`
-- PATCH  `localhost:4000/api/v1/customers/:id`  — same body shape as create (all fields optional), plus `status?: "active"|"inactive"`
-- DELETE `localhost:4000/api/v1/customers/:id`
+Handled by `party.controller.js` (shared with Vendors below).
+- GET    `localhost:4000/api/v1/customers`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `customers` row (`SELECT *`): `id, company_id, name, phone, email, gstin, billing_address, shipping_address, status, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/customers`  — body: `{ name (required), phone?, email?, gstin?, billingAddress?, shippingAddress? }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/customers/:id`  — response: same row shape as above
+- PATCH  `localhost:4000/api/v1/customers/:id`  — same body shape as create (all fields optional), plus `status?: "active"|"inactive"`  — response: same row shape as above
+- DELETE `localhost:4000/api/v1/customers/:id`  — response: `{}` (empty object)
 ## Vendors
-- GET    `localhost:4000/api/v1/vendors`  — paginated list
-- POST   `localhost:4000/api/v1/vendors`  — body: `{ name (required), phone?, email?, gstin?, address? }`
-- GET    `localhost:4000/api/v1/vendors/:id`
-- PATCH  `localhost:4000/api/v1/vendors/:id`  — same body shape as create (all fields optional), plus `status?: "active"|"inactive"`
-- DELETE `localhost:4000/api/v1/vendors/:id`
+Handled by `party.controller.js` (shared with Customers above).
+- GET    `localhost:4000/api/v1/vendors`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `vendors` row (`SELECT *`): `id, company_id, name, phone, email, gstin, address, status, vendor_type, addresses, bank_account_number, bank_ifsc, bank_name, credit_days, credit_limit, quality_rating, payment_terms, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/vendors`  — body: `{ name (required), phone?, email?, gstin?, address? }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/vendors/:id`  — response: same row shape as above
+- PATCH  `localhost:4000/api/v1/vendors/:id`  — same body shape as create (all fields optional), plus `status?: "active"|"inactive"`  — response: same row shape as above
+- DELETE `localhost:4000/api/v1/vendors/:id`  — response: `{}` (empty object)
 ## Orders
 Customer sales order. Item lines reference `productVariantId`, not `productId`.
-- GET   `localhost:4000/api/v1/orders`  — paginated list
-- POST  `localhost:4000/api/v1/orders`  — body: `{ branchId?, warehouseId (required), customerId (required), items: [{ productVariantId (required), quantity (required, > 0) }] (min 1 item, required) }`
-- GET   `localhost:4000/api/v1/orders/:id`
-- PATCH `localhost:4000/api/v1/orders/:id/status`  — body: `{ status (required): "confirmed"|"packed"|"dispatched"|"delivered"|"completed" }`
-- PATCH `localhost:4000/api/v1/orders/:id/payment-status`  — body: `{ paymentStatus (required): "partial"|"paid"|"refunded" }`
+- GET   `localhost:4000/api/v1/orders`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `orders` row (`SELECT *`) plus `dispatched_at` (null until the order first reaches `"dispatched"`) and a lightweight `items: [ { sku, productName, categoryName, quantity } ]` summary (batch-joined against `product_variants`/`products`/`product_categories`, not a per-row N+1 fetch — no pricing fields at list level, see `GET /orders/:id` for those): `id, company_id, branch_id, warehouse_id, customer_id, order_number, subtotal, tax_amount, total_amount, status, payment_status, dispatched_at, version, items, created_at, updated_at, ...`
+- POST  `localhost:4000/api/v1/orders`  — body: `{ branchId?, warehouseId (required), customerId (required), items: [{ productVariantId (required), quantity (required, > 0) }] (min 1 item, required) }`  — response: same `orders` row shape as above (no `items[]` on create). Same transaction: for every line item where `quantity` exceeds on-hand minus reserved stock, auto-raises a Work Order (carrying both `productId` and `productVariantId`) for the shortfall (`quantity - available`), linked back via `salesOrderId` — see Work Orders below.
+- GET   `localhost:4000/api/v1/orders/:id`  — response: `orders` row (including `dispatched_at`) plus `items: [ {row} ]`, each item being `order_items` joined with variant/product display fields: `id, order_id, product_variant_id, quantity, unit_price, tax_rate, line_total, sku, size, color, product_name, category_name`
+- PATCH `localhost:4000/api/v1/orders/:id/status`  — body: `{ status (required): "confirmed"|"packed"|"dispatched"|"delivered"|"completed" }`  — response: the updated `orders` row (no `items[]`). **Never fails on a stock shortfall.** Moving to `"confirmed"` reserves whatever's on hand per line (`stock.service.js reserveAvailable`) and auto-raises a Work Order for whatever's short (deduped per order+variant) instead of blocking — the order still confirms with a partial reservation. Moving to `"dispatched"` stamps `dispatched_at` (this is what flips the Sales Order PDF from a Proforma Invoice to a final Tax Invoice on the frontend), auto-generates the invoice (`finance.createBillForOrder`, see Finance/Invoices below), and — since dispatch is the one place on-hand quantity actually decreases (`stock.service.js fulfillReservation`) — checks every dispatched line's resulting on-hand quantity against the low-stock threshold (`10`) and auto-raises a standalone (`salesOrderId: null`) replenishment Work Order if it's now under that, sized `10 - on_hand`; skipped if one's already open for that variant. All in the same transaction as the status update, no separate call needed.
+- PATCH `localhost:4000/api/v1/orders/:id/payment-status`  — body: `{ paymentStatus (required): "partial"|"paid"|"refunded" }`  — response: the updated `orders` row (no `items[]`)
+
+## Work Orders
+Manufacturing order to produce `quantity` units of a `product` (a `products.id`), optionally pinned to the exact `productVariantId` (SKU/size/color) that needs making — auto-created work orders always set this; a manually-raised one can leave it null to target the product broadly. Confirming a sales order never blocks on a stock shortfall — see `PATCH /orders/:id/status` above — three ways a row gets created:
+1. **Auto, off a sales-order creation shortfall** — `POST /orders`: one per line item where required quantity exceeds available stock at creation time, `salesOrderId` set to the triggering order.
+2. **Auto, off a confirm-time shortfall** — `PATCH /orders/:id/status` moving to `"confirmed"`: `stockService.reserveAvailable` reserves whatever's on hand and reports the rest as a shortfall instead of failing — that gap becomes a work order (deduped per order+variant) in the same transaction, and the order still confirms.
+3. **Auto, off a low-stock dispatch** — `PATCH /orders/:id/status` moving to `"dispatched"`: standalone (`salesOrderId: null`), one per variant whose on-hand quantity drops under `10` and doesn't already have an open (`pending`/`in_progress`) replenishment work order.
+
+Manual create/edit/delete is also available for anything not covered by the three triggers above.
+
+**Raw material request (`workOrder.service.js` → `materialIssueRequest.service.js createForWorkOrder`, all 4 creation paths — the 3 above plus manual `POST /work-orders`):** the instant a work order exists (and has a `warehouseId`), its product's Bill of Materials (see BOM below) is snapshotted into a Material Issue Request — `quantityRequired = quantityPerUnit × workOrder.quantity` per raw-material line — in status `"pending_approval"`, `requestedBy` = the work order's own `actorId` (for auto-created work orders that's whoever's action triggered them, e.g. the sales rep who created/confirmed the triggering SO). **Nothing is reserved and no PR exists yet at this point** — see Material Issue Requests below for what happens on approval. No BOM lines for the product, or no `warehouseId` on the work order → silent no-op, no MIR raised.
+- GET    `localhost:4000/api/v1/work-orders`  — paginated; query: `stage?` (`pending`/`in_progress`/`completed`/`cancelled`), `search?` (matches `work_order_number`) — response: `{ data: [ {row} ], meta }`; row is the `work_orders` row (`SELECT wo.*`) joined with product/variant/warehouse/order display fields: `id, company_id, product_id, product_variant_id, warehouse_id, sales_order_id, work_order_number, quantity, stage, due_date, raw_material_cost, labour_cost, machine_cost, electricity_cost, packaging_cost, overhead_cost, remarks, product_name, sku, size, color, warehouse_name, sales_order_number, created_at, updated_at, ...` (`sku`/`size`/`color`, `warehouse_name`, and `sales_order_number` are `null` when the work order has no variant/warehouse/sales order attached)
+- POST   `localhost:4000/api/v1/work-orders`  — body: `{ productId (required), productVariantId?, warehouseId? (needed for the raw-material auto-consumption above — omit to skip it), salesOrderId?, workOrderNumber? (auto-generated if omitted, e.g. `WO-1786549244212-E633`), quantity (required, > 0), stage?: "pending"|"in_progress"|"completed"|"cancelled" (default "pending"), dueDate? (ISO date), rawMaterialCost?, labourCost?, machineCost?, electricityCost?, packagingCost?, overheadCost? (all default 0), remarks? }`  — response: raw `work_orders` row (`RETURNING *`, NOT joined with `product_name`/`sku`/`size`/`color`/`warehouse_name`/`sales_order_number` like list/detail)
+- GET    `localhost:4000/api/v1/work-orders/:id`  — response: same joined row shape as list, above
+- PATCH  `localhost:4000/api/v1/work-orders/:id`  — body (all optional): `{ quantity?, stage?, dueDate?, rawMaterialCost?, labourCost?, machineCost?, electricityCost?, packagingCost?, overheadCost?, remarks? }`. No `productId`/`productVariantId`/`warehouseId`/`salesOrderId` change — those are fixed at creation (and BOM consumption only ever runs once, at creation — increasing `quantity` here does not re-check/re-reserve raw material). — response: raw `work_orders` row (`RETURNING *`, no joined names)
+- DELETE `localhost:4000/api/v1/work-orders/:id`  — response: `{}` (empty object)
+
+## Bill of Materials
+How much of a raw-material variant (`raw_material_variant_id`, a `product_variants.id`) goes into producing **one unit** of a finished product (`productId`, a `products.id`). Purely master data — managed independently of any work order; snapshotted (read-only) into a Material Issue Request the moment a work order is created — see below. No `search`/`stage`-style filters beyond `product_id`, since a company's full BOM is typically small enough to page through per-product.
+- GET    `localhost:4000/api/v1/bom`  — paginated; query: `product_id?` — response: `{ data: [ {row} ], meta }`; row is the `bill_of_materials` row (`SELECT bom.*`) joined with raw-material variant and product display fields: `id, company_id, product_id, raw_material_variant_id, quantity_per_unit, remarks, sku, size, color, raw_material_name, product_name, created_at, updated_at, ...` (`raw_material_name` is the raw material's own product name, `product_name` is the finished product this BOM line belongs to)
+- POST   `localhost:4000/api/v1/bom`  — body: `{ productId (required), rawMaterialVariantId (required), quantityPerUnit (required, > 0), remarks? }`. Unique per `(productId, rawMaterialVariantId)` — a second line for the same pair should `PATCH` the existing one instead. — response: raw `bill_of_materials` row (`RETURNING *`, no joined names)
+- GET    `localhost:4000/api/v1/bom/:id`  — response: same joined row shape as list, above
+- PATCH  `localhost:4000/api/v1/bom/:id`  — body (all optional): `{ quantityPerUnit?, remarks? }`. No `productId`/`rawMaterialVariantId` change — delete and recreate the line instead. — response: raw `bill_of_materials` row (`RETURNING *`, no joined names)
+- DELETE `localhost:4000/api/v1/bom/:id`  — response: `{}` (empty object)
+
+## Material Issue Requests
+The gate between a work order existing and its raw material actually leaving the warehouse. Auto-created only (no manual `POST`) — one per work order, the moment it's created (see Work Orders above), snapshotting its product's BOM × the work order's quantity as line items (each item's `quantityRequired` fixed at creation; `quantityReserved` starts at `0` and is filled in on approval), status `"pending_approval"`. Three hand-offs from there, each its own role (mirrors Orders' confirm-then-dispatch split — approval reserves, issuing is the actual deduction, kept manual and separate on purpose):
+- **Approve** (Production Manager, `material_issue_request.approve`) — `PATCH /material-issue-requests/:id/approve`: for each line, checks real `warehouse_stock` (on-hand minus already-reserved) for that raw material in the MIR's warehouse, reserves whatever's available (`quantity_reserved` on `warehouse_stock` += reserved amount, and that same per-line amount is stamped onto the MIR item's own `quantity_reserved` — not the same field, one's the shared stock row, one's this line's slice of it), and — for anything still short across all lines — raises a single Purchase Request (`priority: "high"`, one item per short raw material, `requestedBy` = the MIR's original `requestedBy`, i.e. production) left in its default just-created status for the normal PR pipeline to pick up. All atomic with the status flip to `"approved"`. Only from `"pending_approval"`.
+- **Reject** (Production Manager, `material_issue_request.approve`) — `PATCH /material-issue-requests/:id/reject`: just flips status to `"rejected"`, no stock or PR side-effects. Only from `"pending_approval"`.
+- **Issue** (warehouse staff, `material_issue_request.issue`) — `PATCH /material-issue-requests/:id/issue`: the explicit, manual "material has physically left the warehouse for production" step. For each line, deducts on-hand by exactly that line's `quantity_reserved` (recorded at approval — never `quantity_required`, since the shortfall portion was never reserved and isn't issuable) and clears the matching `quantity_reserved` on `warehouse_stock`. Only from `"approved"`.
+
+All three are optimistic-version-locked like Orders/POs and reject an out-of-sequence call with `MIR_001` (wrong starting status *or* a concurrent modification).
+- GET   `localhost:4000/api/v1/material-issue-requests`  — `material_issue_request.view`. Paginated; query: `status?` (`pending_approval`/`approved`/`rejected`/`issued`) — response: `{ data: [ {row} ], meta }`; row is the `material_issue_requests` row (`SELECT mir.*`) joined with work-order/product/warehouse/requester/approver display fields, no items: `id, company_id, work_order_id, warehouse_id, mir_number, status, version, requested_by, approved_by, approved_at, remarks, work_order_number, product_id, product_variant_id, product_name, warehouse_name, requested_by_name, approved_by_name, created_at, updated_at, ...`
+- GET   `localhost:4000/api/v1/material-issue-requests/:id`  — `material_issue_request.view`. Response: same joined row as list, above, plus `items: [ {row} ]`, each item being `material_issue_request_items` joined with variant/product display fields: `id, material_issue_request_id, raw_material_variant_id, quantity_required, quantity_reserved, sku, size, color, raw_material_name`
+- PATCH `localhost:4000/api/v1/material-issue-requests/:id/approve`  — `material_issue_request.approve`. No body. — response: raw `material_issue_requests` row (`RETURNING *`, no joined names/items), `status: "approved"`
+- PATCH `localhost:4000/api/v1/material-issue-requests/:id/reject`  — `material_issue_request.approve`. No body. — response: raw `material_issue_requests` row (`RETURNING *`, no joined names/items), `status: "rejected"`
+- PATCH `localhost:4000/api/v1/material-issue-requests/:id/issue`  — `material_issue_request.issue`. No body. — response: raw `material_issue_requests` row (`RETURNING *`, no joined names/items), `status: "issued"`
+
 ## Purchase Orders
 A PO can only be created against an already-**approved** (or `converted_to_rfq`) Purchase Request — `purchaseRequestId` is mandatory. Item lines reference `productVariantId`, not `productId`.
-- GET   `localhost:4000/api/v1/purchase-orders`  — paginated list
-- POST  `localhost:4000/api/v1/purchase-orders`  — body: `{ branchId?, poNumber? (auto-generated if omitted), purchaseRequestId (required, must be an approved/converted_to_rfq PR), warehouseId (required), vendorId (required), deliveryAddress?, taxAmount? (default 0), paymentTerms?, expectedDeliveryDate?, items: [{ productVariantId (required), quantity (required, > 0), unitCost (required, ≥ 0) }] (min 1 item, required) }`
-- GET   `localhost:4000/api/v1/purchase-orders/generate-number`  — reserves and returns the next PO number (`DSF-PO-0001`)
-- GET   `localhost:4000/api/v1/purchase-orders/:id`  — includes `items[]`
+- GET   `localhost:4000/api/v1/purchase-orders`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the `purchase_orders` row joined with display names, no items: `id, company_id, branch_id, warehouse_id, vendor_id, purchase_request_id, rfq_id, po_number, total_amount, tax_amount, delivery_address, payment_terms, expected_delivery_date, status, version, branch_name, warehouse_name, vendor_name, pr_number, created_at, updated_at, ...`
+- POST  `localhost:4000/api/v1/purchase-orders`  — body: `{ branchId?, poNumber? (auto-generated if omitted), purchaseRequestId (required, must be an approved/converted_to_rfq PR), warehouseId (required), vendorId (required), deliveryAddress?, taxAmount? (default 0), paymentTerms?, expectedDeliveryDate?, items: [{ productVariantId (required), quantity (required, > 0), unitCost (required, ≥ 0) }] (min 1 item, required) }`  — response: raw `purchase_orders` row (`RETURNING *`, no joined names, no `items[]`)
+- GET   `localhost:4000/api/v1/purchase-orders/generate-number`  — reserves and returns the next PO number (`DSF-PO-0001`) — response: `{ poNumber }`
+- GET   `localhost:4000/api/v1/purchase-orders/:id`  — includes `items[]` — response: the joined `purchase_orders` row (same shape as list, above) plus `items: [ {row} ]`, each item being `purchase_order_items` joined with variant/product display fields: `id, purchase_order_id, product_variant_id, quantity, unit_cost, line_total, sku, size, color, product_name`
 - PATCH `localhost:4000/api/v1/purchase-orders/:id/status`  — body: `{ status (required): "pending_approval"|"approved"|"sent"|"acknowledged"|"partially_received"|"completed"|"cancelled" }`. Pipeline is sequential (`draft→pending_approval→approved→sent→acknowledged→partially_received→completed`); `cancelled` can fork off any state before `completed`. Moving to `partially_received` auto-credits on-hand stock for every line item (this is also where GRN/material-receipt happens — there's no separate GRN endpoint).
+  — response: raw `purchase_orders` row (`RETURNING *`, no joined names/items)
 ## Purchase Requests
 Internal ask for goods raised *before* any vendor/PO exists (no pricing, no vendor — that's decided later at the Purchase Order stage). Item lines reference `productVariantId`, not `productId`.
-- GET   `localhost:4000/api/v1/purchase-requests`  — query: `status?` (`draft`/`submitted`/`pending_approval`/`approved`/`rejected`/`converted_to_rfq`)
+- GET   `localhost:4000/api/v1/purchase-requests`  — paginated; query: `status?` (`draft`/`submitted`/`pending_approval`/`approved`/`rejected`/`converted_to_rfq`) — response: `{ data: [ {row} ], meta }`; row is the `purchase_requests` row joined with display names, plus `items: [ {row} ]` (unlike PO/RFQ list, items ARE included per-row here): `id, company_id, branch_id, warehouse_id, department_id, requested_by, pr_number, priority, required_date, remarks, status, version, branch_name, warehouse_name, department_name, requested_by_name, items, created_at, updated_at, ...`; each item: `id, purchase_request_id, product_variant_id, quantity, remarks, sku, size, color, product_name`
 - POST  `localhost:4000/api/v1/purchase-requests`  — body: `{ branchId?, prNumber? (auto-generated if omitted), warehouseId (required), departmentId?, priority?: "low"|"medium"|"high"|"urgent" (default "medium"), requiredDate?, remarks?, items: [{ productVariantId (required), quantity (required, > 0), remarks? }] (min 1 item, required) }`. Note: `productVariantId` must be a `product_variants.id` (a specific SKU/size), not a `products.id` — Purchase always references the variant level, per the Chapter 7/9 Product/Variant split.
-- GET   `localhost:4000/api/v1/purchase-requests/generate-number`  — reserves and returns the next PR number (`DSF-PR-0001`)
-- GET   `localhost:4000/api/v1/purchase-requests/:id`
+  — response: raw `purchase_requests` row (`RETURNING *`, no joined names) plus `items: [ {purchase_request_items row} ]`: `id, purchase_request_id, product_variant_id, quantity, remarks`
+- GET   `localhost:4000/api/v1/purchase-requests/generate-number`  — reserves and returns the next PR number (`DSF-PR-0001`) — response: `{ prNumber }`
+- GET   `localhost:4000/api/v1/purchase-requests/:id`  — response: joined `purchase_requests` row plus `items: [ {row with sku/size/color/product_name} ]` (same shape as the list row above)
 - PATCH `localhost:4000/api/v1/purchase-requests/:id/status`  — body: `{ status (required): "submitted"|"pending_approval"|"approved"|"rejected"|"converted_to_rfq" }`. A PO can only be created once status is `approved` or `converted_to_rfq`.
+  — response: raw `purchase_requests` row (`RETURNING *`, no joined names/items)
+
+## RFQs
+- GET   `localhost:4000/api/v1/rfqs`  — paginated; query: `status?`, `purchaseRequestId?` — response: `{ data: [ {row} ], meta }`; row is the `rfqs` row joined with display names, no vendors/quotations: `id, company_id, branch_id, purchase_request_id, selected_vendor_quotation_id, rfq_number, delivery_location, delivery_date, payment_terms, technical_specifications, remarks, status, version, branch_name, pr_number, warehouse_id (from the linked PR), created_at, updated_at, ...`
+- POST  `localhost:4000/api/v1/rfqs`  — body: `{ branchId? (guid|null), purchaseRequestId (required), vendorIds: [guid] (required, min 1), deliveryLocation?, deliveryDate?, paymentTerms?, technicalSpecifications?, remarks? }`
+  — response: raw `rfqs` row (`RETURNING *`, no joined names) plus `vendors: [ { vendor_id, sent_at, vendor_name, vendor_email, quality_rating } ]`
+- GET   `localhost:4000/api/v1/rfqs/generate-number`  — reserves and returns the next RFQ number — response: `{ rfqNumber }`
+- GET   `localhost:4000/api/v1/rfqs/:id`  — response: joined `rfqs` row (same shape as list, above) plus `materialItems: [ {purchase_request_items row w/ sku/size/color/product_name} ]` (from the linked PR), `vendors: [ { vendor_id, sent_at, vendor_name, vendor_email, quality_rating } ]`, and `quotations: [ {vendor quotation row, see Vendor Quotations below, each with items[]} ]`
+- PATCH `localhost:4000/api/v1/rfqs/:id/send`  — no body — response: raw `rfqs` row (`RETURNING *`, no joined names/vendors)
+- PATCH `localhost:4000/api/v1/rfqs/:id/select-vendor`  — body: `{ vendorQuotationId (required) }`  — response: raw `rfqs` row (`RETURNING *`, `status` now `"vendor_selected"`, `selected_vendor_quotation_id` set)
+
+## Vendor Quotations
+- POST `localhost:4000/api/v1/vendor-quotations`  — body: `{ rfqId (required), vendorId (required), deliveryTimeDays?, paymentTerms?, validityDate?, freightAmount? (default 0), discountAmount? (default 0), remarks?, items: [{ productVariantId (required), unitPrice (required), gstPercentage? (default 0) }] (min 1 item, required) }`
+  — response: raw `vendor_quotations` row (`RETURNING *`): `id, company_id, rfq_id, vendor_id, delivery_time_days, payment_terms, validity_date, freight_amount, discount_amount, remarks, created_at, updated_at, ...` plus `items: [ {vendor_quotation_items row w/ sku/size/color/product_name} ]`: `id, vendor_quotation_id, product_variant_id, unit_price, gst_percentage, sku, size, color, product_name`. (No GET/list route exists for this module — quotations are only readable nested inside `GET /rfqs/:id`, where each row is additionally joined with `vendor_name`, `quality_rating`.)
+
+## GRN / Vendor Invoice
+- GET    `localhost:4000/api/v1/grn`  — paginated; query: `vendorId?`, `warehouseId?` — response: `{ data: [ {row} ], meta }`; row is the `grns` row joined with display names, no items, plus a resolved `vendor_invoice_url` (signed download URL) when an invoice is attached: `id, company_id, branch_id, warehouse_id, vendor_id, purchase_order_id, grn_number, vendor_invoice_document_id, vendor_invoice_uploaded_at, remarks, branch_name, warehouse_name, vendor_name, po_number, vendor_invoice_file_name, vendor_invoice_mime_type, vendor_invoice_url?, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/grn/invoice`  — multipart/form-data body: `grnNumber` (required) + `file` (PDF/JPEG/PNG) — response: raw `grns` row (`RETURNING *`, NOT joined with branch/warehouse/vendor/po names like the list/detail routes) plus the resolved `vendor_invoice_url` (no `items[]`)
+- GET    `localhost:4000/api/v1/grn/:id`  — response: same joined `grns` row as list, above, plus `items: [ {row} ]`, each item being `grn_items` joined with variant/product display fields: `id, grn_id, purchase_order_item_id, product_variant_id, ordered_quantity, received_quantity, unit_cost, sku, size, color, product_name`
+
+## Vendor Bills
+- GET    `localhost:4000/api/v1/vendor-bills`  — paginated; query: `status?`, `vendorId?` — response: `{ data: [ {row} ], meta }`; row is the `vendor_bills` row joined with vendor/PO/PR/GRN display fields, plus a resolved `invoice_url` when an invoice document exists: `id, company_id, branch_id, warehouse_id, vendor_id, grn_id, purchase_order_id, invoice_number, total_amount, amount_paid, payment_due_date, utr_number, status, paid_at, version, vendor_name, vendor_phone, vendor_email, vendor_gstin, vendor_bank_account_number, vendor_bank_ifsc, vendor_bank_name, po_number, pr_number, grn_number, vendor_invoice_document_id, invoice_url?, created_at, updated_at, ...`
+- GET    `localhost:4000/api/v1/vendor-bills/:id`  — response: same row shape as list, above
+- POST   `localhost:4000/api/v1/vendor-bills/:id/payment`  — body: `{ amount (required, > 0), utrNumber (required) }`  — response: raw `vendor_bills` row (`RETURNING *`, no joined names/`invoice_url`), `status` becomes `"partial"` or `"paid"` depending on whether `amount_paid` now covers `total_amount`
+
 ## Finance
-- GET   `localhost:4000/api/v1/finance/transactions`
-- POST  `localhost:4000/api/v1/finance/transactions`  — body: `{ branchId?, transactionDate? (ISO, defaults to now), referenceType: "order"|"purchase_order"|"expense"|"manual", referenceId?, direction: "debit"|"credit", amount (positive number), description? }`. No `account` field exists — this is a flat ledger-entry table (`company_id`/`branch_id` scoped only), not a wallet/chart-of-accounts. Only `referenceType: "manual"` lets the caller choose `direction`; for `order"`/`"purchase_order"`/`"expense"` the backend force-overrides direction (`order`→credit, `purchase_order`/`expense`→debit) regardless of what's sent. To add funds: `{ "referenceType": "manual", "direction": "credit", "amount": ..., "description": "..." }`. Posting date must fall in an open fiscal period or the write is rejected.
-- GET   `localhost:4000/api/v1/finance/payment-slips`  — paginated list. Customer-side receipts only — there is no vendor-payment endpoint yet.
-- POST  `localhost:4000/api/v1/finance/payment-slips`  — body: `{ orderId?, customerId (required), amount (required, > 0), paymentMode?: "cash"|"upi"|"card"|"bank_transfer" }`
-- GET   `localhost:4000/api/v1/finance/expenses`  — paginated list
-- POST  `localhost:4000/api/v1/finance/expenses`  — body: `{ warehouseId?, category (required), amount (required, > 0), description? }`
-- GET   `localhost:4000/api/v1/finance/bills`  — paginated list
-- POST  `localhost:4000/api/v1/finance/bills/print`  — body: `{ orderId (required) }`
-- GET   `localhost:4000/api/v1/finance/ledger/summary`  — query: `from?`, `to?` (ISO dates; omit both for all-time). Response: `{ "debit": number, "credit": number, "balance": number }` where `balance = credit - debit`. No opening/closing-balance carry-forward — it's a flat sum over the (optionally date-filtered) range, not a running ledger balance. These 3 keys (`debit`/`credit`/`balance`) are the only authoritative source for a displayed balance; `/finance/transactions` rows carry no running-balance field.
-- GET   `localhost:4000/api/v1/finance/fiscal-periods`  — paginated list
-- POST  `localhost:4000/api/v1/finance/fiscal-periods`  — body: `{ periodStart (ISO date, required), periodEnd (ISO date, required, must be ≥ periodStart) }`
-- PATCH `localhost:4000/api/v1/finance/fiscal-periods/:id/close`  — no body
-- GET   `localhost:4000/api/v1/finance/gst`  — CA scope: GSTIN + GST settings profile
-- GET   `localhost:4000/api/v1/finance/audits`  — CA scope: statutory audit records
-- POST  `localhost:4000/api/v1/finance/audits`  — CA scope: record a statutory audit. body: `{ fiscalPeriodId?, auditorName (required), conductedAt (ISO date, required), findings?, remarks? }`
-- GET   `localhost:4000/api/v1/finance/ledger/cross-verify`  — CA scope: single-tenant ledger cross-verification
+- GET   `localhost:4000/api/v1/finance/transactions`  — paginated; query: `reference_type?` — response: `{ data: [ {row} ], meta }`. **Not** a raw `finance_transactions` row — the repo hand-selects a ledger view with a running balance: `{ transaction_id, date, type, description, debit, credit, balance }`, where `debit`/`credit` are the amount on that side (`0` on the other), and `balance` is a cumulative running total computed via a SQL window function (`SUM(...) OVER (ORDER BY transaction_date, created_at)`) — so despite the ledger/summary note below, transaction rows **do** carry a running balance.
+- POST  `localhost:4000/api/v1/finance/transactions`  — body: `{ branchId?, transactionDate? (ISO, defaults to now), referenceType: "order"|"purchase_order"|"expense"|"manual", referenceId?, direction: "debit"|"credit", amount (positive number), description? }`. No `account` field exists — this is a flat ledger-entry table (`company_id`/`branch_id` scoped only), not a wallet/chart-of-accounts. Only `referenceType: "manual"` lets the caller choose `direction`; for `order`/`purchase_order`/`expense` the backend force-overrides direction (`order`→credit, `purchase_order`/`expense`→debit) regardless of what's sent. To add funds: `{ "referenceType": "manual", "direction": "credit", "amount": ..., "description": "..." }`. Posting date must fall in an open fiscal period or the write is rejected.
+  — response: raw `finance_transactions` row (`RETURNING *`, NOT the ledger-view shape above): `id, company_id, branch_id, fiscal_period_id, transaction_date, reference_type, reference_id, direction, amount, description, created_at, updated_at, ...`
+- GET   `localhost:4000/api/v1/finance/payment-slips`  — paginated list. Customer-side receipts only — there is no vendor-payment endpoint yet. — response: `{ data: [ {row} ], meta }`; row is the raw `payment_slips` row (`SELECT *`): `id, company_id, order_id, customer_id, slip_number, amount, payment_mode, issued_by, created_at, updated_at, ...`
+- POST  `localhost:4000/api/v1/finance/payment-slips`  — body: `{ orderId?, customerId (required), amount (required, > 0), paymentMode?: "cash"|"upi"|"card"|"bank_transfer" }`  — response: same row shape as above
+- GET   `localhost:4000/api/v1/finance/expenses`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `expenses` row (`SELECT *`): `id, company_id, warehouse_id, category, amount, description, recorded_by, created_at, updated_at, ...`
+- POST  `localhost:4000/api/v1/finance/expenses`  — body: `{ warehouseId?, category (required), amount (required, > 0), description? }`  — response: same row shape as above
+### Invoices (`bills` table)
+A sales invoice **is** a `bills` row — there's no separate `invoices` table/module. A bill is auto-created the moment an order's status first reaches `"dispatched"` (`order.service.js transitionOrder`, same transaction as the status update — see `PATCH /orders/:id/status` above); it can also be triggered manually via `POST /finance/bills/print`, which is idempotent (a second call for the same order just returns the existing bill). `due_date` is stamped as `+15 days` from creation. `status` starts `"unpaid"` and only moves via `PATCH /finance/bills/:id/status` — there's no generic edit or delete route (amount/GST are derived from the order and aren't independently editable).
+- GET   `localhost:4000/api/v1/finance/bills`  — paginated; query: `search?` (matches `bill_number` or customer name), `status?` (`unpaid`/`partial`/`paid`), `date_from?`/`date_to?` (filter on `due_date`) — response: `{ data: [ {row} ], meta }`; row is the `bills` row (`SELECT b.*`) joined with customer/order display fields: `id, company_id, order_id, customer_id, bill_number, gst_amount, total_amount, balance_due, due_date, status, printed_by, printed_at, party, sales_order_number, created_at, updated_at, ...` (`party` = customer name, `sales_order_number` = linked order's `order_number`, both `null` if the customer/order was deleted)
+- GET   `localhost:4000/api/v1/finance/bills/:id`  — response: same joined row shape as list, above (used to build the downloadable invoice PDF client-side)
+- POST  `localhost:4000/api/v1/finance/bills/print`  — body: `{ orderId (required) }`  — response: raw `bills` row (`RETURNING *`, NOT joined with `party`/`sales_order_number` like list/detail)
+- PATCH `localhost:4000/api/v1/finance/bills/:id/status`  — body: `{ status?: "unpaid"|"partial"|"paid", paidAmount?: number ≥ 0 }` (at least one required). `paidAmount` is the **total received so far**, not a delta — the backend derives `balance_due = total_amount - paidAmount` (floored at 0) and, if `status` is omitted, infers it from the resulting balance. — response: raw `bills` row (`RETURNING *`, no joined `party`/`sales_order_number`)
+- GET   `localhost:4000/api/v1/finance/ledger/summary`  — query: `from?`, `to?` (ISO dates; omit both for all-time). Response: `{ "debit": number, "credit": number, "balance": number }` where `balance = credit - debit`. No opening/closing-balance carry-forward — it's a flat sum over the (optionally date-filtered) range, not a running ledger balance.
+- GET   `localhost:4000/api/v1/finance/fiscal-periods`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `fiscal_periods` row (`SELECT *`): `id, company_id, period_start, period_end, status, closed_by, closed_at, created_at, updated_at, ...`
+- POST  `localhost:4000/api/v1/finance/fiscal-periods`  — body: `{ periodStart (ISO date, required), periodEnd (ISO date, required, must be ≥ periodStart) }`  — response: same row shape as above
+- PATCH `localhost:4000/api/v1/finance/fiscal-periods/:id/close`  — no body — response: same row shape as above, `status: "closed"`
+- GET   `localhost:4000/api/v1/finance/gst`  — CA scope: GSTIN + GST settings profile — response: `{ gstin, legalName, gstSettings }` (hand-built camelCase object; `gstSettings` is the free-form `company_settings.gst_settings` JSON, `{}` if unset)
+- GET   `localhost:4000/api/v1/finance/audits`  — CA scope: statutory audit records — response: `{ data: [ {row} ], meta }`; row is the raw `statutory_audits` row (`SELECT *`): `id, company_id, fiscal_period_id, auditor_name, conducted_at, findings, remarks, created_at, updated_at, ...`
+- POST  `localhost:4000/api/v1/finance/audits`  — CA scope: record a statutory audit. body: `{ fiscalPeriodId?, auditorName (required), conductedAt (ISO date, required), findings?, remarks? }`  — response: same row shape as above
+- GET   `localhost:4000/api/v1/finance/ledger/cross-verify`  — CA scope: single-tenant ledger cross-verification — response: `{ debit, credit, balance, verified: true, verifiedAt }` (same 3 numeric keys as `/finance/ledger/summary`, all-time since no `from`/`to` is passed, plus `verified`/`verifiedAt`)
 ## Loans (Debt Tracking)
 Money borrowed by the company from a bank/vendor/other lender. Outstanding balance is never stored — it's always derived as `principal_amount - SUM(repayments.principal_component)`. Disbursement posts an auto credit `finance_transaction`; each repayment posts an auto debit — both flow into `/finance/ledger/summary` automatically.
 
@@ -131,16 +225,18 @@ Permissions follow the same CA-is-read-only convention as the rest of Finance (s
 - `loan.view` (read-only) — CA + Accountant + Owner + Super Admin
 - `loan.manage` (create/repay/write-off) — Accountant + Owner + Super Admin only, **not CA**
 
-- GET    `localhost:4000/api/v1/loans/generate-number`  — `loan.manage`. Previews (does not consume) the next loan number, e.g. `DSF-LN-0001`
-- GET    `localhost:4000/api/v1/loans`  — `loan.view`. Query: `status?` (`active`/`closed`/`written_off`)
+- GET    `localhost:4000/api/v1/loans/generate-number`  — `loan.manage`. Previews (does not consume) the next loan number, e.g. `DSF-LN-0001` — response: `{ loanNumber }` (hand-built camelCase object, like the other `generate-number` endpoints' `poNumber`/`prNumber`/`rfqNumber`)
+- GET    `localhost:4000/api/v1/loans`  — `loan.view`. Paginated; query: `status?` (`active`/`closed`/`written_off`) — response: `{ data: [ {row} ], meta }`; row is the raw `loans` row (`SELECT *`, no derived balance fields at list level): `id, company_id, branch_id, loan_number, lender_name, lender_type, principal_amount, interest_rate, interest_type, start_date, tenure_months, remarks, status, version, created_at, updated_at, ...`
 - POST   `localhost:4000/api/v1/loans`  — `loan.manage`. Body: `{ branchId?, loanNumber?, lenderName, lenderType?: "bank"|"vendor"|"other" (default "bank"), principalAmount, interestRate?: 0-100 (default 0), interestType?: "flat"|"reducing" (default "flat"), startDate (ISO), tenureMonths?, remarks? }`
-- GET    `localhost:4000/api/v1/loans/:id`  — `loan.view`. Includes derived `repaidPrincipal` and `outstandingBalance`
-- PATCH  `localhost:4000/api/v1/loans/:id/write-off`  — `loan.manage`. Manual terminal state for a loan that will never be repaid; only valid from `active`
-- GET    `localhost:4000/api/v1/loans/:id/repayments`  — `loan.view`
+  — response: raw `loans` row (`RETURNING *`, no derived balance fields)
+- GET    `localhost:4000/api/v1/loans/:id`  — `loan.view`. Includes derived `repaidPrincipal` and `outstandingBalance` — response: raw `loans` row (same columns as list, above) plus hand-computed `repaidPrincipal` (number, sum of `loan_repayments.principal_component`) and `outstandingBalance` (number, `principal_amount - repaidPrincipal`, floored at 0) — these two are the only camelCase keys on an otherwise snake_case row
+- PATCH  `localhost:4000/api/v1/loans/:id/write-off`  — `loan.manage`. Manual terminal state for a loan that will never be repaid; only valid from `active` — response: raw `loans` row (`RETURNING *`), `status: "written_off"` (no derived balance fields)
+- GET    `localhost:4000/api/v1/loans/:id/repayments`  — `loan.view`, paginated — response: `{ data: [ {row} ], meta }`; row is the raw `loan_repayments` row: `id, company_id, loan_id, amount, principal_component, interest_component, paid_at, remarks, created_at, updated_at, ...`
 - POST   `localhost:4000/api/v1/loans/:id/repayments`  — `loan.manage`. Body: `{ amount, principalComponent (0 ≤ principalComponent ≤ amount), paidAt?, remarks? }`; `interestComponent` is derived server-side as `amount - principalComponent`. Loan auto-closes (`status: "closed"`) once `outstandingBalance` hits 0 — no separate close call needed for a normal payoff. Fails with `LOAN_002` if the loan isn't `active`.
+  — response: raw `loan_repayments` row (`RETURNING *`, same columns as the list row above) plus a hand-computed `outstandingBalance` (number, post-payment)
 ## Notifications
-- GET  `localhost:4000/api/v1/notifications`  — paginated list
-- POST `localhost:4000/api/v1/notifications`  — body: `{ userId? (guid, null = broadcast), channel (required): "email"|"sms"|"push", templateKey (required), recipient (required), payload? (free-form object) }`
+- GET  `localhost:4000/api/v1/notifications`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `notifications` row (`SELECT *`): `id, company_id, user_id, channel, template_key, recipient, payload, status, attempts, last_error, sent_at, created_at, updated_at, ...`
+- POST `localhost:4000/api/v1/notifications`  — body: `{ userId? (guid, null = broadcast), channel (required): "email"|"sms"|"push", templateKey (required), recipient (required), payload? (free-form object) }`  — response: same row shape as above, `status` still at its default (queued, not yet delivered — actual send happens async via a Redis worker); HTTP status code is `202`, not `201`
 ## Analytics
 All three routes are gated by a single flat permission `analytics.view` — there is **no per-widget/per-role data scoping on the backend**. Whoever holds `analytics.view` gets every widget in full; the seeded Accountant/CA roles don't have `analytics.view` at all (only Admin does by default), so today it's all-or-nothing access, not "finance role sees only finance data". Any module-wise filtering of the dashboard has to be done on the frontend.
 - GET  `localhost:4000/api/v1/analytics/dashboard`  — returns an array of all widgets:
@@ -156,17 +252,17 @@ All three routes are gated by a single flat permission `analytics.view` — ther
 - GET  `localhost:4000/api/v1/analytics/dashboard/:key`  — same single-widget shape as one array entry above. `key` must be `sales_summary` or `inventory_status`; anything else → `COMMON_001` error.
 - POST `localhost:4000/api/v1/analytics/regenerate`  — forces the snapshot job to run immediately (same job the nightly scheduler runs), returns `{ "companies": <count regenerated> }`. Doesn't take a body.
 ## Company / Branches / Warehouses / Settings
-- GET    `localhost:4000/api/v1/company`
-- PATCH  `localhost:4000/api/v1/company`  — body (all optional): `{ name?, legalName?, gstin?, baseCurrency?, locale?, theme? }`
-- GET    `localhost:4000/api/v1/branches`  — paginated list
-- POST   `localhost:4000/api/v1/branches`  — body: `{ name (required), code?, address? }`
-- GET    `localhost:4000/api/v1/branches/:id`
-- PATCH  `localhost:4000/api/v1/branches/:id`  — body (all optional): `{ name?, code?, address?, status?: "active"|"inactive" }`
-- DELETE `localhost:4000/api/v1/branches/:id`
-- GET    `localhost:4000/api/v1/warehouses`  — paginated list
-- POST   `localhost:4000/api/v1/warehouses`  — body: `{ branchId (required), name (required), code?, address? }`
-- GET    `localhost:4000/api/v1/warehouses/:id`
-- PATCH  `localhost:4000/api/v1/warehouses/:id`  — body (all optional): `{ name?, code?, address?, status?: "active"|"inactive" }`
-- DELETE `localhost:4000/api/v1/warehouses/:id`
-- GET    `localhost:4000/api/v1/settings`
-- PATCH  `localhost:4000/api/v1/settings`  — body (all optional): `{ invoicePrefix?, invoiceSequenceNext? (integer, ≥ 1), fiscalYearStartMonth? (1-12), gstSettings? (free-form object), notificationSettings? (free-form object) }`
+- GET    `localhost:4000/api/v1/company`  — response: raw `companies` row (`SELECT *`): `id, name, legal_name, gstin, base_currency, locale, theme, created_at, updated_at, ...`
+- PATCH  `localhost:4000/api/v1/company`  — body (all optional): `{ name?, legalName?, gstin?, baseCurrency?, locale?, theme? }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/branches`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `branches` row (`SELECT *`): `id, company_id, name, code, address, status, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/branches`  — body: `{ name (required), code?, address? }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/branches/:id`  — response: same row shape as above
+- PATCH  `localhost:4000/api/v1/branches/:id`  — body (all optional): `{ name?, code?, address?, status?: "active"|"inactive" }`  — response: same row shape as above
+- DELETE `localhost:4000/api/v1/branches/:id`  — response: `{}` (empty object)
+- GET    `localhost:4000/api/v1/warehouses`  — paginated list — response: `{ data: [ {row} ], meta }`; row is the raw `warehouses` row (`SELECT *`): `id, company_id, branch_id, name, code, address, status, created_at, updated_at, ...`
+- POST   `localhost:4000/api/v1/warehouses`  — body: `{ branchId (required), name (required), code?, address? }`  — response: same row shape as above
+- GET    `localhost:4000/api/v1/warehouses/:id`  — response: same row shape as above
+- PATCH  `localhost:4000/api/v1/warehouses/:id`  — body (all optional): `{ name?, code?, address?, status?: "active"|"inactive" }`  — response: same row shape as above
+- DELETE `localhost:4000/api/v1/warehouses/:id`  — response: `{}` (empty object)
+- GET    `localhost:4000/api/v1/settings`  — response: raw `company_settings` row (`SELECT *`): `id, company_id, invoice_prefix, invoice_sequence_next, fiscal_year_start_month, gst_settings, notification_settings, created_at, updated_at, ...`
+- PATCH  `localhost:4000/api/v1/settings`  — body (all optional): `{ invoicePrefix?, invoiceSequenceNext? (integer, ≥ 1), fiscalYearStartMonth? (1-12), gstSettings? (free-form object), notificationSettings? (free-form object) }`  — response: same row shape as above (upserted)

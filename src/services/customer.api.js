@@ -2,10 +2,10 @@ import { createCrudApi } from '@/services/api/createCrudApi';
 
 const baseApi = createCrudApi('customers');
 
-// Backend's party.validator.js only knows {name, phone, email, gstin,
-// billingAddress, shippingAddress, status} — map the UI's `gstNumber`/
-// `address` onto it. Fields with no backend equivalent (customerType,
-// addresses[], creditLimit, creditDays) pass through unchanged but won't
+// Backend's party.validator.js knows {name, phone, email, gstin,
+// billingAddress, shippingAddress, status, customerType} — map the UI's
+// `gstNumber`/`address` onto it. Fields with no backend equivalent
+// (addresses[], creditLimit, creditDays) pass through unchanged but won't
 // persist server-side.
 function toBackendPayload(payload) {
   const { gstNumber, address, ...rest } = payload;
@@ -17,10 +17,15 @@ function toBackendPayload(payload) {
 }
 
 // Responses are raw `SELECT * FROM customers` / `RETURNING *` rows
-// (party.repository.js) — snake_case Postgres columns (billing_address),
-// unlike the camelCase the Joi validator expects on writes.
+// (party.repository.js) — snake_case Postgres columns (billing_address,
+// customer_type), unlike the camelCase the Joi validator expects on writes.
 function fromBackendCustomer(customer) {
-  return { ...customer, gstNumber: customer.gstin, address: customer.billing_address };
+  return {
+    ...customer,
+    gstNumber: customer.gstin,
+    address: customer.billing_address,
+    customerType: customer.customer_type,
+  };
 }
 
 export const customerApi = {

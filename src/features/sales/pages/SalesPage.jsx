@@ -1,82 +1,74 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, ClipboardList, Package } from 'lucide-react';
+import { Check, PackageCheck, PackageOpen, Send } from 'lucide-react';
 import { useSalesOrdersQuery } from '@/features/sales/queries/useSalesOrdersQuery';
 import { useCreateSalesOrder } from '@/features/sales/mutations/useCreateSalesOrder';
 import { useUpdateSalesOrder } from '@/features/sales/mutations/useUpdateSalesOrder';
-import { useDeleteSalesOrder } from '@/features/sales/mutations/useDeleteSalesOrder';
+import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
+import { useCompanyQuery } from '@/features/company/queries/useCompanyQuery';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
-import { useInventoryListQuery } from '@/features/inventory/queries/useInventoryListQuery';
+import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
 import { SalesOrderFormModal } from '@/features/sales/components/SalesOrderFormModal';
+import { ORDER_STATUS_PIPELINE } from '@/features/sales/validators/salesOrder.schema';
+import { salesApi } from '@/services/sales.api';
+import { generateSalesOrderPdf } from '@/features/sales/utils/generateSalesOrderPdf';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppTable } from '@/components/ui/AppTable';
-import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
-import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { DownloadButton, EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
+import { DownloadButton, EditButton, CreateButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
 import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { ORDER_STATUS, toStatusOptions } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
-import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
-const STATUS_OPTIONS = toStatusOptions(ORDER_STATUS);
+const STATUS_OPTIONS = ORDER_STATUS_PIPELINE.map((value) => ({ value, label: value.replace(/\b\w/g, (c) => c.toUpperCase()) }));
 
-function downloadSalesOrderPdf(row) {
-  generateRecordPdf({
-    title: `Sales Order - ${row.soNumber}`,
-    fields: [
-      { label: 'Customer', value: row.customer },
-      { label: 'Order Date', value: row.orderDate },
-      { label: 'Total', value: `Rs.${Number(row.total).toLocaleString('en-IN')}` },
-      { label: 'Status', value: row.status },
-    ],
-    fileName: `${row.soNumber}.pdf`,
-  });
-}
+const ORDER_STATUS_VARIANT = {
+  pending: 'warning',
+  confirmed: 'info',
+  packed: 'info',
+  dispatched: 'info',
+  delivered: 'success',
+  completed: 'success',
+};
 
-// Ch14.14 Picking: Pick List — SKU/Qty/Warehouse/Bin per line item.
-function downloadPickList(row, productsById, inventoryByProductId) {
-  generateRecordPdf({
-    title: `Pick List - ${row.soNumber}`,
-    fields: [
-      { label: 'Customer', value: row.customer },
-      { label: 'Generated', value: row.pickListGeneratedAt ? new Date(row.pickListGeneratedAt).toLocaleString() : '-' },
-    ],
-    items: row.items,
-    itemsColumns: [
-      { key: 'productId', label: 'SKU', width: 40, format: (id) => productsById[id]?.sku ?? id },
-      { key: 'productId', label: 'Product', width: 60, format: (id) => productsById[id]?.name ?? id },
-      { key: 'quantity', label: 'Qty', width: 20 },
-      { key: 'productId', label: 'Warehouse', width: 40, format: (id) => inventoryByProductId[id]?.warehouse ?? '-' },
-      { key: 'productId', label: 'Bin', width: 20, format: (id) => inventoryByProductId[id]?.binLocationId ?? '-' },
-    ],
-    fileName: `${row.soNumber}-pick-list.pdf`,
-  });
-}
+// Real pipeline (order.service.js ORDER_STATUS_PIPELINE): pending ->
+// confirmed -> packed -> dispatched -> delivered -> completed, one step at a
+// time. Each entry here is the single next-step button shown for that status.
+const NEXT_STEP = {
+  pending: { status: 'confirmed', label: 'Confirm order', icon: Check, variant: 'success' },
+  confirmed: { status: 'packed', label: 'Mark packed', icon: PackageOpen, variant: 'info' },
+  packed: { status: 'dispatched', label: 'Mark dispatched', icon: Send, variant: 'info' },
+  dispatched: { status: 'delivered', label: 'Mark delivered', icon: PackageCheck, variant: 'success' },
+};
 
-// Ch14.15-16 Packing / Dispatch Preparation: Packing Slip + Dispatch Note.
-function downloadPackingSlip(row) {
-  generateRecordPdf({
-    title: `Packing Slip / Dispatch Note - ${row.soNumber}`,
-    fields: [
-      { label: 'Customer', value: row.customer },
-      { label: 'Dispatch Note #', value: row.dispatchNoteNumber },
-      { label: 'Packed At', value: row.packedAt ? new Date(row.packedAt).toLocaleString() : '-' },
-      { label: 'Dispatch Date', value: row.dispatchDate },
-    ],
-    items: row.items,
-    itemsColumns: [
-      { key: 'quantity', label: 'Qty', width: 30 },
-      { key: 'rate', label: 'Rate', width: 40, format: (v) => `Rs.${Number(v).toLocaleString('en-IN')}` },
-    ],
-    fileName: `${row.soNumber}-packing-slip.pdf`,
+// List rows don't carry priced items (order.repository.js `list` only
+// attaches a lightweight sku/name summary) — fetch the full order detail,
+// whose items are already joined to sku/product_name (order.repository.js
+// findItems) so the invoice never has to fall back to a raw variant ID.
+async function downloadSalesOrderPdf(row, customersById, productsById, variantsById, company) {
+  const order = await salesApi.get(row.id);
+  const customer = customersById[row.customerId];
+  generateSalesOrderPdf({
+    order,
+    company,
+    customer,
+    items: (order.items ?? []).map((item) => {
+      const product = productsById[variantsById[item.productVariantId]?.productId];
+      return {
+        label: item.productName ? `${item.sku ?? ''} — ${item.productName}`.replace(/^ — /, '') : (item.sku ?? item.productVariantId),
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        taxRate: item.taxRate,
+        lineTotal: item.lineTotal,
+        hsnCode: product?.hsnCode,
+      };
+    }),
   });
 }
 
@@ -87,7 +79,6 @@ export function SalesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, salesOrder: null });
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
@@ -103,117 +94,101 @@ export function SalesPage() {
   );
 
   const { data, isLoading, isFetching, refetch } = useSalesOrdersQuery(filters);
+  const { data: customersData } = useCustomersQuery({ pageSize: 200 });
+  const customersById = useMemo(
+    () => Object.fromEntries((customersData?.data ?? []).map((customer) => [customer.id, customer])),
+    [customersData],
+  );
   const { data: productsData } = useProductsQuery({ pageSize: 200 });
-  const productsById = Object.fromEntries((productsData?.data ?? []).map((p) => [p.id, p]));
-  const { data: inventoryData } = useInventoryListQuery({ pageSize: 500 });
-  const inventoryByProductId = Object.fromEntries((inventoryData?.data ?? []).map((row) => [row.productId, row]));
+  const productsById = useMemo(
+    () => Object.fromEntries((productsData?.data ?? []).map((product) => [product.id, product])),
+    [productsData],
+  );
+  const { data: variantsData } = useProductVariantsQuery({ pageSize: 500 });
+  const variantsById = useMemo(
+    () => Object.fromEntries((variantsData?.data ?? []).map((variant) => [variant.id, variant])),
+    [variantsData],
+  );
+  const { data: company } = useCompanyQuery();
   const createSalesOrder = useCreateSalesOrder();
   const updateSalesOrder = useUpdateSalesOrder();
-  const deleteSalesOrder = useDeleteSalesOrder();
 
   const handleSubmit = (values) => {
-    const action = formState.salesOrder
-      ? updateSalesOrder.mutateAsync({ id: formState.salesOrder.id, payload: values })
-      : createSalesOrder.mutateAsync(values);
-
-    action.then(() => setFormState({ open: false, salesOrder: null }));
+    if (formState.salesOrder?.id) {
+      // No generic edit endpoint exists — only a status transition (see
+      // sales.api.js transitionStatus). Everything else on the form is
+      // read-only display for an existing order. The status field defaults
+      // to the current status (so it round-trips unchanged if left alone),
+      // but the backend's transition endpoint rejects a same-status target
+      // (e.g. "pending" isn't a valid transition target) — so only call it
+      // when the value actually changed.
+      if (values.status === formState.salesOrder.status) {
+        setFormState({ open: false, salesOrder: null });
+        return;
+      }
+      updateSalesOrder.mutateAsync({ id: formState.salesOrder.id, status: values.status }).then(() => setFormState({ open: false, salesOrder: null }));
+      return;
+    }
+    createSalesOrder.mutateAsync(values).then(() => setFormState({ open: false, salesOrder: null }));
   };
 
-  const handleConfirmDelete = () => {
-    deleteSalesOrder.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
-  };
-
-  const handleMarkDelivered = (salesOrder) => {
-    updateSalesOrder.mutate({ id: salesOrder.id, payload: { deliveredAt: new Date().toISOString() } });
+  const handleTransitionStatus = (salesOrder, nextStatus) => {
+    updateSalesOrder.mutate({ id: salesOrder.id, status: nextStatus });
   };
 
   const columns = [
-    { key: 'soNumber', header: 'SO Number' },
-    { key: 'customer', header: 'Customer' },
-    { key: 'salesChannel', header: 'Channel', render: (row) => <span className="capitalize">{row.salesChannel ?? 'manual'}</span> },
-    { key: 'orderDate', header: 'Order Date' },
-    { key: 'total', header: 'Total', render: (row) => `₹${Number(row.total).toLocaleString('en-IN')}` },
-    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    { key: 'orderNumber', header: 'SO Number' },
+    { key: 'customer', header: 'Customer', render: (row) => customersById[row.customerId]?.name ?? row.customerId },
     {
-      key: 'eta',
-      header: 'Dispatch / ETA',
+      key: 'items',
+      header: 'Product(s)',
       render: (row) =>
-        row.dispatchDate ? `Dispatch ${row.dispatchDate}` : row.productionEta ? `ETA ${row.productionEta}` : '—',
+        row.items?.length ? (
+          <div className="flex flex-col gap-0.5">
+            {row.items.map((item, index) => (
+              <span key={index} className="text-xs">
+                {item.productName ?? item.sku ?? '—'} × {item.quantity}
+              </span>
+            ))}
+          </div>
+        ) : (
+          '—'
+        ),
     },
-    {
-      key: 'linked',
-      header: 'Linked',
-      render: (row) => (
-        <div className="flex flex-wrap gap-1">
-          {row.linkedWorkOrders?.map((wo) => (
-            <BaseBadge key={wo} variant="info">
-              {wo}
-            </BaseBadge>
-          ))}
-          {row.invoiceNumber && <BaseBadge variant="success">{row.invoiceNumber}</BaseBadge>}
-          {!row.linkedWorkOrders?.length && !row.invoiceNumber && <span className="text-xs text-text-muted">—</span>}
-        </div>
-      ),
-    },
+    { key: 'orderDate', header: 'Order Date' },
+    { key: 'total', header: 'Total', render: (row) => `₹${Number(row.total ?? 0).toLocaleString('en-IN')}` },
+    { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={ORDER_STATUS_VARIANT} /> },
+    { key: 'paymentStatus', header: 'Payment', render: (row) => <StatusBadge status={row.paymentStatus} /> },
     {
       key: 'actions',
       header: '',
-      render: (row) => (
-        <div className="flex justify-end gap-1">
-          <DownloadButton label={`Download ${row.soNumber}`} onClick={(event) => { event.stopPropagation(); downloadSalesOrderPdf(row); }} />
-          {row.pickListGeneratedAt && (
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                downloadPickList(row, productsById, inventoryByProductId);
-              }}
-              aria-label={`Download pick list for ${row.soNumber}`}
-              title="Download pick list"
-            >
-              <ClipboardList className="size-4" />
-            </AppButton>
-          )}
-          {row.packedAt && (
-            <AppButton
-              variant="ghost"
-              size="sm"
-              onClick={(event) => {
-                event.stopPropagation();
-                downloadPackingSlip(row);
-              }}
-              aria-label={`Download packing slip for ${row.soNumber}`}
-              title="Download packing slip"
-            >
-              <Package className="size-4" />
-            </AppButton>
-          )}
-          {row.dispatchNoteGeneratedAt && !row.deliveredAt && (
+      render: (row) => {
+        const next = NEXT_STEP[row.status];
+        return (
+          <div className="flex justify-end gap-1">
+            <DownloadButton label={`Download ${row.orderNumber}`} onClick={(event) => { event.stopPropagation(); downloadSalesOrderPdf(row, customersById, productsById, variantsById, company); }} />
             <Can module={MODULES.SALES} action={ACTIONS.EDIT}>
-              <AppButton
-                variant="ghost"
-                size="sm"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleMarkDelivered(row);
-                }}
-                aria-label={`Mark ${row.soNumber} as delivered`}
-                title="Mark as delivered"
-                className="text-success hover:bg-success/10"
-              >
-                <CheckCircle2 className="size-4" />
-              </AppButton>
+              <EditButton label={`Edit ${row.orderNumber}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, salesOrder: row }); }} />
             </Can>
-          )}
-          <Can module={MODULES.SALES} action={ACTIONS.EDIT}>
-            <EditButton label={`Edit ${row.soNumber}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, salesOrder: row }); }} />
-          </Can>
-          <Can module={MODULES.SALES} action={ACTIONS.DELETE}>
-            <DeleteButton label={`Delete ${row.soNumber}`} onClick={(event) => { event.stopPropagation(); setDeleteTarget(row); }} />
-          </Can>
-        </div>
-      ),
+            {next && (
+              <Can module={MODULES.SALES} action={ACTIONS.EDIT}>
+                <AppButton
+                  variant={next.variant}
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleTransitionStatus(row, next.status);
+                  }}
+                  aria-label={next.label}
+                  title={next.label}
+                >
+                  <next.icon className="size-4" />
+                </AppButton>
+              </Can>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -297,27 +272,6 @@ export function SalesPage() {
         onSubmit={handleSubmit}
         isSubmitting={createSalesOrder.isPending || updateSalesOrder.isPending}
       />
-
-      <AppModal
-        open={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title="Delete sales order"
-        footer={
-          <>
-            <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </AppButton>
-            <AppButton variant="danger" loading={deleteSalesOrder.isPending} onClick={handleConfirmDelete}>
-              Delete
-            </AppButton>
-          </>
-        }
-      >
-        <p className="text-sm text-text-muted">
-          Are you sure you want to delete <span className="font-medium text-text">{deleteTarget?.soNumber}</span>
-          ? This action cannot be undone.
-        </p>
-      </AppModal>
     </div>
   );
 }

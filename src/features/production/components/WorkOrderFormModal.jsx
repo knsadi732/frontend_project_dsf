@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { workOrderSchema } from '@/features/production/validators/workOrder.schema';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
+import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
+import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -12,6 +14,8 @@ import { WORK_ORDER_STAGE_OPTIONS } from '@/constants/statusEnums';
 const DEFAULT_VALUES = {
   workOrderNumber: '',
   productId: '',
+  productVariantId: '',
+  warehouseId: '',
   quantity: '',
   stage: 'pending',
   dueDate: '',
@@ -27,8 +31,12 @@ export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isS
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
   const productOptions = (productsData?.data ?? []).map((product) => ({ value: product.id, label: product.name }));
 
+  const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
+  const warehouseOptions = (warehousesData?.data ?? []).map((warehouse) => ({ value: warehouse.id, label: warehouse.name }));
+
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -40,6 +48,17 @@ export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isS
   useEffect(() => {
     if (open) reset(initialValues ?? DEFAULT_VALUES);
   }, [open, initialValues, reset]);
+
+  // Size/variant options narrow to whatever product is currently selected —
+  // a work order without a variant just targets the product broadly.
+  const selectedProductId = useWatch({ control, name: 'productId' });
+  const { data: variantsData } = useProductVariantsQuery(
+    selectedProductId ? { pageSize: 200, product_id: selectedProductId } : undefined,
+  );
+  const variantOptions = (variantsData?.data ?? []).map((variant) => ({
+    value: variant.id,
+    label: [variant.sku, variant.size, variant.color].filter(Boolean).join(' — '),
+  }));
 
   return (
     <AppModal
@@ -73,6 +92,16 @@ export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isS
             error={errors.productId?.message}
             {...register('productId')}
           />
+          <AppSelect
+            label="Variant"
+            placeholder={selectedProductId ? 'Select variant' : 'Select a product first'}
+            options={variantOptions}
+            disabled={!selectedProductId}
+            error={errors.productVariantId?.message}
+            {...register('productVariantId')}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
           <AppInput
             label="Quantity"
             type="number"
@@ -80,7 +109,17 @@ export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isS
             error={errors.quantity?.message}
             {...register('quantity')}
           />
+          <AppSelect
+            label="Warehouse"
+            placeholder="Select warehouse"
+            options={warehouseOptions}
+            error={errors.warehouseId?.message}
+            {...register('warehouseId')}
+          />
         </div>
+        <p className="text-xs text-text-muted -mt-2">
+          Warehouse is used to reserve raw material stock (per the product's Bill of Materials) and flag any shortfall as a Purchase Request.
+        </p>
         <div className="grid grid-cols-2 gap-4">
           <AppInput
             label="Due date"

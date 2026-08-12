@@ -3,11 +3,13 @@ import { FileOutput, Send, SendHorizonal } from 'lucide-react';
 import { usePurchaseRequestsQuery } from '@/features/purchaseRequests/queries/usePurchaseRequestsQuery';
 import { useCreatePurchaseRequest } from '@/features/purchaseRequests/mutations/useCreatePurchaseRequest';
 import { useUpdatePurchaseRequestStatus } from '@/features/purchaseRequests/mutations/useUpdatePurchaseRequestStatus';
-import { usePurchasesQuery } from '@/features/purchases/queries/usePurchasesQuery';
 import { useDepartmentsQuery } from '@/features/departments/queries/useDepartmentsQuery';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
 import { useBranchesQuery } from '@/features/branches/queries/useBranchesQuery';
+import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { PurchaseRequestFormModal } from '@/features/purchaseRequests/components/PurchaseRequestFormModal';
+import { RfqFormModal } from '@/features/rfqs';
+import { useCreateRfq } from '@/features/rfqs/mutations/useCreateRfq';
 import { AppTable } from '@/components/ui/AppTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AppButton } from '@/components/ui/AppButton';
@@ -26,22 +28,17 @@ const PR_STATUS_VARIANT = {
   rejected: 'danger',
 };
 
-export function PurchaseRequestsPanel({ onConvertToPo }) {
+export function PurchaseRequestsPanel() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
+  const [rfqFormState, setRfqFormState] = useState({ open: false, purchaseRequest: null });
 
   const { data, isLoading } = usePurchaseRequestsQuery({ page, pageSize });
-  // A converted PR has no dedicated status (backend's PATCH /status only
-  // accepts approved/rejected) — so "already converted" is inferred from
-  // whether a purchase order already references this PR's id.
-  const { data: purchasesData } = usePurchasesQuery({ pageSize: 500 });
-  const convertedRequestIds = new Set(
-    (purchasesData?.data ?? []).map((po) => po.purchaseRequestId).filter(Boolean),
-  );
   const { data: departmentsData } = useDepartmentsQuery({ pageSize: 100 });
   const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
   const { data: branchesData } = useBranchesQuery({ pageSize: 100 });
+  const { data: vendorsData } = useVendorsQuery({ pageSize: 100 });
   const departments = departmentsData?.data ?? [];
   const warehouses = warehousesData?.data ?? [];
   const branches = branchesData?.data ?? [];
@@ -50,18 +47,26 @@ export function PurchaseRequestsPanel({ onConvertToPo }) {
   const departmentOptions = departments.map((d) => ({ value: d.id, label: d.name }));
   const warehouseOptions = warehouses.map((w) => ({ value: w.id, label: w.name }));
   const branchOptions = branches.map((b) => ({ value: b.id, label: b.name }));
+  const vendorOptions = (vendorsData?.data ?? []).map((v) => ({ value: v.id, label: v.name }));
 
   const createRequest = useCreatePurchaseRequest();
   const updateStatus = useUpdatePurchaseRequestStatus();
+  const createRfq = useCreateRfq();
 
   const handleSubmit = (values) => {
     createRequest.mutateAsync(values).then(() => setFormOpen(false));
+  };
+
+  const handleCreateRfq = (values) => {
+    createRfq.mutateAsync(values).then(() => setRfqFormState({ open: false, purchaseRequest: null }));
   };
 
   const columns = [
     { key: 'prNumber', header: 'PR Number' },
     { key: 'department', header: 'Department', render: (row) => departmentsById?.[row.departmentId]?.name ?? '—' },
     { key: 'warehouse', header: 'Warehouse', render: (row) => warehousesById?.[row.warehouseId]?.name ?? '—' },
+    { key: 'priority', header: 'Priority', render: (row) => row.priority ? row.priority.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : 'Medium' },
+    { key: 'requiredDate', header: 'Required Date', render: (row) => row.requiredDate || '—' },
     { key: 'items', header: 'Items', render: (row) => row.items?.length ?? 0 },
     { key: 'remarks', header: 'Remarks', render: (row) => row.remarks || '—' },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} variantMap={PR_STATUS_VARIANT} /> },
@@ -90,9 +95,9 @@ export function PurchaseRequestsPanel({ onConvertToPo }) {
               <RejectButton label="Reject PR" onClick={(e) => { e.stopPropagation(); updateStatus.mutate({ id: row.id, status: 'rejected' }); }} />
             </Can>
           )}
-          {row.status === 'approved' && !convertedRequestIds.has(row.id) && (
+          {row.status === 'approved' && (
             <Can module={MODULES.PURCHASES} action={ACTIONS.CREATE}>
-              <AppButton variant="info" size="sm" title="Convert to Purchase Order" onClick={(e) => { e.stopPropagation(); onConvertToPo(row); }} aria-label="Convert to PO">
+              <AppButton variant="info" size="sm" title="Create RFQ" onClick={(e) => { e.stopPropagation(); setRfqFormState({ open: true, purchaseRequest: row }); }} aria-label="Create RFQ">
                 <FileOutput className="size-4" />
               </AppButton>
             </Can>
@@ -105,7 +110,7 @@ export function PurchaseRequestsPanel({ onConvertToPo }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-text-muted">Internal requests for materials — approve, then convert to a Purchase Order.</p>
+        <p className="text-sm text-text-muted">Internal requests for materials — approve, then raise an RFQ to compare vendors before ordering.</p>
         <Can module={MODULES.PURCHASES} action={ACTIONS.CREATE}>
           <CreateButton onClick={() => setFormOpen(true)}>New purchase request</CreateButton>
         </Can>
@@ -134,6 +139,15 @@ export function PurchaseRequestsPanel({ onConvertToPo }) {
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
         isSubmitting={createRequest.isPending}
+      />
+
+      <RfqFormModal
+        open={rfqFormState.open}
+        purchaseRequest={rfqFormState.purchaseRequest}
+        vendorOptions={vendorOptions}
+        onClose={() => setRfqFormState({ open: false, purchaseRequest: null })}
+        onSubmit={handleCreateRfq}
+        isSubmitting={createRfq.isPending}
       />
     </div>
   );

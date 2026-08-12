@@ -18,8 +18,13 @@ export function CustomerReportsPanel() {
   const salesOrders = salesData?.data ?? [];
   const returns = returnsData?.data ?? [];
 
+  const customersById = useMemo(
+    () => Object.fromEntries(customers.map((c) => [c.id, c])),
+    [customers],
+  );
+
   const outstanding = useMemo(() => outstandingByKey(invoices, 'party'), [invoices]);
-  const analytics = useMemo(() => customerAnalytics(salesOrders, returns), [salesOrders, returns]);
+  const analytics = useMemo(() => customerAnalytics(salesOrders, returns, customersById), [salesOrders, returns, customersById]);
 
   const topCustomer = analytics[0];
   const avgAov = analytics.length

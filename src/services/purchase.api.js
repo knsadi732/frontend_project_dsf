@@ -14,6 +14,10 @@ function toBackendPayload(payload) {
     branchId: payload.branchId || null,
     poNumber: payload.poNumber,
     purchaseRequestId: payload.purchaseRequestId,
+    ...(payload.rfqId && { rfqId: payload.rfqId }),
+    // Set only when this PO was decided through RFQ -> Vendor Quotation ->
+    // Comparison -> Vendor Selection (see rfqs feature) — direct/manual PO
+    // creation from an approved PR (no RFQ) leaves this out entirely.
     warehouseId: payload.warehouseId,
     vendorId: payload.vendorId,
     ...(payload.deliveryAddress && { deliveryAddress: payload.deliveryAddress }),
@@ -43,6 +47,7 @@ function fromBackendPurchaseOrder(order, submitted = {}) {
     branchId: order.branchId ?? order.branch_id ?? submitted.branchId,
     total: order.totalAmount ?? order.total_amount ?? submitted.total,
     taxAmount: order.taxAmount ?? order.tax_amount ?? submitted.taxAmount,
+    rfqId: order.rfqId ?? order.rfq_id ?? submitted.rfqId,
     deliveryAddress: order.deliveryAddress ?? order.delivery_address ?? submitted.deliveryAddress,
     paymentTerms: order.paymentTerms ?? order.payment_terms ?? submitted.paymentTerms,
     expectedDeliveryDate: order.expectedDeliveryDate ?? order.expected_delivery_date ?? submitted.expectedDeliveryDate,
@@ -54,6 +59,16 @@ function fromBackendPurchaseOrder(order, submitted = {}) {
         productVariantId: item.productVariantId ?? item.product_variant_id,
         quantity: item.quantity,
         unitCost: item.unitCost ?? item.unit_cost,
+        // Backend joins these from products/product_variants at read time,
+        // with no is_deleted filter — so they still resolve even if the
+        // variant/product was later deleted, unlike a separate variants-list
+        // lookup keyed by id (which only contains active variants).
+        productName: item.productName ?? item.product_name,
+        sku: item.sku,
+        size: item.size,
+        color: item.color,
+        hsnCode: item.hsnCode ?? item.hsn_code,
+        uom: item.uom,
       })),
   };
 }

@@ -16,13 +16,15 @@ export const purchaseRequestItemSchema = z.object({
   remarks: z.string().optional(),
 });
 
-// Real backend body: { warehouseId, departmentId?, branchId?, remarks?,
-// items: [{ productVariantId, quantity, remarks? }] } — confirmed against
-// purchaseRequest.validator.js / purchase_request_items table.
+// Real backend body: { warehouseId, departmentId?, branchId?, priority?,
+// requiredDate?, remarks?, items: [{ productVariantId, quantity, remarks? }] }
+// — confirmed against purchaseRequest.validator.js / purchase_request_items table.
 export const purchaseRequestSchema = z.object({
   warehouseId: z.string().min(1, 'Warehouse is required'),
   departmentId: z.string().optional(),
   branchId: z.string().optional(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  requiredDate: z.string().optional(),
   items: z.array(purchaseRequestItemSchema).min(1, 'Add at least one item'),
   remarks: z.string().optional(),
 });

@@ -3,6 +3,7 @@ import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { returnSchema } from '@/features/returns/validators/return.schema';
 import { useSalesOrdersQuery } from '@/features/sales/queries/useSalesOrdersQuery';
+import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
@@ -63,7 +64,13 @@ const DECISION_VISIBLE_STATUSES = [RETURN_STATUS.INSPECTION_COMPLETED, RETURN_ST
 export function ReturnFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
   const { data: salesData } = useSalesOrdersQuery({ pageSize: 100 });
   const salesOrders = salesData?.data ?? [];
-  const soOptions = salesOrders.map((so) => ({ value: so.id, label: so.soNumber }));
+  const soOptions = salesOrders.map((so) => ({ value: so.id, label: so.orderNumber }));
+
+  const { data: customersData } = useCustomersQuery({ pageSize: 200 });
+  const customersById = useMemo(
+    () => Object.fromEntries((customersData?.data ?? []).map((customer) => [customer.id, customer])),
+    [customersData],
+  );
 
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
   const products = useMemo(() => productsData?.data ?? [], [productsData]);
@@ -99,8 +106,8 @@ export function ReturnFormModal({ open, onClose, initialValues, onSubmit, isSubm
 
   const handleSalesOrderChange = (salesOrderId) => {
     const so = salesOrders.find((item) => item.id === salesOrderId);
-    setValue('soNumber', so?.soNumber ?? '');
-    setValue('customer', so?.customer ?? '');
+    setValue('soNumber', so?.orderNumber ?? '');
+    setValue('customer', customersById[so?.customerId]?.name ?? '');
   };
 
   const showPickup = PICKUP_VISIBLE_STATUSES.includes(status);

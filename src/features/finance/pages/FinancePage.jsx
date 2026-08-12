@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useInvoicesQuery } from '@/features/finance/queries/useInvoicesQuery';
-import { useCreateInvoice } from '@/features/finance/mutations/useCreateInvoice';
 import { useUpdateInvoice } from '@/features/finance/mutations/useUpdateInvoice';
-import { useDeleteInvoice } from '@/features/finance/mutations/useDeleteInvoice';
-import { InvoiceFormModal } from '@/features/finance/components/InvoiceFormModal';
+import { InvoiceStatusModal } from '@/features/finance/components/InvoiceStatusModal';
+import { useCompanyQuery } from '@/features/company/queries/useCompanyQuery';
+import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
+import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
+import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
+import { salesApi } from '@/services/sales.api';
+import { generateSalesOrderPdf } from '@/features/sales/utils/generateSalesOrderPdf';
 import { PaymentsPanel } from '@/features/payments';
 import { VendorBillsPanel } from '@/features/vendorBills';
 import { CreditNotesPanel } from '@/features/creditNotes';
@@ -15,10 +19,8 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
-import { AppButton } from '@/components/ui/AppButton';
-import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { CreateButton, DownloadButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
+import { DownloadButton, EditButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
 import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
@@ -29,22 +31,34 @@ import { PAYMENT_STATUS, toStatusOptions } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
-import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
 const STATUS_OPTIONS = toStatusOptions(PAYMENT_STATUS);
 
-function downloadInvoicePdf(row) {
-  generateRecordPdf({
-    title: `Invoice - ${row.invoiceNumber}`,
-    fields: [
-      { label: 'Party', value: row.party },
-      { label: 'Linked SO', value: row.salesOrderNumber ?? '-' },
-      { label: 'Amount', value: `Rs.${Number(row.amount).toLocaleString('en-IN')}` },
-      { label: 'GST', value: row.gstAmount ? `${row.gstRate}% (Rs.${Number(row.gstAmount).toLocaleString('en-IN')})` : '-' },
-      { label: 'Due Date', value: row.dueDate },
-      { label: 'Status', value: row.status },
-    ],
-    fileName: `${row.invoiceNumber}.pdf`,
+// An invoice IS the linked order (finance.service.js createBillForOrder) —
+// reuse the same Tax Invoice template Sales Orders download, just fetching
+// the order's items (list rows don't carry line-item pricing) and passing
+// the bill's own number/due date/payment status through.
+async function downloadInvoicePdf(row, customersById, productsById, variantsById, company) {
+  const order = await salesApi.get(row.orderId);
+  const customer = customersById[order.customerId];
+  generateSalesOrderPdf({
+    order,
+    company,
+    customer,
+    invoiceNumber: row.invoiceNumber,
+    dueDate: row.dueDate,
+    paymentStatus: row.status,
+    items: (order.items ?? []).map((item) => {
+      const product = productsById[variantsById[item.productVariantId]?.productId];
+      return {
+        label: item.productName ? `${item.sku ?? ''} — ${item.productName}`.replace(/^ — /, '') : (item.sku ?? item.productVariantId),
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        taxRate: item.taxRate,
+        lineTotal: item.lineTotal,
+        hsnCode: product?.hsnCode,
+      };
+    }),
   });
 }
 
@@ -67,7 +81,6 @@ export function FinancePage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, invoice: null });
-  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
@@ -83,20 +96,27 @@ export function FinancePage() {
   );
 
   const { data, isLoading, isFetching, refetch } = useInvoicesQuery(filters);
-  const createInvoice = useCreateInvoice();
   const updateInvoice = useUpdateInvoice();
-  const deleteInvoice = useDeleteInvoice();
 
-  const handleSubmit = (values) => {
-    const action = formState.invoice
-      ? updateInvoice.mutateAsync({ id: formState.invoice.id, payload: values })
-      : createInvoice.mutateAsync(values);
+  const { data: company } = useCompanyQuery();
+  const { data: customersData } = useCustomersQuery({ pageSize: 200 });
+  const customersById = useMemo(
+    () => Object.fromEntries((customersData?.data ?? []).map((customer) => [customer.id, customer])),
+    [customersData],
+  );
+  const { data: productsData } = useProductsQuery({ pageSize: 200 });
+  const productsById = useMemo(
+    () => Object.fromEntries((productsData?.data ?? []).map((product) => [product.id, product])),
+    [productsData],
+  );
+  const { data: variantsData } = useProductVariantsQuery({ pageSize: 500 });
+  const variantsById = useMemo(
+    () => Object.fromEntries((variantsData?.data ?? []).map((variant) => [variant.id, variant])),
+    [variantsData],
+  );
 
-    action.then(() => setFormState({ open: false, invoice: null }));
-  };
-
-  const handleConfirmDelete = () => {
-    deleteInvoice.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
+  const handleSubmit = (payload) => {
+    updateInvoice.mutateAsync({ id: formState.invoice.id, payload }).then(() => setFormState({ open: false, invoice: null }));
   };
 
   const columns = [
@@ -111,7 +131,7 @@ export function FinancePage() {
     {
       key: 'balanceDue',
       header: 'Balance Due',
-      render: (row) => (row.status === 'partial' && row.balanceDue != null ? `₹${Number(row.balanceDue).toLocaleString('en-IN')}` : '—'),
+      render: (row) => `₹${Number(row.balanceDue ?? 0).toLocaleString('en-IN')}`,
     },
     { key: 'dueDate', header: 'Due Date' },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
@@ -130,12 +150,9 @@ export function FinancePage() {
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
-          <DownloadButton label={`Download ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); downloadInvoicePdf(row); }} />
+          <DownloadButton label={`Download ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); downloadInvoicePdf(row, customersById, productsById, variantsById, company); }} />
           <Can module={MODULES.FINANCE} action={ACTIONS.EDIT}>
-            <EditButton label={`Edit ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, invoice: row }); }} />
-          </Can>
-          <Can module={MODULES.FINANCE} action={ACTIONS.DELETE}>
-            <DeleteButton label={`Delete ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); setDeleteTarget(row); }} />
+            <EditButton label={`Update ${row.invoiceNumber}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, invoice: row }); }} />
           </Can>
         </div>
       ),
@@ -149,11 +166,6 @@ export function FinancePage() {
           <h1 className="text-xl font-semibold text-text">Finance</h1>
           <p className="text-sm text-text-muted">Invoices, customer payments and vendor bills.</p>
         </div>
-        {activeTab === 'invoices' && (
-          <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-            <CreateButton onClick={() => setFormState({ open: true, invoice: null })}>New invoice</CreateButton>
-          </Can>
-        )}
       </div>
 
       <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
@@ -221,35 +233,13 @@ export function FinancePage() {
         emptyMessage="No invoices yet"
       />
 
-      <InvoiceFormModal
+      <InvoiceStatusModal
         open={formState.open}
-        initialValues={formState.invoice}
+        invoice={formState.invoice}
         onClose={() => setFormState({ open: false, invoice: null })}
         onSubmit={handleSubmit}
-        isSubmitting={createInvoice.isPending || updateInvoice.isPending}
+        isSubmitting={updateInvoice.isPending}
       />
-
-      <AppModal
-        open={Boolean(deleteTarget)}
-        onClose={() => setDeleteTarget(null)}
-        title="Delete invoice"
-        footer={
-          <>
-            <AppButton variant="secondary" onClick={() => setDeleteTarget(null)}>
-              Cancel
-            </AppButton>
-            <AppButton variant="danger" loading={deleteInvoice.isPending} onClick={handleConfirmDelete}>
-              Delete
-            </AppButton>
-          </>
-        }
-      >
-        <p className="text-sm text-text-muted">
-          Are you sure you want to delete{' '}
-          <span className="font-medium text-text">{deleteTarget?.invoiceNumber}</span>
-          ? This action cannot be undone.
-        </p>
-      </AppModal>
         </>
       )}
 

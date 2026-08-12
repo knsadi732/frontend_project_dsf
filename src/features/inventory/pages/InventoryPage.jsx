@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Download, Pencil, Trash2 } from 'lucide-react';
 import { useProductStockQuery } from '@/features/inventory/queries/useProductStockQuery';
+import { useStockSummaryQuery } from '@/features/inventory/queries/useStockSummaryQuery';
 import { useCreateInventoryItem } from '@/features/inventory/mutations/useCreateInventoryItem';
 import { useUpdateInventoryItem } from '@/features/inventory/mutations/useUpdateInventoryItem';
 import { useDeleteInventoryItem } from '@/features/inventory/mutations/useDeleteInventoryItem';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
-import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
-import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useBinsQuery } from '@/features/bins/queries/useBinsQuery';
 import { InventoryFormModal } from '@/features/inventory/components/InventoryFormModal';
 import { WarehouseZonesPanel } from '@/features/warehouseZones';
@@ -52,15 +51,42 @@ const TABS = [
   { key: 'movements', label: 'Movements' },
 ];
 
+// 'salable' vs non-salable 'office_consumable'/'raw_material' — derived
+// server-side from products.is_sellable/product_type (see
+// stock.repository.js's INVENTORY_CATEGORY_CASE). Separates stock that's
+// actually sold to customers from what's sitting around to make/run the
+// business with.
+const INVENTORY_CATEGORY_OPTIONS = [
+  { value: 'salable', label: 'Salable' },
+  { value: 'office_consumable', label: 'Office Consumable' },
+  { value: 'raw_material', label: 'Raw Material' },
+];
+
+const INVENTORY_CATEGORY_LABEL = {
+  salable: 'Salable',
+  office_consumable: 'Office Consumable',
+  raw_material: 'Raw Material',
+};
+
+const INVENTORY_CATEGORY_VARIANT = {
+  salable: 'success',
+  office_consumable: 'info',
+  raw_material: 'warning',
+};
+
 export function InventoryPage() {
   const [activeTab, setActiveTab] = useState('inventory');
   const [warehouseId, setWarehouseId] = useState('');
+  const [inventoryCategory, setInventoryCategory] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, item: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const filters = useMemo(() => ({ warehouseId, page, pageSize }), [warehouseId, page, pageSize]);
+  const filters = useMemo(
+    () => ({ warehouseId, inventoryCategory, page, pageSize }),
+    [warehouseId, inventoryCategory, page, pageSize],
+  );
 
   // GET /products/stock (permission: product.manage) — paginated
   // warehouse_stock rows, filterable by warehouseId; only carries
@@ -68,16 +94,19 @@ export function InventoryPage() {
   // warehouse names are joined in below.
   const { data, isLoading, isFetching, refetch } = useProductStockQuery(filters);
 
+  // GET /products/stock/summary — totals per Salable/Office
+  // Consumable/Raw Material bucket, independent of the category filter
+  // above (so the tiles always show all three even when the table is
+  // filtered down to one) but respecting the warehouse filter.
+  const { data: summaryData } = useStockSummaryQuery({ warehouseId });
+  const summaryByCategory = useMemo(
+    () => Object.fromEntries((summaryData ?? []).map((row) => [row.inventory_category, row])),
+    [summaryData],
+  );
+
   const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
   const warehouses = warehousesData?.data ?? [];
-  const warehousesById = Object.fromEntries(warehouses.map((warehouse) => [warehouse.id, warehouse]));
   const warehouseOptions = warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }));
-
-  const { data: variantsData } = useProductVariantsQuery({ pageSize: 500 });
-  const variantsById = Object.fromEntries((variantsData?.data ?? []).map((variant) => [variant.id, variant]));
-
-  const { data: productsData } = useProductsQuery({ pageSize: 200 });
-  const productsById = Object.fromEntries((productsData?.data ?? []).map((product) => [product.id, product]));
 
   const { data: binsData } = useBinsQuery({ pageSize: 100 });
   const bins = binsData?.data ?? [];
@@ -100,13 +129,24 @@ export function InventoryPage() {
   };
 
   const columns = [
-    { key: 'sku', header: 'SKU', render: (row) => variantsById[row.productVariantId]?.sku ?? '—' },
+    { key: 'sku', header: 'SKU', render: (row) => row.sku ?? '—' },
+    { key: 'productName', header: 'Product Name', render: (row) => row.productName ?? '—' },
     {
-      key: 'productName',
-      header: 'Product Name',
-      render: (row) => productsById[variantsById[row.productVariantId]?.productId]?.name ?? '—',
+      key: 'variant',
+      header: 'Variant',
+      render: (row) => [row.variantSize, row.variantColor].filter(Boolean).join(' / ') || '—',
     },
-    { key: 'warehouse', header: 'Warehouse', render: (row) => warehousesById[row.warehouseId]?.name ?? '—' },
+    { key: 'categoryName', header: 'Category', render: (row) => row.categoryName ?? '—' },
+    {
+      key: 'inventoryCategory',
+      header: 'Type',
+      render: (row) => (
+        <BaseBadge variant={INVENTORY_CATEGORY_VARIANT[row.inventoryCategory] ?? 'default'}>
+          {INVENTORY_CATEGORY_LABEL[row.inventoryCategory] ?? row.inventoryCategory ?? '—'}
+        </BaseBadge>
+      ),
+    },
+    { key: 'warehouse', header: 'Warehouse', render: (row) => row.warehouseName ?? '—' },
     { key: 'quantityOnHand', header: 'On Hand' },
     { key: 'quantityReserved', header: 'Reserved' },
     { key: 'available', header: 'Available', render: (row) => row.quantityOnHand - row.quantityReserved },
@@ -119,8 +159,6 @@ export function InventoryPage() {
       key: 'actions',
       header: '',
       render: (row) => {
-        const sku = variantsById[row.productVariantId]?.sku;
-        const productName = productsById[variantsById[row.productVariantId]?.productId]?.name;
         return (
           <div className="flex justify-end gap-1">
             <AppButton
@@ -128,9 +166,9 @@ export function InventoryPage() {
               size="sm"
               onClick={(event) => {
                 event.stopPropagation();
-                downloadInventoryPdf(row, sku, productName, warehousesById[row.warehouseId]?.name);
+                downloadInventoryPdf(row, row.sku, row.productName, row.warehouseName);
               }}
-              aria-label={`Download ${productName ?? sku ?? 'inventory row'}`}
+              aria-label={`Download ${row.productName ?? row.sku ?? 'inventory row'}`}
             >
               <Download className="size-4" />
             </AppButton>
@@ -142,7 +180,7 @@ export function InventoryPage() {
                   event.stopPropagation();
                   setFormState({ open: true, item: row });
                 }}
-                aria-label={`Edit ${productName ?? sku ?? 'inventory row'}`}
+                aria-label={`Edit ${row.productName ?? row.sku ?? 'inventory row'}`}
               >
                 <Pencil className="size-4" />
               </AppButton>
@@ -153,9 +191,9 @@ export function InventoryPage() {
                 size="sm"
                 onClick={(event) => {
                   event.stopPropagation();
-                  setDeleteTarget({ ...row, productName, sku });
+                  setDeleteTarget(row);
                 }}
-                aria-label={`Delete ${productName ?? sku ?? 'inventory row'}`}
+                aria-label={`Delete ${row.productName ?? row.sku ?? 'inventory row'}`}
                 className="text-danger hover:bg-danger/10"
               >
                 <Trash2 className="size-4" />
@@ -185,16 +223,50 @@ export function InventoryPage() {
 
       {activeTab === 'inventory' && (
         <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {INVENTORY_CATEGORY_OPTIONS.map((option) => {
+              const summary = summaryByCategory[option.value];
+              const isActive = inventoryCategory === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    setInventoryCategory(isActive ? '' : option.value);
+                    setPage(1);
+                  }}
+                  className={`flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors ${
+                    isActive ? 'border-primary bg-primary/10' : 'border-border bg-surface hover:bg-primary/5'
+                  }`}
+                >
+                  <span className="text-xs font-medium text-text-muted">{option.label}</span>
+                  <span className="text-lg font-semibold text-text">
+                    {Number(summary?.total_on_hand ?? 0).toLocaleString('en-IN')} units
+                  </span>
+                  <span className="text-xs text-text-muted">
+                    {summary?.sku_count ?? 0} SKU{Number(summary?.sku_count ?? 0) === 1 ? '' : 's'}
+                    {Number(summary?.total_reserved ?? 0) > 0 && ` · ${Number(summary.total_reserved).toLocaleString('en-IN')} reserved`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           <FilterBar>
             <MultiFilter
-              filters={[{ key: 'warehouseId', label: 'Warehouse', options: warehouseOptions, placeholder: 'All warehouses' }]}
-              values={{ warehouseId }}
+              filters={[
+                { key: 'warehouseId', label: 'Warehouse', options: warehouseOptions, placeholder: 'All warehouses' },
+                { key: 'inventoryCategory', label: 'Type', options: INVENTORY_CATEGORY_OPTIONS, placeholder: 'All types' },
+              ]}
+              values={{ warehouseId, inventoryCategory }}
               onChange={(key, value) => {
-                setWarehouseId(value);
+                if (key === 'warehouseId') setWarehouseId(value);
+                if (key === 'inventoryCategory') setInventoryCategory(value);
                 setPage(1);
               }}
               onClear={() => {
                 setWarehouseId('');
+                setInventoryCategory('');
                 setPage(1);
               }}
             />

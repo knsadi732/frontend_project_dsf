@@ -29,6 +29,11 @@ export const purchaseItemSchema = z.object({
 export const purchaseSchema = z.object({
   poNumber: z.string().min(1, 'PO number is required'),
   purchaseRequestId: z.string().min(1, 'An approved purchase request is required'),
+  // Only set when the PO is created off a selected RFQ quotation (see
+  // PurchasesPage.jsx handleCreatePoFromQuotation) — zod strips unlisted
+  // keys by default, so without this field here rfqId would silently never
+  // reach purchaseApi.create's toBackendPayload.
+  rfqId: z.string().optional(),
   vendorId: z.string().min(1, 'Vendor is required'),
   warehouseId: z.string().min(1, 'Warehouse is required'),
   branchId: z.string().optional(),

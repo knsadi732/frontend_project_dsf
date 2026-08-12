@@ -85,6 +85,7 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, onCa
   // computes and sends on submit.
   const [taxMode, setTaxMode] = useState('exclusive');
   const [gstPercent, setGstPercent] = useState('');
+  const [poNumberPreview, setPoNumberPreview] = useState('');
   // Reset the tax controls whenever the modal transitions from closed to
   // open — adjusted during render (not in an effect) per React's
   // "storing information from previous renders" pattern.
@@ -140,7 +141,12 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, onCa
     // New PO (via Convert to PO) — the number is server-generated
     // (sequence-backed), fetch it as soon as the form opens.
     if (!isEdit) {
-      purchaseApi.generateNumber().then((generated) => setValue('poNumber', generated));
+      purchaseApi.generateNumber().then((generated) => {
+        setPoNumberPreview(generated);
+        setValue('poNumber', generated);
+      });
+    } else {
+      setPoNumberPreview(initialValues?.poNumber ?? '');
     }
   }, [open, initialValues, isEdit, reset, setValue]);
 
@@ -187,6 +193,7 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, onCa
             required
             disabled
             placeholder={isGeneratingNumber ? 'Generating…' : undefined}
+            value={poNumberPreview || poNumber || ''}
             error={errors.poNumber?.message}
             {...register('poNumber')}
           />

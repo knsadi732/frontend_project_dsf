@@ -8,7 +8,6 @@ import { MODULES, ACTIONS, ROLES } from '@/constants/roles';
 import { useAuth } from '@/hooks/useAuth';
 import { useUpdateSalesOrder } from '@/features/sales/mutations/useUpdateSalesOrder';
 import { SalesOrderDetailModal } from '@/features/sales/components/SalesOrderDetailModal';
-import { ORDER_STATUS } from '@/constants/statusEnums';
 import { cn } from '@/utils/cn';
 
 const SALES_REVIEW_ROLES = [ROLES.SALES, ROLES.OWNER, ROLES.SUPER_ADMIN];
@@ -30,7 +29,7 @@ export function NotificationList({ notifications, isLoading, onMarkRead, onArchi
 
   const actOnSalesOrder = (item, status) => {
     updateSalesOrder.mutate(
-      { id: item.entityId, payload: { status } },
+      { id: item.entityId, status },
       { onSuccess: () => onMarkRead(item.id) },
     );
   };
@@ -82,18 +81,9 @@ export function NotificationList({ notifications, isLoading, onMarkRead, onArchi
                   variant="secondary"
                   size="sm"
                   loading={updateSalesOrder.isPending}
-                  onClick={() => actOnSalesOrder(item, ORDER_STATUS.APPROVED)}
+                  onClick={() => actOnSalesOrder(item, 'confirmed')}
                 >
-                  Accept
-                </AppButton>
-                <AppButton
-                  variant="ghost"
-                  size="sm"
-                  className="text-danger hover:bg-danger/10"
-                  loading={updateSalesOrder.isPending}
-                  onClick={() => actOnSalesOrder(item, ORDER_STATUS.REJECTED)}
-                >
-                  Reject
+                  Confirm order
                 </AppButton>
               </div>
             )}
@@ -107,9 +97,9 @@ export function NotificationList({ notifications, isLoading, onMarkRead, onArchi
                   variant="secondary"
                   size="sm"
                   loading={updateSalesOrder.isPending}
-                  onClick={() => actOnSalesOrder(item, ORDER_STATUS.COMPLETED)}
+                  onClick={() => actOnSalesOrder(item, 'packed')}
                 >
-                  Mark order ready
+                  Mark packed
                 </AppButton>
               </div>
             )}

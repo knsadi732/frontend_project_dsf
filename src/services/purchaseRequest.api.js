@@ -12,6 +12,8 @@ function toBackendPayload(payload) {
     warehouseId: payload.warehouseId,
     ...(payload.departmentId && { departmentId: payload.departmentId }),
     ...(payload.branchId && { branchId: payload.branchId }),
+    ...(payload.priority && { priority: payload.priority }),
+    ...(payload.requiredDate && { requiredDate: payload.requiredDate }),
     ...(payload.remarks && { remarks: payload.remarks }),
     items: (payload.items ?? []).map((item) => ({
       productVariantId: item.productVariantId,
@@ -32,6 +34,8 @@ function fromBackendPurchaseRequest(request, submitted = {}) {
     warehouseId: request.warehouseId ?? request.warehouse_id ?? submitted.warehouseId,
     departmentId: request.departmentId ?? request.department_id ?? submitted.departmentId,
     branchId: request.branchId ?? request.branch_id ?? submitted.branchId,
+    priority: request.priority ?? submitted.priority,
+    requiredDate: request.requiredDate ?? request.required_date ?? submitted.requiredDate,
     status: request.status ?? 'draft',
     items:
       submitted.items ??

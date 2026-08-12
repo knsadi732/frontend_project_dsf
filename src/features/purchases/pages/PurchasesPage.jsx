@@ -9,8 +9,9 @@ import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
 import { useCompanyQuery } from '@/features/company/queries/useCompanyQuery';
 import { PurchaseFormModal } from '@/features/purchases/components/PurchaseFormModal';
-import { PurchaseRequestsPanel, purchaseRequestApi } from '@/features/purchaseRequests';
+import { PurchaseRequestsPanel } from '@/features/purchaseRequests';
 import { usePurchaseRequestsQuery } from '@/features/purchaseRequests/queries/usePurchaseRequestsQuery';
+import { RfqsPanel } from '@/features/rfqs';
 import { GoodsReceiptNotesPanel } from '@/features/goodsReceiptNotes';
 import { purchaseApi } from '@/features/purchases/api';
 import { generatePurchaseOrderPdf } from '@/features/purchases/utils/generatePurchaseOrderPdf';
@@ -99,8 +100,9 @@ const NEXT_STEP = {
 };
 
 const TABS = [
-  { key: 'purchases', label: 'Purchase Orders' },
   { key: 'requests', label: 'Purchase Requests' },
+  { key: 'rfqs', label: 'RFQ & Quotations' },
+  { key: 'purchases', label: 'Purchase Orders' },
   { key: 'grn', label: 'Goods Receipt Notes' },
 ];
 
@@ -229,32 +231,34 @@ export function PurchasesPage() {
     },
   ];
 
-  const handleConvertToPo = (request) => {
+  // Fired from RfqsPanel once a vendor has been selected on an RFQ (plan.md
+  // 11.20: "Purchase Orders can only be created for the selected vendor") —
+  // pre-fills the same PurchaseFormModal used for direct/manual PO creation,
+  // but with vendor + per-line unit cost taken from that quotation instead
+  // of left blank. `rfq` here is the full detail object (materialItems +
+  // quotations already loaded by RfqDetailModal's useRfqQuery).
+  const handleCreatePoFromQuotation = (rfq, quotation) => {
     setActiveTab('purchases');
-    // The Purchase Requests table is fed by the list endpoint, which never
-    // returns `items` (only GET /purchase-requests/:id joins them — see
-    // purchaseRequest.service.js getPurchaseRequest) — fetch the full
-    // detail here so the "items to convert" table isn't empty.
-    purchaseRequestApi.get(request.id).then((full) => {
-      setFormState({
-        open: true,
-        purchase: {
-          poNumber: '',
-          purchaseRequestId: full.id,
-          vendorId: '',
-          warehouseId: full.warehouseId ?? '',
-          branchId: full.branchId ?? '',
-          deliveryAddress: '',
-          taxAmount: '',
-          paymentTerms: '',
-          expectedDeliveryDate: '',
-          status: 'draft',
-          // Purchase requests carry the real productVariantId + quantity,
-          // but no cost — POs are where pricing/vendor gets decided, so
-          // unitCost is left for the user to fill in per line.
-          items: full.items.map((item) => ({ productVariantId: item.productVariantId, quantity: item.quantity, unitCost: '' })),
-        },
-      });
+    const items = rfq.materialItems.map((material) => {
+      const quoted = quotation.items.find((item) => item.productVariantId === material.productVariantId);
+      return { productVariantId: material.productVariantId, quantity: material.quantity, unitCost: quoted?.unitPrice ?? '' };
+    });
+    setFormState({
+      open: true,
+      purchase: {
+        poNumber: '',
+        purchaseRequestId: rfq.purchaseRequestId,
+        rfqId: rfq.id,
+        vendorId: quotation.vendorId,
+        warehouseId: rfq.warehouseId ?? '',
+        branchId: rfq.branchId ?? '',
+        deliveryAddress: '',
+        taxAmount: '',
+        paymentTerms: quotation.paymentTerms || '',
+        expectedDeliveryDate: '',
+        status: 'draft',
+        items,
+      },
     });
   };
 
@@ -270,8 +274,7 @@ export function PurchasesPage() {
       {activeTab === 'purchases' && (
         <>
           <p className="text-sm text-text-muted">
-            A purchase order can only be created from an approved purchase request — use "Convert to PO" on the
-            Purchase Requests tab.
+            A purchase order is created once a vendor has been selected on an RFQ — see the "RFQ &amp; Quotations" tab.
           </p>
           <FilterBar>
             <SearchInput
@@ -345,7 +348,8 @@ export function PurchasesPage() {
         </>
       )}
 
-      {activeTab === 'requests' && <PurchaseRequestsPanel onConvertToPo={handleConvertToPo} />}
+      {activeTab === 'requests' && <PurchaseRequestsPanel />}
+      {activeTab === 'rfqs' && <RfqsPanel onCreatePo={handleCreatePoFromQuotation} />}
       {activeTab === 'grn' && <GoodsReceiptNotesPanel />}
     </div>
   );

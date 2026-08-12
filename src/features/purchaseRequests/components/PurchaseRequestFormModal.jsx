@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,10 +15,26 @@ import { AppButton } from '@/components/ui/AppButton';
 import { CreateButton } from '@/components/ui/ActionButtons';
 
 const EMPTY_ITEM = { productVariantId: '', quantity: '', remarks: '' };
+
+// Narrows the (potentially huge) variant list before picking one — backend
+// filters product-variants by the parent product's product_type via
+// GET /product-variants?productType=... (products.product_type, joined
+// through a subquery since the column lives on products, not variants).
+const PRODUCT_TYPE_OPTIONS = [
+  { value: '', label: 'All types' },
+  { value: 'raw_material', label: 'Raw Material' },
+  { value: 'packaging_material', label: 'Packaging Material' },
+  { value: 'consumable', label: 'Consumable' },
+  { value: 'finished_goods', label: 'Finished Goods' },
+  { value: 'semi_finished_goods', label: 'Semi Finished Goods' },
+  { value: 'service', label: 'Service' },
+];
 const DEFAULT_VALUES = {
   warehouseId: '',
   departmentId: '',
   branchId: '',
+  priority: 'medium',
+  requiredDate: '',
   items: [EMPTY_ITEM],
   remarks: '',
 };
@@ -36,7 +52,11 @@ export function PurchaseRequestFormModal({
   const { data: productsData } = useProductsQuery({ pageSize: 200 });
   const productsById = Object.fromEntries((productsData?.data ?? []).map((product) => [product.id, product]));
 
-  const { data: variantsData } = useProductVariantsQuery({ pageSize: 500 });
+  // UI-only filter, not part of the PR payload — narrows the variant
+  // dropdown by the parent product's type (e.g. Raw Material vs Consumable)
+  // before the requester picks a specific SKU.
+  const [productTypeFilter, setProductTypeFilter] = useState('');
+  const { data: variantsData } = useProductVariantsQuery({ pageSize: 500, ...(productTypeFilter && { product_type: productTypeFilter }) });
   const variantOptions = (variantsData?.data ?? []).map((variant) => {
     const productName = productsById[variant.productId]?.name;
     const attrs = [variant.size, variant.color].filter(Boolean).join('/');
@@ -116,11 +136,34 @@ export function PurchaseRequestFormModal({
           />
           <AppSelect label="Branch" placeholder="Select branch" options={branchOptions} error={errors.branchId?.message} {...register('branchId')} />
         </div>
+        <div className="grid grid-cols-2 gap-4">
+          <AppSelect
+            label="Priority"
+            options={[
+              { value: 'low', label: 'Low' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'high', label: 'High' },
+              { value: 'urgent', label: 'Urgent' },
+            ]}
+            error={errors.priority?.message}
+            {...register('priority')}
+          />
+          <AppInput label="Required date" type="date" error={errors.requiredDate?.message} {...register('requiredDate')} />
+        </div>
 
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <span className="text-sm font-medium text-text">Items requested</span>
-            <CreateButton type="button" variant="secondary" size="sm" onClick={() => append(EMPTY_ITEM)}>Add item</CreateButton>
+            <div className="flex items-center gap-2">
+              <AppSelect
+                aria-label="Filter by product type"
+                className="min-w-[10rem]"
+                options={PRODUCT_TYPE_OPTIONS}
+                value={productTypeFilter}
+                onChange={(e) => setProductTypeFilter(e.target.value)}
+              />
+              <CreateButton type="button" variant="secondary" size="sm" onClick={() => append(EMPTY_ITEM)}>Add item</CreateButton>
+            </div>
           </div>
           {errors.items?.message && <p className="text-xs text-danger">{errors.items.message}</p>}
           {fields.map((field, index) => (

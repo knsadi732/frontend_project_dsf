@@ -1,23 +1,21 @@
 import { jsPDF } from 'jspdf';
+import { drawLetterhead } from './pdfLetterhead';
 
 const MARGIN = 14;
 const PAGE_RIGHT = 196;
 
 /**
- * Renders a single-record document (header fields + optional line-items
- * table + total) as a downloadable PDF. Used by every module's "download"
- * row action so a record can be saved/printed for offline record-keeping.
+ * Renders a single-record document (letterhead + header fields + optional
+ * line-items table + total) as a downloadable PDF. Used by every module's
+ * "download" row action so any record leaving the ERP — work order, tax
+ * invoice, or otherwise — is branded with the company letterhead.
  */
-export function generateRecordPdf({ title, subtitle = 'DS Footwear ERP', fields = [], items, itemsColumns, total, fileName }) {
+export function generateRecordPdf({ title, fields = [], items, itemsColumns, total, fileName, gstin }) {
   const doc = new jsPDF();
-  let y = 20;
-
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text(subtitle, MARGIN, y);
-  y += 9;
+  let y = drawLetterhead(doc, { gstin });
 
   doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
   doc.text(title, MARGIN, y);
   y += 8;
 

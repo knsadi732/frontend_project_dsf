@@ -1,17 +1,14 @@
 // Real order-fulfillment stage for a Sales Order — used anywhere a "where is
 // this order right now" status needs to be shown (e.g. the Communication
-// Log's Delivery Status column), as opposed to a message-delivery flag.
-// There's no real courier/tracking integration in this mock, so "Delivered"
-// is a manual confirmation step (see the "Mark Delivered" action) standing
-// in for a courier webhook.
+// Log's Delivery Status column). Backed directly by the real pipeline status
+// (order.service.js ORDER_STATUS_PIPELINE: pending -> confirmed -> packed ->
+// dispatched -> delivered -> completed) — there's no separate mock flag.
 export const DELIVERY_STAGE_OPTIONS = [
   { value: 'sales_order_pending', label: 'Sales Order Pending' },
   { value: 'production_pending', label: 'Production Pending' },
   { value: 'warehouse', label: 'Warehouse' },
   { value: 'dispatched', label: 'Dispatched' },
   { value: 'delivered', label: 'Delivered' },
-  { value: 'cancelled', label: 'Cancelled' },
-  { value: 'rejected', label: 'Rejected' },
 ];
 
 export const DELIVERY_STAGE_BADGE_VARIANT = {
@@ -20,19 +17,23 @@ export const DELIVERY_STAGE_BADGE_VARIANT = {
   warehouse: 'info',
   dispatched: 'info',
   delivered: 'success',
-  cancelled: 'danger',
-  rejected: 'danger',
 };
 
 export function getSalesOrderStage(salesOrder) {
   if (!salesOrder) return null;
-  if (salesOrder.status === 'cancelled') return 'cancelled';
-  if (salesOrder.status === 'rejected') return 'rejected';
-  if (salesOrder.deliveredAt) return 'delivered';
-  if (salesOrder.dispatchNoteGeneratedAt || salesOrder.status === 'completed') return 'dispatched';
-  if (salesOrder.pickListGeneratedAt) return 'warehouse';
-  if (salesOrder.status === 'in_progress') return 'production_pending';
-  return 'sales_order_pending';
+  switch (salesOrder.status) {
+    case 'delivered':
+    case 'completed':
+      return 'delivered';
+    case 'dispatched':
+      return 'dispatched';
+    case 'packed':
+      return 'warehouse';
+    case 'confirmed':
+      return 'production_pending';
+    default:
+      return 'sales_order_pending';
+  }
 }
 
 export function getSalesOrderStageLabel(salesOrder) {
