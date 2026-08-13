@@ -13,6 +13,7 @@ import { RacksPanel } from '@/features/racks';
 import { ShelvesPanel } from '@/features/shelves';
 import { BinsPanel } from '@/features/bins';
 import { InventoryMovementsPanel } from '@/features/inventoryMovements';
+import { MaterialIssueRequestsPanel } from '@/features/materialIssueRequests';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
@@ -49,6 +50,7 @@ const TABS = [
   { key: 'shelves', label: 'Shelves' },
   { key: 'bins', label: 'Bins' },
   { key: 'movements', label: 'Movements' },
+  { key: 'materialIssue', label: 'Material Issue' },
 ];
 
 // 'salable' vs non-salable 'office_consumable'/'raw_material' — derived
@@ -327,6 +329,7 @@ export function InventoryPage() {
       {activeTab === 'shelves' && <ShelvesPanel />}
       {activeTab === 'bins' && <BinsPanel />}
       {activeTab === 'movements' && <InventoryMovementsPanel />}
+      {activeTab === 'materialIssue' && <MaterialIssueRequestsPanel defaultStatus="approved" />}
     </div>
   );
 }

@@ -22,9 +22,11 @@ function fromBackendMir(mir, submitted = {}) {
     warehouseName: mir.warehouse_name ?? submitted.warehouseName,
     requestedBy: mir.requested_by ?? submitted.requestedBy,
     requestedByName: mir.requested_by_name ?? submitted.requestedByName,
+    requestedByDepartment: mir.requested_by_department ?? submitted.requestedByDepartment,
     approvedBy: mir.approved_by ?? submitted.approvedBy,
     approvedByName: mir.approved_by_name ?? submitted.approvedByName,
     approvedAt: mir.approved_at ?? submitted.approvedAt,
+    issuedAt: mir.issued_at ?? submitted.issuedAt,
     items:
       submitted.items ??
       (mir.items ?? []).map((item) => ({
@@ -34,8 +36,10 @@ function fromBackendMir(mir, submitted = {}) {
         sku: item.sku,
         size: item.size,
         color: item.color,
+        uom: item.uom,
         quantityRequired: Number(item.quantity_required ?? 0),
         quantityReserved: Number(item.quantity_reserved ?? 0),
+        quantityIssued: Number(item.quantity_issued ?? 0),
       })),
   };
 }
@@ -50,9 +54,12 @@ export const materialIssueRequestApi = {
   // shortfall, all atomic with the status flip.
   approve: (id) => apiClient.patch(`/material-issue-requests/${id}/approve`).then((res) => fromBackendMir(res.data.data)),
   reject: (id) => apiClient.patch(`/material-issue-requests/${id}/reject`).then((res) => fromBackendMir(res.data.data)),
-  // material_issue_request.issue — warehouse staff, only once "approved".
-  // The explicit "material physically left the warehouse" step: deducts
-  // on-hand by exactly what got reserved per line at approval (never the
-  // full quantityRequired — the shortfall portion isn't issuable).
-  issue: (id) => apiClient.patch(`/material-issue-requests/${id}/issue`).then((res) => fromBackendMir(res.data.data)),
+  // material_issue_request.issue — warehouse staff, only once "approved" or
+  // "partially_issued". `items`: [{ itemId, quantity }] — the exact
+  // quantity typed per line for THIS issue, not auto-computed; backend caps
+  // each against remaining balance and current stock, rejecting the whole
+  // call (MIR_004) if either is exceeded. Repeatable — status parks at
+  // "partially_issued" until every line's balance hits zero.
+  issue: (id, items) =>
+    apiClient.patch(`/material-issue-requests/${id}/issue`, { items }).then((res) => fromBackendMir(res.data.data)),
 };

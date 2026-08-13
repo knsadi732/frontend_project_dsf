@@ -8,7 +8,7 @@ export function useIssueMaterialIssueRequest() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: materialIssueRequestApi.issue,
+    mutationFn: ({ id, items }) => materialIssueRequestApi.issue(id, items),
     onSuccess: () => {
       // Issuing deducts on-hand stock, so refresh Inventory alongside this
       // module's own list.
