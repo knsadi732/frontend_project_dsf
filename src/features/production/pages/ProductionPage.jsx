@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react';
-import { ClipboardCheck } from 'lucide-react';
+import { ClipboardCheck, ChevronRight } from 'lucide-react';
 import { useWorkOrdersQuery } from '@/features/production/queries/useWorkOrdersQuery';
 import { useCreateWorkOrder } from '@/features/production/mutations/useCreateWorkOrder';
 import { useUpdateWorkOrder } from '@/features/production/mutations/useUpdateWorkOrder';
 import { useDeleteWorkOrder } from '@/features/production/mutations/useDeleteWorkOrder';
+import { useAdvanceFloorStage } from '@/features/production/mutations/useAdvanceFloorStage';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { WorkOrderFormModal } from '@/features/production/components/WorkOrderFormModal';
 import { QualityInspectionFormModal } from '@/features/qualityInspections';
 import { useCreateQualityInspection } from '@/features/qualityInspections/mutations/useCreateQualityInspection';
 import { MaterialIssueRequestsPanel } from '@/features/materialIssueRequests';
 import { BomPanel } from '@/features/bom';
+import { MachinesPanel } from '@/features/machines';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppTable } from '@/components/ui/AppTable';
@@ -34,7 +36,15 @@ const TABS = [
   { key: 'workOrders', label: 'Work Orders' },
   { key: 'materialRequests', label: 'Material Requests' },
   { key: 'bom', label: 'Bill of Materials' },
+  { key: 'machines', label: 'Machines' },
 ];
+
+// Shop-floor pipeline — separate from the coarse pending/in_progress/
+// completed/cancelled `stage`. Only meaningful while stage = 'in_progress';
+// forward-only, one station at a time (matches backend workOrder.service.js
+// advanceFloorStage).
+const FLOOR_STAGES = ['cutting', 'stitching', 'lasting', 'finishing'];
+const FLOOR_STAGE_LABEL = { cutting: 'Cutting', stitching: 'Stitching', lasting: 'Lasting', finishing: 'Finishing' };
 
 function totalCost(row) {
   return (
@@ -97,6 +107,7 @@ export function ProductionPage() {
   const updateWorkOrder = useUpdateWorkOrder();
   const deleteWorkOrder = useDeleteWorkOrder();
   const createQualityInspection = useCreateQualityInspection();
+  const advanceFloorStage = useAdvanceFloorStage();
 
   const handleSubmit = (values) => {
     const action = formState.workOrder?.id
@@ -123,6 +134,34 @@ export function ProductionPage() {
     { key: 'dueDate', header: 'Due Date' },
     { key: 'totalCost', header: 'Total Cost', render: (row) => `₹${totalCost(row).toLocaleString('en-IN')}` },
     { key: 'stage', header: 'Stage', render: (row) => <StatusBadge status={row.stage} /> },
+    {
+      key: 'floorStage',
+      header: 'Floor',
+      render: (row) => {
+        if (row.stage !== 'in_progress') return <span className="text-xs text-text-muted">—</span>;
+        const currentIndex = row.floorStage ? FLOOR_STAGES.indexOf(row.floorStage) : -1;
+        const next = FLOOR_STAGES[currentIndex + 1];
+        return (
+          <div className="flex items-center gap-1.5">
+            <BaseBadge variant="info">{row.floorStage ? FLOOR_STAGE_LABEL[row.floorStage] : 'Not started'}</BaseBadge>
+            {next && (
+              <Can module={MODULES.PRODUCTION} action={ACTIONS.EDIT}>
+                <AppButton
+                  variant="ghost"
+                  size="sm"
+                  loading={advanceFloorStage.isPending}
+                  onClick={(event) => { event.stopPropagation(); advanceFloorStage.mutate({ id: row.id, floorStage: next }); }}
+                  aria-label={`Advance ${row.workOrderNumber} to ${FLOOR_STAGE_LABEL[next]}`}
+                  title={`Advance to ${FLOOR_STAGE_LABEL[next]}`}
+                >
+                  <ChevronRight className="size-4" />
+                </AppButton>
+              </Can>
+            )}
+          </div>
+        );
+      },
+    },
     {
       key: 'linkedSo',
       header: 'Linked SO',
@@ -293,6 +332,7 @@ export function ProductionPage() {
 
       {activeTab === 'materialRequests' && <MaterialIssueRequestsPanel />}
       {activeTab === 'bom' && <BomPanel />}
+      {activeTab === 'machines' && <MachinesPanel />}
     </div>
   );
 }

@@ -25,9 +25,11 @@ const DEFAULT_VALUES = {
   electricityCost: 0,
   packagingCost: 0,
   overheadCost: 0,
+  actualQuantity: '',
 };
 
 export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
+  const isEdit = Boolean(initialValues?.id);
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
   const productOptions = (productsData?.data ?? []).map((product) => ({ value: product.id, label: product.name }));
 
@@ -135,6 +137,16 @@ export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isS
             {...register('stage')}
           />
         </div>
+        {isEdit && (
+          <AppInput
+            label="Actual quantity produced"
+            type="number"
+            step="0.001"
+            helperText="Set when marking this Completed — defaults to planned quantity if left blank. Drives Material Waste Variance and Daily Production Output."
+            error={errors.actualQuantity?.message}
+            {...register('actualQuantity')}
+          />
+        )}
         <div className="flex flex-col gap-2">
           <span className="text-sm font-medium text-text">Production costing</span>
           <div className="grid grid-cols-3 gap-4">

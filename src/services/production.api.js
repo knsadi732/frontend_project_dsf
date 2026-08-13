@@ -1,3 +1,4 @@
+import { apiClient } from '@/services/api/axios';
 import { createCrudApi } from '@/services/api/createCrudApi';
 
 const baseApi = createCrudApi('work-orders');
@@ -27,6 +28,9 @@ function fromBackendWorkOrder(workOrder) {
     electricityCost: Number(workOrder.electricity_cost ?? 0),
     packagingCost: Number(workOrder.packaging_cost ?? 0),
     overheadCost: Number(workOrder.overhead_cost ?? 0),
+    actualQuantity: workOrder.actual_quantity != null ? Number(workOrder.actual_quantity) : null,
+    completedAt: workOrder.completed_at ?? null,
+    floorStage: workOrder.floor_stage ?? null,
   };
 }
 
@@ -36,8 +40,11 @@ function fromBackendWorkOrder(workOrder) {
 // material (per the product's BOM) and flag any shortfall as a Purchase
 // Request the moment this work order is created.
 function toBackendPayload(payload) {
-  const { workOrderNumber, productId, productVariantId, warehouseId, quantity, stage, dueDate, rawMaterialCost, labourCost, machineCost, electricityCost, packagingCost, overheadCost, remarks } = payload;
-  return { workOrderNumber, productId, productVariantId, warehouseId, quantity, stage, dueDate, rawMaterialCost, labourCost, machineCost, electricityCost, packagingCost, overheadCost, remarks };
+  const { workOrderNumber, productId, productVariantId, warehouseId, quantity, stage, dueDate, rawMaterialCost, labourCost, machineCost, electricityCost, packagingCost, overheadCost, remarks, actualQuantity } = payload;
+  // '' means "leave blank" (backend defaults to planned quantity on
+  // completion) — must not be sent as a literal value, Joi's number()
+  // validator rejects an empty string outright.
+  return { workOrderNumber, productId, productVariantId, warehouseId, quantity, stage, dueDate, rawMaterialCost, labourCost, machineCost, electricityCost, packagingCost, overheadCost, remarks, actualQuantity: actualQuantity === '' ? undefined : actualQuantity };
 }
 
 export const productionApi = {
@@ -50,4 +57,8 @@ export const productionApi = {
   create: (payload) => baseApi.create(toBackendPayload(payload)).then(fromBackendWorkOrder),
   update: (id, payload) => baseApi.update(id, toBackendPayload(payload)).then(fromBackendWorkOrder),
   remove: (id) => baseApi.remove(id),
+  // work_order.manage — floor_stage is separate from `stage` (shop-floor
+  // position vs coarse lifecycle), only valid while stage = 'in_progress'.
+  advanceFloorStage: (id, floorStage) =>
+    apiClient.patch(`/work-orders/${id}/floor-stage`, { floorStage }).then((res) => fromBackendWorkOrder(res.data.data)),
 };

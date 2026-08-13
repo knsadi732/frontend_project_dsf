@@ -16,7 +16,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { CreateButton } from '@/components/ui/ActionButtons';
 
 const EMPTY_ITEM = { productVariantId: '', quantity: '' };
-const DEFAULT_VALUES = { branchId: '', warehouseId: '', customerId: '', items: [EMPTY_ITEM] };
+const DEFAULT_VALUES = { branchId: '', warehouseId: '', customerId: '', promisedDeliveryDate: '', items: [EMPTY_ITEM] };
 
 function statusLabel(status) {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -128,7 +128,17 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
             {...register('warehouseId')}
           />
         </div>
-        <AppSelect label="Branch" placeholder="Select branch" disabled={isEdit} options={branchOptions} error={errors.branchId?.message} {...register('branchId')} />
+        <div className="grid grid-cols-2 gap-4">
+          <AppSelect label="Branch" placeholder="Select branch" disabled={isEdit} options={branchOptions} error={errors.branchId?.message} {...register('branchId')} />
+          <AppInput
+            label="Promised delivery date"
+            type="date"
+            disabled={isEdit}
+            helperText="Used for On-Time-In-Full (OTIF) tracking"
+            error={errors.promisedDeliveryDate?.message}
+            {...register('promisedDeliveryDate')}
+          />
+        </div>
 
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">

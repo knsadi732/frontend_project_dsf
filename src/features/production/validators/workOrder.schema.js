@@ -16,4 +16,7 @@ export const workOrderSchema = z.object({
   electricityCost: z.coerce.number().nonnegative().default(0),
   packagingCost: z.coerce.number().nonnegative().default(0),
   overheadCost: z.coerce.number().nonnegative().default(0),
+  // Units actually produced — set (or corrected) at completion; blank means
+  // "use planned quantity" (backend default, see workOrder.service.js).
+  actualQuantity: z.union([z.coerce.number().nonnegative(), z.literal('')]).optional(),
 });

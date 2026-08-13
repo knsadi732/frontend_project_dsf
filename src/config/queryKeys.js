@@ -31,6 +31,8 @@ export const queryKeys = {
   production: resourceKeys('production'),
   materialIssueRequests: resourceKeys('materialIssueRequests'),
   bom: resourceKeys('bom'),
+  machines: resourceKeys('machines'),
+  approvalRequests: resourceKeys('approvalRequests'),
   sales: resourceKeys('sales'),
   finance: resourceKeys('finance'),
   returns: resourceKeys('returns'),
@@ -57,4 +59,5 @@ export const queryKeys = {
   communicationLogs: resourceKeys('communicationLogs'),
   reports: resourceKeys('reports'),
   dashboard: { all: ['dashboard'] },
+  settings: { all: ['settings'] },
 };

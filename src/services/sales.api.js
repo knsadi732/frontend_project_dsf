@@ -12,6 +12,8 @@ function toBackendPayload(payload) {
     branchId: payload.branchId || null,
     warehouseId: payload.warehouseId,
     customerId: payload.customerId,
+    // OTIF (On Time In Full) tracking — the sales-committed delivery date.
+    ...(payload.promisedDeliveryDate && { promisedDeliveryDate: payload.promisedDeliveryDate }),
     items: (payload.items ?? []).map((item) => ({
       productVariantId: item.productVariantId,
       quantity: item.quantity,
@@ -42,6 +44,7 @@ function fromBackendOrder(order, submitted = {}) {
     // updateStatus) — null until then, which is what tells the invoice PDF
     // whether to print as a Proforma Invoice or a final Tax Invoice.
     dispatchedAt: order.dispatchedAt ?? order.dispatched_at ?? submitted.dispatchedAt ?? null,
+    promisedDeliveryDate: order.promisedDeliveryDate ?? order.promised_delivery_date ?? submitted.promisedDeliveryDate ?? null,
     items:
       submitted.items ??
       (order.items ?? []).map((item) => ({

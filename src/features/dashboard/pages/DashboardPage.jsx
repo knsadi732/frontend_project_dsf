@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertTriangle } from 'lucide-react';
 import { useDashboardQuery } from '@/features/dashboard/queries/useDashboardQuery';
 import { useRegenerateAnalytics } from '@/features/dashboard/mutations/useRegenerateAnalytics';
 import { useSalesOrdersQuery } from '@/features/sales/queries/useSalesOrdersQuery';
@@ -7,6 +7,15 @@ import { useProductStockQuery } from '@/features/inventory/queries/useProductSto
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
 import { useWorkOrdersQuery } from '@/features/production/queries/useWorkOrdersQuery';
+import { usePurchaseRequestsQuery } from '@/features/purchaseRequests/queries/usePurchaseRequestsQuery';
+import { useMaterialIssueRequestsQuery } from '@/features/materialIssueRequests/queries/useMaterialIssueRequestsQuery';
+import { useInvoicesQuery } from '@/features/finance/queries/useInvoicesQuery';
+import { useAttendanceQuery } from '@/features/attendance/queries/useAttendanceQuery';
+import { useUsersQuery } from '@/features/users/queries/useUsersQuery';
+import { useMachinesQuery } from '@/features/machines/queries/useMachinesQuery';
+import { useApprovalRequestsQuery } from '@/features/approvalRequests/queries/useApprovalRequestsQuery';
+import { useSettingsQuery } from '@/features/settings/queries/useSettingsQuery';
+import { useUpdateSettings } from '@/features/settings/mutations/useUpdateSettings';
 import { StatCard } from '@/features/dashboard/components/StatCard';
 import { DashboardBarChart } from '@/features/dashboard/components/DashboardBarChart';
 import { SalesTrendChart } from '@/features/dashboard/components/SalesTrendChart';
@@ -14,14 +23,28 @@ import { SalesProductPieChart } from '@/features/dashboard/components/SalesProdu
 import { SalesVsInventoryChart } from '@/features/dashboard/components/SalesVsInventoryChart';
 import { MarginChart } from '@/features/dashboard/components/MarginChart';
 import { BreakEvenChart } from '@/features/dashboard/components/BreakEvenChart';
+import { ProductLifecycleChart } from '@/features/dashboard/components/ProductLifecycleChart';
 import { ProductSalesTrendModal } from '@/features/dashboard/components/ProductSalesTrendModal';
 import { salesTrendByDate, productMix, salesVsInventory } from '@/features/dashboard/utils/salesChartData';
 import { marginByVariant, breakEvenEligibleVariants } from '@/features/production/utils/unitCost';
+import {
+  wipTotal,
+  receivablesByBucket,
+  avgCostPerPair,
+  otifRate,
+  dailyProductionOutput,
+  lifecycleEligibleProducts,
+} from '@/features/dashboard/utils/ownerOverview';
+import { receivableAging } from '@/features/reports/utils/reportAggregations';
 import { BaseCard } from '@/components/ui/BaseCard';
 import { AppButton } from '@/components/ui/AppButton';
+import { AppInput } from '@/components/ui/AppInput';
 import { BaseLoader } from '@/components/ui/BaseLoader';
 import { useAuth } from '@/hooks/useAuth';
 import { MODULES, ACTIONS } from '@/constants/roles';
+
+const AMBER_RAMP_LIGHT = ['#fde68a', '#fbbf24', '#d97706', '#b91c1c'];
+const AMBER_RAMP_DARK = ['#fcd34d', '#f59e0b', '#c2410c', '#dc2626'];
 
 // Role-scoped by construction: each section below is gated by the same
 // module permission used everywhere else in the app (can()), so e.g. an
@@ -50,6 +73,17 @@ export function DashboardPage() {
   const { data: productsData } = useProductsQuery({ pageSize: 300 });
   const { data: variantsData } = useProductVariantsQuery({ pageSize: 500 });
   const { data: workOrdersData } = useWorkOrdersQuery({ pageSize: 500 });
+  const { data: pendingPRData } = usePurchaseRequestsQuery({ status: 'pending_approval', pageSize: 200 });
+  const { data: pendingMIRData } = useMaterialIssueRequestsQuery({ status: 'pending_approval', pageSize: 200 });
+  const { data: pendingApprovalsData } = useApprovalRequestsQuery({ status: 'pending_approval', pageSize: 200 });
+  const { data: invoicesData } = useInvoicesQuery({ pageSize: 300 });
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const { data: attendanceTodayData } = useAttendanceQuery({ dateFrom: today, dateTo: today, pageSize: 500 });
+  const { data: usersData } = useUsersQuery({ pageSize: 500 });
+  const { data: machinesDownData } = useMachinesQuery({ status: 'down', pageSize: 50 });
+  const { data: settingsData } = useSettingsQuery();
+  const updateSettings = useUpdateSettings();
+  const [targetDraft, setTargetDraft] = useState(null);
 
   const orders = useMemo(() => salesOrdersData?.data ?? [], [salesOrdersData]);
   const salesTrend = useMemo(() => salesTrendByDate(orders), [orders]);
@@ -69,6 +103,31 @@ export function DashboardPage() {
     () => breakEvenEligibleVariants(workOrders, variantsById),
     [workOrders, variantsById],
   );
+
+  const pendingApprovalsCount =
+    (pendingPRData?.total ?? pendingPRData?.data?.length ?? 0) +
+    (pendingMIRData?.total ?? pendingMIRData?.data?.length ?? 0) +
+    (pendingApprovalsData?.total ?? pendingApprovalsData?.data?.length ?? 0);
+  const wip = useMemo(() => wipTotal(workOrders), [workOrders]);
+  const receivables = useMemo(
+    () => receivablesByBucket(receivableAging(invoicesData?.data ?? [])),
+    [invoicesData],
+  );
+  const activeUserCount = (usersData?.data ?? []).filter((u) => u.employmentStatus === 'active').length;
+  const attendanceTodayCount = useMemo(
+    () => new Set((attendanceTodayData?.data ?? []).map((a) => a.employeeId)).size,
+    [attendanceTodayData],
+  );
+  const cpp = useMemo(() => avgCostPerPair(workOrders), [workOrders]);
+  const otif = useMemo(() => otifRate(orders), [orders]);
+  const dailyOutput = useMemo(() => dailyProductionOutput(workOrders), [workOrders]);
+  const dailyTarget = settingsData?.dailyProductionTarget ?? null;
+  const lifecycleProducts = useMemo(
+    () => lifecycleEligibleProducts(productsData?.data ?? [], orders),
+    [productsData, orders],
+  );
+  const machinesDown = machinesDownData?.data ?? [];
+  const targetInputValue = targetDraft ?? (dailyTarget != null ? String(dailyTarget) : '');
 
   if (isLoading) return <BaseLoader label="Loading dashboard…" />;
   if (isError || !data) {
@@ -102,6 +161,72 @@ export function DashboardPage() {
           </AppButton>
         )}
       </div>
+
+      {machinesDown.length > 0 && (
+        <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/10 px-4 py-3">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-danger" />
+          <p className="text-sm text-danger">
+            {machinesDown.length} machine{machinesDown.length > 1 ? 's' : ''} down:{' '}
+            {machinesDown.map((m) => m.name).join(', ')}
+          </p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Work In Progress (units)" value={wip.toLocaleString('en-IN')} />
+        <StatCard label="Pending Approvals" value={String(pendingApprovalsCount)} />
+        <StatCard
+          label="Attendance Today"
+          value={activeUserCount > 0 ? `${attendanceTodayCount} / ${activeUserCount}` : String(attendanceTodayCount)}
+        />
+        {cpp > 0 && <StatCard label="Avg Cost Per Pair" value={`₹${cpp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`} />}
+        {otif != null && <StatCard label="OTIF Rate" value={`${otif}%`} />}
+        <StatCard label="Daily Production Output" value={dailyOutput.toLocaleString('en-IN')} />
+      </div>
+
+      <BaseCard className="p-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-medium text-text">Daily production target</h2>
+            <p className="text-xs text-text-muted">
+              Today's output: <span className="font-medium text-text">{dailyOutput.toLocaleString('en-IN')}</span>
+              {dailyTarget != null && <> of {dailyTarget.toLocaleString('en-IN')}</>}
+            </p>
+          </div>
+          <div className="flex items-end gap-2">
+            <AppInput
+              label="Target (units/day)"
+              type="number"
+              value={targetInputValue}
+              onChange={(e) => setTargetDraft(e.target.value)}
+            />
+            <AppButton
+              variant="secondary"
+              loading={updateSettings.isPending}
+              disabled={targetDraft === null || targetDraft === ''}
+              onClick={() => {
+                updateSettings.mutate(
+                  { dailyProductionTarget: Number(targetDraft) },
+                  { onSuccess: () => setTargetDraft(null) },
+                );
+              }}
+            >
+              Save
+            </AppButton>
+          </div>
+        </div>
+        {dailyTarget != null && (
+          <div className="mt-3">
+            <DashboardBarChart
+              height={100}
+              data={[
+                { name: 'Actual', value: dailyOutput, light: '#2a78d6', dark: '#3987e5' },
+                { name: 'Target', value: dailyTarget, light: '#9c9c94', dark: '#7a7a72' },
+              ]}
+            />
+          </div>
+        )}
+      </BaseCard>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {canViewSales && (
@@ -222,6 +347,22 @@ export function DashboardPage() {
             <MarginChart data={margins} height={170} />
           </BaseCard>
         )}
+
+        {canViewFinance && (
+          <BaseCard className="p-3">
+            <h2 className="mb-1 text-sm font-medium text-text">Receivables aging</h2>
+            {/* single-hue sequential ramp (amber) — magnitude-by-age-bucket,
+                not identity, so a categorical palette would be wrong here */}
+            <DashboardBarChart
+              height={170}
+              data={receivables.map((bucket, i) => ({
+                ...bucket,
+                light: AMBER_RAMP_LIGHT[i],
+                dark: AMBER_RAMP_DARK[i],
+              }))}
+            />
+          </BaseCard>
+        )}
       </div>
 
       {canViewSales && (
@@ -232,6 +373,17 @@ export function DashboardPage() {
             Revenue cross is the no-loss-no-profit point for the selected SKU.
           </p>
           <BreakEvenChart variants={breakEvenVariants} workOrders={workOrders} variantsById={variantsById} height={220} />
+        </BaseCard>
+      )}
+
+      {canViewSales && (
+        <BaseCard className="p-4">
+          <h2 className="mb-1 text-sm font-medium text-text">Product life cycle</h2>
+          <p className="mb-2 text-xs text-text-muted">
+            Monthly units sold, staged into Introduction / Growth / Maturity / Decline — inferred from the product's
+            own sales trend relative to its peak month.
+          </p>
+          <ProductLifecycleChart products={lifecycleProducts} orders={orders} height={220} />
         </BaseCard>
       )}
 

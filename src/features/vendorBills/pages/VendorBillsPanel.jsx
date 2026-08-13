@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import { useVendorBillsQuery } from '@/features/vendorBills/queries/useVendorBillsQuery';
-import { useRecordVendorBillPayment } from '@/features/vendorBills/mutations/useRecordVendorBillPayment';
+import { useCreateVendorPaymentRequest } from '@/features/approvalRequests/mutations/useCreateVendorPaymentRequest';
 import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { VendorPaymentFormModal } from '@/features/vendorBills/components/VendorPaymentFormModal';
 import { AppTable } from '@/components/ui/AppTable';
@@ -39,7 +39,7 @@ export function VendorBillsPanel() {
   const { data: vendorsData } = useVendorsQuery({ pageSize: 100 });
   const vendorOptions = (vendorsData?.data ?? []).map((v) => ({ value: v.id, label: v.name }));
 
-  const recordPayment = useRecordVendorBillPayment();
+  const createPaymentRequest = useCreateVendorPaymentRequest();
 
   const columns = [
     { key: 'invoiceNumber', header: 'Bill Number' },
@@ -59,7 +59,7 @@ export function VendorBillsPanel() {
           {row.invoiceUrl && <ViewButton label="View invoice" href={row.invoiceUrl} />}
           {row.status !== 'paid' && (
             <Can module={MODULES.FINANCE} action={ACTIONS.EDIT}>
-              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setPaymentTarget(row); }} aria-label="Record payment" title="Record payment">
+              <AppButton variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setPaymentTarget(row); }} aria-label="Request payment approval" title="Request payment approval">
                 <CreditCard className="size-4" />
               </AppButton>
             </Can>
@@ -109,14 +109,17 @@ export function VendorBillsPanel() {
         emptyMessage="No vendor bills yet"
       />
 
+      {/* Payment no longer posts directly — it raises an approval_requests
+          row (Finance → Approval Queue); the Owner's one-click approve is
+          what actually posts it (approvalRequest.service.js). */}
       <VendorPaymentFormModal
         open={Boolean(paymentTarget)}
         bill={paymentTarget}
         onClose={() => setPaymentTarget(null)}
         onSubmit={(values) =>
-          recordPayment.mutateAsync({ id: paymentTarget.id, ...values }).then(() => setPaymentTarget(null))
+          createPaymentRequest.mutateAsync({ vendorBillId: paymentTarget.id, ...values }).then(() => setPaymentTarget(null))
         }
-        isSubmitting={recordPayment.isPending}
+        isSubmitting={createPaymentRequest.isPending}
       />
     </div>
   );

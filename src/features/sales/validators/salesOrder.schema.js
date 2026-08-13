@@ -21,6 +21,8 @@ export const salesOrderSchema = z.object({
   branchId: z.string().optional(),
   warehouseId: z.string().min(1, 'Warehouse is required'),
   customerId: z.string().min(1, 'Customer is required'),
+  // OTIF (On Time In Full) tracking — the sales-committed delivery date.
+  promisedDeliveryDate: z.string().optional(),
   items: z.array(salesOrderItemSchema).min(1, 'Add at least one item'),
   // Only present/used in edit mode (see SalesOrderFormModal's status
   // dropdown) — zod strips unlisted keys by default, so without this field
