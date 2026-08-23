@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useCreateProduct } from '@/features/products/mutations/useCreateProduct';
 import { useUpdateProduct } from '@/features/products/mutations/useUpdateProduct';
@@ -52,7 +53,7 @@ const TABS = [
 ];
 
 export function ProductsPage() {
-  const [activeTab, setActiveTab] = useState('products');
+  const [activeTab, setActiveTab] = usePersistedTab('products', 'products');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);

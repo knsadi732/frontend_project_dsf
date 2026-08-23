@@ -85,7 +85,7 @@ export function LedgerPanel() {
     { key: 'partyName', header: 'Party', render: (row) => row.partyName || '—' },
     { key: 'utrReference', header: 'UTR / Txn ID', render: (row) => row.utrReference || '—' },
     { key: 'invoiceNumber', header: 'Invoice No', render: (row) => row.invoiceNumber || '—' },
-    { key: 'orderNumber', header: 'Order ID', render: (row) => row.orderNumber || '—' },
+    { key: 'orderNumber', header: 'Order ID', render: (row) => row.orderId || row.orderNumber || '—' },
     {
       key: 'fundingSource',
       header: 'Fund Source',
@@ -103,7 +103,11 @@ export function LedgerPanel() {
     {
       key: 'gstAmount',
       header: 'GST (₹)',
-      render: (row) => (row.gstAmount ? row.gstAmount.toLocaleString('en-IN') : '—'),
+      render: (row) => {
+        if (!row.isGstApplicable) return '—';
+        if (!row.gstAmount) return <span className="text-warning" title="GST applicable but amount not yet entered">Pending</span>;
+        return `${row.gstAmount.toLocaleString('en-IN')}${row.gstRate ? ` (${row.gstRate}%)` : ''}`;
+      },
     },
     {
       key: 'debit',

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ClipboardCheck, ChevronRight } from 'lucide-react';
+import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { useWorkOrdersQuery } from '@/features/production/queries/useWorkOrdersQuery';
 import { useCreateWorkOrder } from '@/features/production/mutations/useCreateWorkOrder';
 import { useUpdateWorkOrder } from '@/features/production/mutations/useUpdateWorkOrder';
@@ -77,7 +78,7 @@ function downloadWorkOrderPdf(row, productName) {
 // dispatch (order.service.js, see ApiList.md "Work Orders"). No separate
 // "Production Request" step exists on top of it.
 export function ProductionPage() {
-  const [activeTab, setActiveTab] = useState('workOrders');
+  const [activeTab, setActiveTab] = usePersistedTab('production', 'workOrders');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();

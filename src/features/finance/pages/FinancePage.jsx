@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { useInvoicesQuery } from '@/features/finance/queries/useInvoicesQuery';
 import { useUpdateInvoice } from '@/features/finance/mutations/useUpdateInvoice';
 import { InvoiceStatusModal } from '@/features/finance/components/InvoiceStatusModal';
@@ -14,7 +15,7 @@ import { CreditNotesPanel } from '@/features/creditNotes';
 import { LoanEsignRequestsPanel } from '@/features/loanEsignRequests';
 import { LoansPanel } from '@/features/loans';
 import { ApprovalRequestsPanel } from '@/features/approvalRequests';
-import { LedgerPanel } from '@/features/ledger';
+import { LedgerPanel, FundingSourcesPanel } from '@/features/ledger';
 import { CompliancePanel } from '@/features/compliance';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
@@ -72,11 +73,12 @@ const TABS = [
   { key: 'loanRequests', label: 'Loan Requests' },
   { key: 'loans', label: 'Loans (Debt)' },
   { key: 'ledger', label: 'Ledger' },
+  { key: 'fundingSources', label: 'Funding Sources' },
   { key: 'compliance', label: 'Compliance' },
 ];
 
 export function FinancePage() {
-  const [activeTab, setActiveTab] = useState('invoices');
+  const [activeTab, setActiveTab] = usePersistedTab('finance', 'invoices');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
@@ -252,6 +254,7 @@ export function FinancePage() {
       {activeTab === 'loanRequests' && <LoanEsignRequestsPanel />}
       {activeTab === 'loans' && <LoansPanel />}
       {activeTab === 'ledger' && <LedgerPanel />}
+      {activeTab === 'fundingSources' && <FundingSourcesPanel />}
       {activeTab === 'compliance' && <CompliancePanel />}
     </div>
   );

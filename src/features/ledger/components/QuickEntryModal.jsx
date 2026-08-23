@@ -162,7 +162,10 @@ export function QuickEntryModal({ open, onClose, onSubmit, isSubmitting, onNewFu
             </div>
             <AppSelect
               placeholder="Select funding source"
-              options={fundingSources.map((s) => ({ value: s.id, label: s.partyName }))}
+              options={fundingSources.map((s) => ({
+                value: s.id,
+                label: s.totalFunded ? `${s.partyName} — ₹${s.totalFunded.toLocaleString('en-IN')} owed` : s.partyName,
+              }))}
               value={fundingSourceId}
               onChange={handleFundingSourceChange}
             />

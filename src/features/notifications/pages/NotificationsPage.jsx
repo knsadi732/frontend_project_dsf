@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { useNotificationsQuery } from '@/features/notifications/queries/useNotificationsQuery';
 import { useMarkNotificationRead } from '@/features/notifications/mutations/useMarkNotificationRead';
 import { useMarkAllNotificationsRead } from '@/features/notifications/mutations/useMarkAllNotificationsRead';
@@ -28,7 +29,7 @@ const TYPE_FILTER_OPTIONS = [
 ];
 
 export function NotificationsPage() {
-  const [activeTab, setActiveTab] = useState('notifications');
+  const [activeTab, setActiveTab] = usePersistedTab('notifications', 'notifications');
   const [typeFilter, setTypeFilter] = useState('');
   const { data, isLoading } = useNotificationsQuery();
   const { data: logsData } = useCommunicationLogsQuery();

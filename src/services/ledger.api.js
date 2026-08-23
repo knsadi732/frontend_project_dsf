@@ -25,16 +25,22 @@ function fromBackendTransaction(row) {
     utrReference: row.utr_reference,
     invoiceNumber: row.invoice_number,
     // reference_id only means "order id" when type is 'order' — orderNumber
-    // comes pre-resolved from the backend's join, null otherwise.
+    // comes pre-resolved from the backend's join, null otherwise. orderId is a
+    // separate free-text field (e.g. a vendor's own order number, like an Amazon
+    // order id on a purchase) distinct from the linked Sales Order's order_number.
     referenceType: row.type,
     referenceId: row.reference_id,
     orderNumber: row.order_number,
+    orderId: row.order_id,
     paymentMode: row.payment_mode,
     fundingSourceId: row.funding_source_id,
     fundingSourceName: row.funding_source_name,
     fundingType: row.funding_type,
     paidReceivedBy: row.paid_received_by,
     paidReceivedByName: row.paid_received_by_name,
+    isGstApplicable: row.is_gst_applicable ?? false,
+    gstRate: row.gst_rate != null ? Number(row.gst_rate) : null,
+    taxableValue: row.taxable_value != null ? Number(row.taxable_value) : null,
     gstAmount: Number(row.gst_amount ?? 0),
     debit: Number(row.debit),
     credit: Number(row.credit),
@@ -49,6 +55,8 @@ function fromBackendFundingSource(source) {
     partyType: source.party_type,
     defaultFundingType: source.default_funding_type,
     contactInfo: source.contact_info,
+    entryCount: Number(source.entry_count ?? 0),
+    totalFunded: Number(source.total_funded ?? 0),
   };
 }
 

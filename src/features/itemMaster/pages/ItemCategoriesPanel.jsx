@@ -3,6 +3,7 @@ import { useItemCategoriesQuery } from '@/features/itemMaster/queries/useItemCat
 import { useCreateItemCategory } from '@/features/itemMaster/mutations/useCreateItemCategory';
 import { useUpdateItemCategory } from '@/features/itemMaster/mutations/useUpdateItemCategory';
 import { ItemCategoryFormModal } from '@/features/itemMaster/components/ItemCategoryFormModal';
+import { STOCK_KIND_LABEL } from '@/features/itemMaster/constants';
 import { AppTable } from '@/components/ui/AppTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EditButton, CreateButton } from '@/components/ui/ActionButtons';
@@ -10,16 +11,6 @@ import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
-
-const STOCK_KIND_LABEL = {
-  raw_material: 'Raw Material',
-  packaging_material: 'Packaging Material',
-  consumable: 'Consumable',
-  spare_part: 'Spare Part',
-  fixed_asset: 'Fixed Asset',
-  tool: 'Tool',
-  service: 'Service',
-};
 
 export function ItemCategoriesPanel() {
   const [page, setPage] = useState(1);

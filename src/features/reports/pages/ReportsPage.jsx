@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { useReportsQuery } from '@/features/reports/queries/useReportsQuery';
 import { useGenerateReport } from '@/features/reports/mutations/useGenerateReport';
 import { reportApi } from '@/features/reports/api';
@@ -36,7 +37,7 @@ const TABS = [
 ];
 
 export function ReportsPage() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = usePersistedTab('reports', 'overview');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [modalOpen, setModalOpen] = useState(false);

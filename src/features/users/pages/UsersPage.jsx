@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Download, Eye } from 'lucide-react';
+import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { useUsersQuery } from '@/features/users/queries/useUsersQuery';
 import { useCreateUser } from '@/features/users/mutations/useCreateUser';
 import { useUpdateUser } from '@/features/users/mutations/useUpdateUser';
@@ -76,7 +77,7 @@ const TABS = [
 ];
 
 export function UsersPage() {
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = usePersistedTab('users', 'users');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);

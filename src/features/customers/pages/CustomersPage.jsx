@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { useCreateCustomer } from '@/features/customers/mutations/useCreateCustomer';
 import { useUpdateCustomer } from '@/features/customers/mutations/useUpdateCustomer';
@@ -25,7 +26,7 @@ const TABS = [
 ];
 
 export function CustomersPage() {
-  const [activeTab, setActiveTab] = useState('customers');
+  const [activeTab, setActiveTab] = usePersistedTab('customers', 'customers');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);

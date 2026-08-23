@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Check, PackageCheck, PackageOpen, Send, SendHorizonal } from 'lucide-react';
+import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { usePurchasesQuery } from '@/features/purchases/queries/usePurchasesQuery';
 import { useCreatePurchase } from '@/features/purchases/mutations/useCreatePurchase';
 import { useUpdatePurchase } from '@/features/purchases/mutations/useUpdatePurchase';
@@ -107,7 +108,7 @@ const TABS = [
 ];
 
 export function PurchasesPage() {
-  const [activeTab, setActiveTab] = useState('purchases');
+  const [activeTab, setActiveTab] = usePersistedTab('purchases', 'purchases');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();

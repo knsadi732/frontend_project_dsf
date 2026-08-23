@@ -1,21 +1,10 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { STOCK_KIND_OPTIONS } from '@/features/itemMaster/constants';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
-
-// Chapter 8.4 stock outcome kinds — every Item Category routes to exactly
-// one of these once purchased (see item.repository.js CHECK constraint).
-export const STOCK_KIND_OPTIONS = [
-  { value: 'raw_material', label: 'Raw Material' },
-  { value: 'packaging_material', label: 'Packaging Material' },
-  { value: 'consumable', label: 'Consumable' },
-  { value: 'spare_part', label: 'Spare Part' },
-  { value: 'fixed_asset', label: 'Fixed Asset' },
-  { value: 'tool', label: 'Tool' },
-  { value: 'service', label: 'Service' },
-];
 
 const DEFAULT_VALUES = { categoryName: '', categoryCode: '', parentCategoryId: '', stockKind: '', status: 'active' };
 

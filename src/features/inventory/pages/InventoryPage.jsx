@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Download, Pencil, Trash2 } from 'lucide-react';
+import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { useProductStockQuery } from '@/features/inventory/queries/useProductStockQuery';
 import { useStockSummaryQuery } from '@/features/inventory/queries/useStockSummaryQuery';
 import { useCreateInventoryItem } from '@/features/inventory/mutations/useCreateInventoryItem';
@@ -77,7 +78,7 @@ const INVENTORY_CATEGORY_VARIANT = {
 };
 
 export function InventoryPage() {
-  const [activeTab, setActiveTab] = useState('inventory');
+  const [activeTab, setActiveTab] = usePersistedTab('inventory', 'inventory');
   const [warehouseId, setWarehouseId] = useState('');
   const [inventoryCategory, setInventoryCategory] = useState('');
   const [page, setPage] = useState(1);

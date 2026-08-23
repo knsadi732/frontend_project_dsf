@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { clearPendingPasswordChange } from '@/utils/pendingPasswordChange';
 import { pushToast } from '@/utils/toastBus';
 import { useProfileQuery } from '@/features/profile/queries/useProfileQuery';
@@ -26,7 +27,11 @@ export function ProfilePage() {
   const { user } = useAuth();
   const location = useLocation();
   const forcePasswordChange = Boolean(location.state?.forcePasswordChange);
-  const [activeTab, setActiveTab] = useState(forcePasswordChange ? 'password' : 'profile');
+  // Persisted like every other page's tab, except a forced password change
+  // always wins over whatever was last open — it's a security nudge, not a
+  // preference to remember.
+  const [persistedTab, setActiveTab] = usePersistedTab('profile', 'profile');
+  const activeTab = forcePasswordChange ? 'password' : persistedTab;
   const [loginHistoryPage, setLoginHistoryPage] = useState(1);
   const [loginHistoryPageSize, setLoginHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
 

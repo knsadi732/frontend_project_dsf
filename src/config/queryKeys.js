@@ -52,6 +52,12 @@ export const queryKeys = {
   loans: resourceKeys('loans'),
   gstProfile: { all: ['gstProfile'] },
   statutoryAudits: resourceKeys('statutoryAudits'),
+  financeReports: {
+    gstr1: (range) => ['financeReports', 'gstr1', range],
+    gstr3b: (range) => ['financeReports', 'gstr3b', range],
+    gstr2bProxy: (range) => ['financeReports', 'gstr2bProxy', range],
+    pnl: (range) => ['financeReports', 'pnl', range],
+  },
   customerCommunications: resourceKeys('customerCommunications'),
   qualityInspections: resourceKeys('qualityInspections'),
   loanEsignRequests: resourceKeys('loanEsignRequests'),
