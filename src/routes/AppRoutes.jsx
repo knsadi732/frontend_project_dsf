@@ -29,6 +29,8 @@ const NotificationsPage = lazy(() =>
   import('@/features/notifications').then((m) => ({ default: m.NotificationsPage })),
 );
 const ReportsPage = lazy(() => import('@/features/reports').then((m) => ({ default: m.ReportsPage })));
+const ItemMasterPage = lazy(() => import('@/features/itemMaster').then((m) => ({ default: m.ItemMasterPage })));
+const FixedAssetsPage = lazy(() => import('@/features/fixedAssets').then((m) => ({ default: m.FixedAssetsPage })));
 const EsignSigningPage = lazy(() =>
   import('@/features/loanEsignRequests').then((m) => ({ default: m.EsignSigningPage })),
 );
@@ -90,6 +92,19 @@ export function AppRoutes() {
 
           <Route element={<PermissionGuard module={MODULES.PRODUCTION} action={ACTIONS.VIEW} />}>
             <Route path="/production" element={<SuspenseOutlet><ProductionPage /></SuspenseOutlet>} />
+          </Route>
+
+          {/* Item & Material Master (Chapter 8) — deliberately separate
+              from the Products/Inventory domain, see backend Chapter-8.md. */}
+          <Route element={<PermissionGuard module={MODULES.ITEM_MASTER} action={ACTIONS.VIEW} />}>
+            <Route path="/item-master" element={<SuspenseOutlet><ItemMasterPage /></SuspenseOutlet>} />
+          </Route>
+
+          {/* Fixed Asset Register (Chapter 13) — deliberately separate from
+              the stale src/features/assets (employee-assigned assets)
+              feature; do not conflate the two. */}
+          <Route element={<PermissionGuard module={MODULES.FIXED_ASSETS} action={ACTIONS.VIEW} />}>
+            <Route path="/fixed-assets" element={<SuspenseOutlet><FixedAssetsPage /></SuspenseOutlet>} />
           </Route>
 
           <Route element={<PermissionGuard module={MODULES.SALES} action={ACTIONS.VIEW} />}>

@@ -34,16 +34,11 @@ function fromBackendGrn(grn) {
 export const goodsReceiptNoteApi = {
   list: (params) => baseApi.list(params).then(({ data, total }) => ({ data: data.map(fromBackendGrn), total })),
   get: (id) => baseApi.get(id).then(fromBackendGrn),
-  // GRN creation is always scoped to a specific Purchase Order — there's
-  // no standalone POST /grn (see purchaseOrder.routes.js pattern: goods can
-  // only be received against an order that already exists).
-  createForPurchaseOrder: (poId, payload) =>
-    apiClient.post(`/purchase-orders/${poId}/grn`, payload).then((res) => fromBackendGrn(res.data.data)),
-  // Pipeline: draft -> inspected -> completed, with rejected forking off
-  // inspected. No generic edit/delete endpoint exists — only this status
-  // transition.
-  transitionStatus: (id, status) =>
-    apiClient.patch(`/grn/${id}/status`, { status }).then((res) => fromBackendGrn(res.data.data)),
+  // GRN creation and status are both fully automatic server-side
+  // (purchaseOrder.service.js's transitionPurchaseOrder — a GRN row is
+  // created the moment a PO reaches "completed") — there is no client-
+  // callable create or status-transition route at all, only read + invoice
+  // upload below.
   // Dedicated upload endpoint (not the generic Documents API) — keyed by
   // grnNumber, not id. Only application/pdf|image/jpeg|image/png are
   // accepted; anything else 422s with GRN_002.

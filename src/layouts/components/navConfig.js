@@ -13,6 +13,8 @@ import {
   FileBarChart,
   Undo2,
   CalendarCheck,
+  Boxes,
+  Wrench,
 } from 'lucide-react';
 import { MODULES } from '@/constants/roles';
 
@@ -24,7 +26,9 @@ export const NAV_ITEMS = [
   { module: MODULES.VENDORS, label: 'Vendors', to: '/vendors', icon: Truck },
   { module: MODULES.PURCHASES, label: 'Purchases', to: '/purchases', icon: ShoppingCart },
   { module: MODULES.INVENTORY, label: 'Inventory', to: '/inventory', icon: Warehouse },
+  { module: MODULES.ITEM_MASTER, label: 'Item Master', to: '/item-master', icon: Boxes },
   { module: MODULES.PRODUCTION, label: 'Production', to: '/production', icon: Factory },
+  { module: MODULES.FIXED_ASSETS, label: 'Fixed Assets', to: '/fixed-assets', icon: Wrench },
   { module: MODULES.SALES, label: 'Sales', to: '/sales', icon: ShoppingBag },
   { module: MODULES.FINANCE, label: 'Finance', to: '/finance', icon: Wallet },
   { module: MODULES.RETURNS, label: 'Returns', to: '/returns', icon: Undo2 },

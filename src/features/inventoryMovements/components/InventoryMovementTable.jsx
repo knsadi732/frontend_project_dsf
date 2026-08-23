@@ -1,11 +1,16 @@
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 
+// Real backend enum (plan.md Ch10.8): purchase_receipt/production_receipt/
+// return_receipt add stock (success), dispatch/damage_entry remove it
+// (warning), sales_reservation/stock_transfer/stock_adjustment/
+// physical_stock_count are neutral (default).
 const MOVEMENT_VARIANT = {
-  stock_in: 'success',
-  material_in: 'success',
-  stock_out: 'warning',
-  material_out: 'warning',
+  purchase_receipt: 'success',
+  production_receipt: 'success',
+  return_receipt: 'success',
+  dispatch: 'warning',
+  damage_entry: 'warning',
 };
 
 function formatDateTime(value) {
@@ -28,7 +33,16 @@ export function InventoryMovementTable({ movements, isLoading, page, pageSize, t
       header: 'Movement',
       render: (row) => <BaseBadge variant={MOVEMENT_VARIANT[row.movementType] ?? 'default'}>{row.movementType?.replace(/_/g, ' ')}</BaseBadge>,
     },
-    { key: 'quantity', header: 'Quantity' },
+    {
+      key: 'quantity',
+      header: 'Quantity',
+      render: (row) => (
+        <span className={row.quantityChange > 0 ? 'text-success' : row.quantityChange < 0 ? 'text-danger' : 'text-text-muted'}>
+          {row.quantityChange > 0 ? '+' : ''}
+          {row.quantityChange}
+        </span>
+      ),
+    },
   ];
 
   return (

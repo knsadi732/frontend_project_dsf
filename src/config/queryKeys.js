@@ -60,4 +60,12 @@ export const queryKeys = {
   reports: resourceKeys('reports'),
   dashboard: { all: ['dashboard'] },
   settings: { all: ['settings'] },
+  fundingSources: resourceKeys('fundingSources'),
+  documents: resourceKeys('documents'),
+  itemCategories: resourceKeys('itemCategories'),
+  items: resourceKeys('items'),
+  itemStock: resourceKeys('itemStock'),
+  itemStockMovements: resourceKeys('itemStockMovements'),
+  fixedAssets: resourceKeys('fixedAssets'),
+  fixedAssetMaintenance: resourceKeys('fixedAssetMaintenance'),
 };
