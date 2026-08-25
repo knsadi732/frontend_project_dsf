@@ -1,363 +1,301 @@
 Chapter 12
-Production Planning & Manufacturing Domain
+Purchase & Procurement Domain
 12.1 Introduction
 
-The Production Planning & Manufacturing Domain manages the complete manufacturing lifecycle within the DS Footwear ERP SaaS platform.
+The Purchase & Procurement Domain manages the complete procurement lifecycle of materials, goods, and services required by the organization.
 
-It is responsible for planning, scheduling, controlling, executing, and monitoring the production process while ensuring efficient utilization of materials, machines, manpower, and production capacity.
+It ensures that every purchase follows a standardized approval workflow—from internal requirement generation to vendor selection, quotation comparison, purchase order creation, goods receipt, quality inspection, inventory update, and vendor payment.
 
-The domain converts raw materials into finished goods through standardized manufacturing processes while maintaining complete traceability, quality control, production costing, and inventory synchronization.
-
-This domain integrates with Sales, Inventory, Purchase, Warehouse, Finance, Reports, Notifications, and Analytics to provide an enterprise-grade manufacturing solution.
+This domain integrates with Vendor Management, Inventory, Warehouse, Production, Finance, Reports, and Notifications to provide a fully auditable and controlled procurement process.
 
 12.2 Purpose
 
-The Production Planning & Manufacturing Domain is responsible for:
+The Purchase & Procurement Domain is responsible for:
 
-Managing Production Planning & Control (PPC)
-Managing Demand Planning
-Managing Material Requirement Planning (MRP)
-Managing Capacity Planning
-Managing Production Scheduling
-Managing Production Requests
-Managing Bill of Materials (BOM)
-Checking Raw Material Availability
-Managing Production Orders
-Managing Material Issue
-Tracking Work-In-Progress (WIP)
-Managing Finished Goods
-Managing Quality Control
+Managing Purchase Requests (PR)
+Managing Purchase Approvals
+Managing Request for Quotations (RFQ)
+Managing Vendor Quotations
+Comparing Vendor Quotations
+Selecting Vendors
+Creating Purchase Orders (PO)
+Receiving Materials
+Performing Quality Inspection
+Generating Goods Receipt Notes (GRN)
 Updating Inventory
-Recording Production Costs
-Providing Production Analytics
-12.3 Production Workflow
-Sales Forecast
+Processing Vendor Invoices
+Supporting Accounts Payable
+Providing Procurement Analytics
+12.3 Procurement Workflow
+
+The DS Footwear ERP follows the complete procurement workflow below.
+
+Department Requirement
         │
         ▼
-Sales Orders
+Purchase Request (PR)
         │
         ▼
-Production Planning & Control (PPC)
+Purchase Approval
         │
         ▼
-Demand Planning
+Request For Quotation (RFQ)
         │
         ▼
-Material Requirement Planning (MRP)
+Vendor Quotation
         │
         ▼
-Capacity Planning
+Quotation Comparison
         │
         ▼
-Production Planning
+Vendor Selection
         │
         ▼
-Production Scheduling
+Purchase Order (PO)
         │
         ▼
-Production Request
+Vendor Dispatch
         │
         ▼
-Bill Of Materials (BOM)
+Gate Entry
         │
         ▼
-Raw Material Availability Check
+Material Receiving
         │
-        ├── Available
-        │
-        └── Not Available
-                │
-                ▼
-        Purchase Request
-                │
-                ▼
-        Purchase Process
-                │
-                ▼
-Raw Material Available
-                │
-                ▼
-Production Order
-                │
-                ▼
-Material Issue
-                │
-                ▼
-Shop Floor Manufacturing
-                │
-                ▼
-Work In Progress (WIP)
-                │
-                ▼
+        ▼
 Quality Inspection
-                │
-                ▼
-Finished Goods
-                │
-                ▼
+        │
+        ▼
+Goods Receipt Note (GRN)
+        │
+        ▼
 Inventory Update
-                │
-                ▼
+        │
+        ▼
 Stock Ledger
-12.4 Production Planning & Control (PPC)
+        │
+        ▼
+Vendor Invoice
+        │
+        ▼
+Accounts Payable
+        │
+        ▼
+Vendor Payment
+12.4 Purchase Request (PR)
 
-Production Planning & Control (PPC) is responsible for planning, scheduling, monitoring, and controlling the entire manufacturing process.
+A Purchase Request is an internal request raised by a department when materials or services are required.
 
-The PPC team ensures that the right product is manufactured in the right quantity, at the right time, using the available resources.
+Purchase Requests may originate from:
 
-PPC Responsibilities
-Demand Planning
-Sales Forecast Analysis
-Material Requirement Planning (MRP)
-Capacity Planning
-Machine Planning
-Workforce Planning
-Production Planning
-Production Scheduling
-Resource Allocation
-Production Monitoring
-12.5 Demand Planning
-
-Demand Planning estimates future production requirements based on:
-
-Sales Forecast
-Sales Orders
-Historical Sales
-Seasonal Demand
-Marketing Campaigns
-Customer Contracts
-
-Demand Planning helps optimize inventory and production capacity.
-
-12.6 Material Requirement Planning (MRP)
-
-MRP determines the materials required for production.
-
-The ERP automatically calculates:
-
-Required Raw Materials
-Current Inventory
-Purchase Requirement
-Production Requirement
-Material Shortages
-
-If raw materials are unavailable:
-
-MRP
-
-↓
-
-Purchase Request
-
-↓
-
-Purchase Department
-12.7 Capacity Planning
-
-Capacity Planning verifies manufacturing capability before production.
-
-The ERP evaluates:
-
-Machine Capacity
-Production Line Capacity
-Labour Availability
-Shift Capacity
-Daily Production Capacity
-
-Production Orders cannot exceed available capacity.
-
-12.8 Production Planning
-
-Production Planning defines:
-
-Product Variant
-Quantity
-Target Warehouse
-Production Date
-Expected Completion Date
+Inventory
+Production
+Warehouse
+Maintenance
+Administration
+Finance
+Purchase Request Information
+PR Number
+Request Date
+Requested By
+Department
 Priority
-Production Line
-
-The planning process balances demand with available resources.
-
-12.9 Production Scheduling
-
-Production Scheduling allocates manufacturing tasks across production lines and shifts.
-
-Example:
-
-Monday
-
-↓
-
-Sports Shoes
-
-↓
-
-Production Line-1
-
-↓
-
-Morning Shift
-
-↓
-
-1000 Pairs
-
-Scheduling minimizes idle time and maximizes production efficiency.
-
-12.10 Production Request
-
-The Production Request is an internal document authorizing production planning.
-
-It contains:
-
-Production Request Number
-Product Variant
-Quantity
 Required Date
 Warehouse
-Priority
-Requested By
+Items
+Quantity
+Remarks
 Status
-Status
+Purchase Request Status
 Draft
+Submitted
 Pending Approval
 Approved
 Rejected
-Converted to Production Order
-12.11 Bill of Materials (BOM)
+Converted to RFQ
+12.5 Purchase Approval
 
-The Bill of Materials defines every component required to manufacture one Product Variant.
+Every Purchase Request must be approved before procurement begins.
 
-Each BOM contains:
+Approval may follow multiple levels based on company policy.
 
-Raw Materials
-Packaging Materials
-Consumables
-Standard Quantity
-Unit of Measure
-Wastage Percentage
+Example:
 
-Each manufactured product must have an approved BOM.
-
-12.12 Raw Material Availability
-
-Before production begins, the ERP checks raw material availability.
-
-BOM
+Employee
 
 ↓
 
-Inventory Check
+Department Manager
 
 ↓
 
-Material Available?
+Purchase Manager
 
 ↓
 
-Yes → Production
+Owner / Finance (Optional)
+12.6 Request For Quotation (RFQ)
 
-No → Purchase Request
+After PR approval, the Purchase Department issues RFQs to one or more vendors.
 
-Production cannot begin until all mandatory materials are available.
+RFQ includes:
 
-12.13 Production Order
-
-The Production Order authorizes manufacturing execution.
-
-Each Production Order contains:
-
-Production Order Number
-Product Variant
-BOM
+Material List
 Quantity
+Delivery Location
+Delivery Date
+Payment Terms
+Technical Specifications
+
+One RFQ may be sent to multiple vendors.
+
+12.7 Vendor Quotation
+
+Each vendor submits a quotation in response to the RFQ.
+
+Quotation contains:
+
+Vendor
+Unit Price
+GST
+Freight
+Delivery Time
+Payment Terms
+Validity
+Discount
+Remarks
+12.8 Quotation Comparison
+
+The ERP provides a quotation comparison matrix.
+
+Comparison Parameters:
+
+Unit Price
+Total Cost
+Delivery Time
+Vendor Rating
+Quality Rating
+Previous Purchase History
+Credit Period
+Payment Terms
+
+The Purchase Department selects the best quotation before creating the Purchase Order.
+
+12.9 Vendor Selection
+
+After quotation comparison, one vendor is selected.
+
+Selection criteria may include:
+
+Lowest Cost
+Fastest Delivery
+Best Vendor Rating
+Best Quality
+Long-term Contract
+Payment Terms
+
+Only the selected vendor proceeds to Purchase Order generation.
+
+12.10 Purchase Order (PO)
+
+The Purchase Order is the official procurement document issued to the selected vendor.
+
+Each Purchase Order references:
+
+Purchase Request
+Vendor
 Warehouse
-Production Line
-Planned Start Date
-Planned Completion Date
-Assigned Supervisor
-Status
-Status
-Planned
-Released
-In Progress
-On Hold
+Delivery Address
+Items
+Quantity
+Price
+Taxes
+Payment Terms
+Expected Delivery Date
+Purchase Order Status
+Draft
+Pending Approval
+Approved
+Sent
+Acknowledged
+Partially Received
 Completed
 Cancelled
-12.14 Material Issue
+12.11 Vendor Dispatch
 
-Before manufacturing begins, materials are issued from Inventory.
+The vendor dispatches materials after accepting the Purchase Order.
 
-Material Issue:
+Dispatch details include:
 
-Reduces Raw Material Inventory
-Updates Stock Ledger
-Records Material Consumption
+Transporter
+LR Number
+Vehicle Number
+Dispatch Date
+Expected Arrival Date
+12.12 Gate Entry
 
-Every issue transaction is auditable.
+When the shipment arrives, the Security Team records a Gate Entry.
 
-12.15 Shop Floor Manufacturing
+Gate Entry contains:
 
-The Shop Floor executes production according to the Production Order.
+Gate Entry Number
+Vehicle Number
+Driver Information
+Vendor
+Purchase Order
+Arrival Time
 
-Typical footwear manufacturing stages include:
+Gate Entry authorizes unloading.
 
-Cutting
-Stitching
-Upper Assembly
-Lasting
-Sole Bonding
-Finishing
-Cleaning
-Packing
+12.13 Material Receiving
 
-The ERP records progress at every stage.
+Warehouse personnel verify:
 
-12.16 Work-In-Progress (WIP)
+Physical Quantity
+Packaging Condition
+Visible Damage
+Purchase Order Match
 
-During production, products remain in Work-In-Progress status.
+Materials are temporarily placed in the receiving area until inspection.
 
-The ERP tracks:
+12.14 Quality Inspection (QC)
 
-Started Quantity
-Completed Quantity
-Rejected Quantity
-Pending Quantity
-Production Time
-Machine Utilization
-12.17 Quality Inspection
-
-Finished products undergo Quality Control before entering inventory.
+Quality Control verifies the received materials.
 
 Inspection Results:
 
 Accepted
-Rework Required
+Partially Accepted
 Rejected
 
-Only accepted products proceed to Finished Goods Inventory.
+Rejected materials are returned to the vendor.
 
-12.18 Finished Goods
+Only accepted quantities proceed to GRN.
 
-Accepted products become Finished Goods.
+12.15 Goods Receipt Note (GRN)
 
-The ERP records:
+The Goods Receipt Note confirms successful receipt of materials.
 
-Finished Quantity
-Production Date
+GRN contains:
+
+GRN Number
+Purchase Order
+Vendor
 Warehouse
-Batch Number
-Production Cost
+Received Quantity
+Accepted Quantity
+Rejected Quantity
+Damaged Quantity
+Batch Number (Optional)
+Inspection Remarks
 
-Finished Goods are transferred to Inventory.
+Only approved GRNs update inventory.
 
-12.19 Inventory Update
+12.16 Inventory Update
 
-After production completion:
+Once the GRN is approved:
 
-Finished Goods
+GRN
 
 ↓
 
@@ -371,122 +309,139 @@ Stock Ledger
 
 Available Inventory
 
-Finished Goods become available for Sales and Dispatch.
+Inventory quantities increase only after GRN approval.
 
-12.20 Production Costing
+12.17 Vendor Invoice
 
-The ERP records manufacturing costs including:
+After successful delivery, the vendor submits an invoice.
 
-Raw Material Cost
-Labour Cost
-Machine Cost
-Electricity Cost
-Packaging Cost
-Overhead Cost
+Finance verifies:
 
-These values are forwarded to the Finance Domain.
+Purchase Order
+GRN
+Invoice
+Tax Details
+Quantity
+Price
 
-12.21 Production Analytics
+Only verified invoices proceed to Accounts Payable.
 
-The ERP provides production metrics including:
+12.18 Accounts Payable & Vendor Payment
 
-Production Quantity
-Production Efficiency
-Material Consumption
-Wastage Percentage
-Machine Utilization
-Labour Productivity
-Production Cost
-Production Lead Time
-Rework Percentage
-Overall Equipment Effectiveness (OEE)
-12.22 Business Rules
+Finance creates the Accounts Payable entry.
 
-The Production Planning & Manufacturing Domain follows these business rules:
+Payment Methods:
 
-Production begins only after PPC approval.
-Every manufactured product must have an approved BOM.
-MRP must validate raw material availability before production.
-Material shortages automatically generate Purchase Requests.
-Capacity Planning must validate machine and labour availability.
-Every Production Order originates from an approved Production Request.
-Material Issue reduces Raw Material Inventory.
-Work-In-Progress must be tracked until production completion.
-Finished Goods update Inventory only after successful Quality Inspection.
-Every inventory movement generates a Stock Ledger entry.
-Production costs must be recorded for every Production Order.
-Completed Production Orders remain permanently auditable.
-12.23 Production Relationship Diagram
-Sales Forecast
+Bank Transfer
+UPI
+RTGS
+NEFT
+IMPS
+Cheque
+
+Payment Status:
+
+Pending
+Partial
+Paid
+Overdue
+12.19 Procurement Analytics
+
+The ERP provides procurement analytics such as:
+
+Total Purchase Value
+Purchase Trends
+Pending Purchase Requests
+Pending RFQs
+Vendor Performance
+Pending GRNs
+Outstanding Vendor Payments
+Average Procurement Lead Time
+Material Cost Trends
+12.20 Business Rules
+
+The Purchase & Procurement Domain follows these business rules:
+
+Every Purchase Request must originate from a valid department.
+Purchase Requests require approval before procurement.
+RFQs may be sent to one or more vendors.
+Every quotation must reference a valid RFQ.
+Vendor selection must be based on quotation comparison.
+Purchase Orders can only be created for selected vendors.
+Goods can only be received against an approved Purchase Order.
+Every shipment must have a Gate Entry before unloading.
+Inventory is updated only after GRN approval.
+Every inventory update creates a Stock Ledger entry.
+Vendor invoices must reference an approved Purchase Order and GRN.
+Procurement transactions cannot be deleted after completion; they remain permanently auditable.
+12.21 Procurement Relationship Diagram
+Department
       │
       ▼
-Sales Order
+Purchase Request
       │
       ▼
-Production Planning & Control
+Purchase Approval
       │
       ▼
-Demand Planning
+RFQ
       │
       ▼
-MRP
+Vendor Quotation
       │
       ▼
-Capacity Planning
+Quotation Comparison
       │
       ▼
-Production Planning
+Vendor Selection
       │
       ▼
-Production Scheduling
+Purchase Order
       │
       ▼
-Production Request
+Vendor Dispatch
       │
       ▼
-BOM
+Gate Entry
       │
       ▼
-Raw Material
-      │
-      ▼
-Production Order
-      │
-      ▼
-Material Issue
-      │
-      ▼
-Shop Floor
-      │
-      ▼
-WIP
+Material Receiving
       │
       ▼
 Quality Inspection
       │
       ▼
-Finished Goods
+GRN
       │
       ▼
 Inventory
       │
       ▼
 Stock Ledger
-12.24 Dependencies
+      │
+      ▼
+Vendor Invoice
+      │
+      ▼
+Accounts Payable
+      │
+      ▼
+Vendor Payment
+12.22 Dependencies
 
-The Production Planning & Manufacturing Domain integrates with:
+The Purchase & Procurement Domain is referenced by:
 
-Product Variant & SKU Domain
-Inventory & Warehouse Management Domain
-Purchase & Procurement Domain
-Sales Domain
-Finance Domain
-Quality Control (Future)
-Maintenance (Future)
+Vendor Domain
+Item & Material Master Domain
+Fixed Asset Domain
+Inventory & Warehouse Management
+Product Variant & SKU
+Production
+Finance
 Reports
 Dashboard
 Notifications
 Audit Logs
 Chapter Summary
 
-The Production Planning & Manufacturing Domain provides a complete enterprise manufacturing solution for the DS Footwear ERP SaaS platform. It combines Production Planning & Control (PPC), Material Requirement Planning (MRP), Capacity Planning, Production Scheduling, Bill of Materials (BOM), Shop Floor Execution, Work-In-Progress (WIP), Quality Inspection, Finished Goods Management, Inventory synchronization, and Production Costing into a unified workflow. By integrating tightly with Sales, Inventory, Purchase, Warehouse, and Finance, the domain delivers a scalable, auditable, and enterprise-grade manufacturing process aligned with industry best practices followed by SAP PP, Oracle Manufacturing, and Microsoft Dynamics 365 Manufacturing.
+The Purchase & Procurement Domain manages the complete lifecycle of organizational procurement, from internal purchase requests through quotation management, vendor selection, purchase order creation, goods receipt, quality inspection, inventory updates, stock ledger posting, vendor invoice verification, and payment processing. By separating each stage into independent yet integrated business processes, the DS Footwear ERP ensures a controlled, auditable, and scalable procurement system aligned with enterprise standards used in SAP, Oracle ERP, Microsoft Dynamics 365, and other modern manufacturing ERP solutions.

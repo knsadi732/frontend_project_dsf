@@ -1,326 +1,374 @@
 Chapter 15
-Finance & Accounting Domain
+Sales & Order Management Domain
 15.1 Introduction
 
-The Finance & Accounting Domain manages all financial transactions generated throughout the DS Footwear ERP SaaS platform.
+The Sales & Order Management Domain manages the complete order-to-cash (O2C) lifecycle within the DS Footwear ERP SaaS platform.
 
-It records, verifies, posts, and reports every financial event originating from Sales, Purchase, Production, Inventory, Warehouse, Payroll, and Customer or Vendor transactions.
+It is responsible for receiving customer orders from multiple sales channels, validating orders, checking inventory availability, reserving stock, coordinating warehouse operations, dispatching products, generating invoices, processing customer payments, and updating financial records.
 
-The Finance Domain provides complete financial visibility, statutory compliance, GST management, receivable and payable tracking, ledger management, banking, reconciliation, and financial reporting.
+This domain integrates tightly with Inventory, Warehouse, Production, Finance, Customer Management, Reports, Notifications, and Analytics to ensure accurate order fulfillment and complete business traceability.
 
 15.2 Purpose
 
-The Finance & Accounting Domain is responsible for:
+The Sales & Order Management Domain is responsible for:
 
-Managing Customer Invoices
-Managing Vendor Bills
-Managing Accounts Receivable (AR)
-Managing Accounts Payable (AP)
-Managing Customer Payments
-Managing Vendor Payments
-Managing General Ledger (GL)
-Managing Journal Entries
-Managing Chart of Accounts (COA)
-Managing GST
-Managing Banking
-Managing Cash & Bank Transactions
-Managing Outstanding Balances
-Managing Financial Reports
-Supporting Financial Analytics
-15.3 Finance Workflow
-Sales / Purchase / Production
+Managing Sales Channels
+Receiving Customer Orders
+Managing Sales Review
+Validating Orders
+Creating Sales Orders
+Checking Inventory Availability
+Reserving Stock
+Triggering Production (if required)
+Managing Warehouse Picking
+Managing Packing
+Managing Dispatch
+Generating Invoices
+Processing Payments
+Updating Finance
+Tracking Deliveries
+Managing Sales Analytics
+15.3 Order-to-Cash Workflow
+Website / Marketplace / POS / Manual Order
                 │
                 ▼
-Financial Transaction
+Order Import
                 │
                 ▼
-Journal Entry
+Sales Review
                 │
                 ▼
-General Ledger
-                │
-      ┌─────────┴─────────┐
-      ▼                   ▼
-Accounts Receivable   Accounts Payable
-      │                   │
-      ▼                   ▼
-Customer Payment    Vendor Payment
-      │                   │
-      └─────────┬─────────┘
-                ▼
-          Bank / Cash
+Customer Validation
                 │
                 ▼
-GST Calculation
+Sales Order (SO)
                 │
                 ▼
-Financial Reports
-15.4 Chart of Accounts (COA)
-
-The Chart of Accounts defines every accounting head used by the ERP.
-
-Account Categories
-Assets
-Liabilities
-Equity
-Revenue
-Expenses
-
-Every financial transaction must reference valid accounts.
-
-15.5 Journal Entry
-
-Every financial transaction generates one or more Journal Entries.
-
-Examples:
-
-Sales Invoice
-Purchase Invoice
+Inventory Availability Check
+                │
+        ┌───────┴────────┐
+        │                │
+        ▼                ▼
+Stock Available     Production Required
+        │                │
+        │                ▼
+        │        Production Planning
+        │                │
+        └────────┬───────┘
+                 ▼
+        Stock Reservation
+                 │
+                 ▼
+Warehouse Pick List
+                 │
+                 ▼
+Picking
+                 │
+                 ▼
+Packing
+                 │
+                 ▼
+Dispatch
+                 │
+                 ▼
+Invoice
+                 │
+                 ▼
+Accounts Receivable
+                 │
+                 ▼
 Customer Payment
-Vendor Payment
-Expense Entry
-Salary Posting
-Inventory Adjustment
-Depreciation
+                 │
+                 ▼
+Sales Completed
+15.4 Sales Channels
 
-Each Journal Entry follows the Double Entry Accounting principle.
+Orders may originate from multiple sources:
 
-15.6 General Ledger (GL)
+Company Website
+Mobile Application
+Amazon
+Flipkart
+Meesho
+Myntra
+Ajio
+Retail POS
+Wholesale Dealers
+Sales Representatives
+Manual Orders
 
-The General Ledger stores every posted accounting transaction.
+All channels are normalized into a single Sales Order workflow.
 
-Each Ledger Entry contains:
+15.5 Order Import
 
-Ledger Number
-Voucher Number
-Date
-Account
-Debit
-Credit
-Reference Document
-Narration
+Incoming orders are automatically imported into the ERP.
 
-The General Ledger serves as the primary accounting record.
+Captured information includes:
 
-15.7 Customer Invoice
-
-Sales Dispatch automatically generates a Customer Invoice.
-
-Invoice includes:
-
-Invoice Number
+Order Number
 Customer
-Sales Order
-Product Details
-GST
+Sales Channel
+Product Variant
+Quantity
+Delivery Address
+Payment Method
+Order Date
+15.6 Sales Review
+
+Sales executives review every order before confirmation.
+
+Review includes:
+
+Customer Verification
+Duplicate Order Check
+Fraud Detection (Future)
+Address Validation
+Payment Verification (if prepaid)
+Pricing Validation
+
+Only approved orders proceed further.
+
+15.7 Customer Validation
+
+The ERP validates:
+
+Customer Status
+Credit Limit (B2B)
+Outstanding Amount
+Delivery Location
+GST Details (B2B)
+
+Invalid customers require manual approval.
+
+15.8 Sales Order (SO)
+
+The Sales Order is the official sales document.
+
+Each Sales Order contains:
+
+SO Number
+Customer
+Product Variant
+Quantity
+Warehouse
+Sales Executive
+Taxes
 Discounts
 Shipping Charges
-Total Amount
-
-Invoice Status:
-
+Expected Delivery Date
+Status
+Sales Order Status
 Draft
-Posted
-Paid
-Partially Paid
+Pending Review
+Approved
+Stock Reserved
+Picking
+Packing
+Dispatched
+Delivered
+Completed
 Cancelled
-15.8 Vendor Bill
+15.9 Inventory Availability Check
 
-Vendor Bills are received after Goods Receipt.
+The ERP checks inventory against the Product Variant (SKU).
 
-Vendor Bill contains:
+Possible outcomes:
 
-Vendor
-Purchase Order
-GRN
-GST
-Total Amount
-Due Date
+Available
+Partial Availability
+Out of Stock
 
-Finance verifies the bill before posting.
+Inventory is checked before reservation.
 
-15.9 Accounts Receivable (AR)
+15.10 Production Trigger
 
-Accounts Receivable tracks customer dues.
+If inventory is insufficient:
 
-The ERP records:
+Sales Order
+
+↓
+
+Inventory Check
+
+↓
+
+Stock Not Available
+
+↓
+
+Production Planning
+
+↓
+
+Production Order
+
+Production is automatically initiated for manufactured products.
+
+15.11 Stock Reservation
+
+Approved Sales Orders reserve inventory.
+
+Reservation:
+
+Reduces Available Stock
+Increases Reserved Stock
+
+Reserved inventory cannot be allocated to another order.
+
+15.12 Warehouse Operations
+
+Warehouse receives an automatic Pick List.
+
+Warehouse activities include:
+
+Picking
+Verification
+Packing
+Labelling
+Handover for Dispatch
+15.13 Dispatch
+
+Dispatch records:
+
+Dispatch Number
+Courier
+Vehicle
+Tracking Number
+Dispatch Date
+Expected Delivery
+
+Inventory is reduced only at dispatch.
+
+15.14 Invoice Generation
+
+After dispatch, the ERP generates:
+
+Tax Invoice
+E-Invoice (Future)
+Packing Slip
+Shipping Label
+
+Invoices are immutable after posting.
+
+15.15 Accounts Receivable
+
+Finance automatically creates Accounts Receivable.
+
+It records:
 
 Invoice Amount
-Paid Amount
+Tax
 Outstanding Amount
 Due Date
 Payment Status
-15.10 Accounts Payable (AP)
+15.16 Customer Payment
 
-Accounts Payable tracks vendor liabilities.
-
-The ERP records:
-
-Vendor Bill
-Payment Due
-Paid Amount
-Outstanding Amount
-Credit Period
-15.11 Customer Payment
-
-The ERP supports:
+Supported payment methods:
 
 UPI
-Bank Transfer
 Credit Card
 Debit Card
-Cash
-Cheque
-NEFT
-RTGS
-IMPS
-
-Payment updates:
-
-Accounts Receivable
-Ledger
-Bank Account
-15.12 Vendor Payment
-
-Vendor Payments update:
-
-Accounts Payable
-General Ledger
-Bank Ledger
-
-Payment Methods:
-
+Net Banking
+COD
 Bank Transfer
-NEFT
-RTGS
-IMPS
-Cheque
-15.13 Banking
 
-The ERP manages:
+Payment Status:
 
-Bank Accounts
-Cash Accounts
-Bank Transfers
-Bank Reconciliation
-Payment Advice
-Cheque Management
-15.14 GST Management
-
-GST Module manages:
-
-CGST
-SGST
-IGST
-GST Input Credit
-GST Output Tax
-GST Reports
-
-GST is automatically calculated during Sales and Purchase.
-
-15.15 Outstanding Management
-
-Outstanding tracking includes:
-
-Customer Outstanding
-
-Current
-Overdue
-Bad Debt (Future)
-
-Vendor Outstanding
-
-Pending Bills
-Overdue Payments
-Advance Payments
-15.16 Financial Reports
+Pending
+Paid
+Partial
+Failed
+Refunded
+15.17 Sales Analytics
 
 The ERP provides:
 
-Profit & Loss Statement
-Balance Sheet
-Trial Balance
-Cash Flow Statement
-General Ledger Report
-GST Reports
-Sales Register
-Purchase Register
-Outstanding Reports
-Payment Reports
-15.17 Financial Analytics
-
-Dashboard Metrics:
-
+Total Sales
+Orders
 Revenue
-Expenses
-Gross Profit
-Net Profit
-Accounts Receivable
-Accounts Payable
-Cash Position
-Outstanding Amount
-GST Liability
-Monthly Financial Trends
+Average Order Value
+Product Performance
+Customer Performance
+Channel Performance
+Cancellation Rate
+Return Rate
+Dispatch Time
 15.18 Business Rules
 
-The Finance & Accounting Domain follows these business rules:
+The Sales & Order Management Domain follows these business rules:
 
-Every financial transaction must generate Journal Entries.
-Every Journal Entry follows Double Entry Accounting.
-General Ledger entries cannot be deleted after posting.
-Customer Invoices are generated only after Dispatch.
-Vendor Bills must reference an approved Purchase Order and GRN.
-Customer Payments update Accounts Receivable.
-Vendor Payments update Accounts Payable.
-GST calculations are mandatory for taxable transactions.
-Financial reports use only posted accounting entries.
-Every financial transaction must remain permanently auditable.
-15.19 Finance Relationship Diagram
-Sales
+Every Sales Order must reference a Customer.
+Every Sales Order must contain at least one Product Variant (SKU).
+Sales Orders are created only after successful Sales Review.
+Inventory availability must be checked before stock reservation.
+Stock Reservation reduces Available Quantity and increases Reserved Quantity.
+If inventory is insufficient, the ERP automatically triggers Production Planning for manufactured products.
+Warehouse operations begin only after stock reservation.
+Inventory is deducted only at Dispatch.
+Invoices are generated only after successful Dispatch.
+Finance automatically creates an Accounts Receivable entry after invoice posting.
+Completed Sales Orders cannot be modified or deleted.
+Every sales transaction is fully auditable.
+15.19 Sales Relationship Diagram
+Sales Channel
       │
       ▼
-Customer Invoice
+Customer Order
       │
       ▼
-Accounts Receivable
+Sales Review
       │
       ▼
-Customer Payment
+Sales Order
       │
       ▼
-Bank
+Inventory Check
       │
-      ▼
-Journal Entry
+      ├── Available
       │
-      ▼
-General Ledger
-      ▲
-      │
-Vendor Bill
-      │
-Accounts Payable
-      │
-Vendor Payment
-      │
-GST
-      │
-Financial Reports
+      └── Production Required
+                │
+                ▼
+          Production Planning
+                │
+                ▼
+          Finished Goods
+                │
+                ▼
+         Stock Reservation
+                │
+                ▼
+         Warehouse Picking
+                │
+                ▼
+             Packing
+                │
+                ▼
+            Dispatch
+                │
+                ▼
+             Invoice
+                │
+                ▼
+      Accounts Receivable
+                │
+                ▼
+        Customer Payment
 15.20 Dependencies
 
-The Finance & Accounting Domain integrates with:
+The Sales & Order Management Domain integrates with:
 
-Sales & Order Management Domain
-Purchase & Procurement Domain
+Customer Domain
+Product Variant & SKU Domain
 Inventory & Warehouse Management Domain
 Production Planning & Manufacturing Domain
-Customer Domain
-Vendor Domain
-Employee Domain (Payroll – Future)
+Finance Domain
+Dispatch & Logistics (Future)
+Return Management Domain
 Reports
 Dashboard
 Notifications
 Audit Logs
 Chapter Summary
 
-The Finance & Accounting Domain serves as the financial backbone of the DS Footwear ERP SaaS platform. It manages customer invoicing, vendor billing, accounts receivable, accounts payable, banking, GST compliance, journal entries, general ledger, and financial reporting. By implementing double-entry accounting principles and integrating seamlessly with Sales, Purchase, Inventory, Production, and Warehouse operations, the Finance Domain ensures complete financial accuracy, statutory compliance, auditability, and real-time business insights comparable to SAP FICO, Oracle Financials, and Microsoft Dynamics 365 Finance.
+The Sales & Order Management Domain manages the complete Order-to-Cash (O2C) lifecycle of the DS Footwear ERP SaaS platform. It begins with order capture from multiple sales channels and continues through sales validation, inventory verification, stock reservation, production triggering (when required), warehouse execution, dispatch, invoicing, accounts receivable, and customer payment. By integrating Sales with Inventory, Production, Warehouse, and Finance, the ERP ensures accurate order fulfillment, real-time inventory control, financial traceability, and a scalable enterprise-grade sales process comparable to SAP SD, Oracle Order Management, and Microsoft Dynamics 365 Sales.

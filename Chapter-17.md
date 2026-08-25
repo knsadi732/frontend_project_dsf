@@ -1,328 +1,351 @@
 Chapter 17
-Communication, Notification & Workflow Automation Domain
-Business Event
-        │
-        ▼
-Workflow Engine
-        │
-        ▼
-Business Rules
-        │
-        ▼
-Template Engine
-        │
-        ▼
-Document Generator
-        │
-        ▼
-Communication Service
-        │
- ┌──────┼──────────┬────────────┬──────────────┬────────────┐
- ▼      ▼          ▼            ▼              ▼
-In-App  Socket.IO  Email        SMS        WhatsApp*
-Notification                              (Future)
-        │
-        ▼
-Employees / Customers / Vendors
+Finance & Accounting Domain
 17.1 Introduction
 
-The Communication, Notification & Workflow Automation Domain manages all business communications, notifications, document generation, approval workflows, and automated message delivery throughout the DS Footwear ERP SaaS platform.
+The Finance & Accounting Domain manages all financial transactions generated throughout the DS Footwear ERP SaaS platform.
 
-It automatically converts business events into actionable communications by generating documents, applying workflow rules, and delivering information through multiple communication channels.
+It records, verifies, posts, and reports every financial event originating from Sales, Purchase, Production, Inventory, Warehouse, Payroll, and Customer or Vendor transactions.
 
-This domain serves as the central communication hub for all ERP modules.
+The Finance Domain provides complete financial visibility, statutory compliance, GST management, receivable and payable tracking, ledger management, banking, reconciliation, and financial reporting.
 
 17.2 Purpose
 
-The Communication & Workflow Domain is responsible for:
+The Finance & Accounting Domain is responsible for:
 
-Managing Business Events
-Managing Workflow Automation
-Managing Approval Workflows
-Managing Notification Rules
-Managing In-App Notifications
-Managing Real-Time Notifications
-Managing Email Communication
-Managing SMS Communication
-Managing Document Generation
-Managing Email Templates
-Managing PDF Attachments
-Managing Communication Logs
-Managing Delivery Status
-Managing Notification Preferences
-17.3 Business Event Sources
+Managing Customer Invoices
+Managing Vendor Bills
+Managing Accounts Receivable (AR)
+Managing Accounts Payable (AP)
+Managing Customer Payments
+Managing Vendor Payments
+Managing General Ledger (GL)
+Managing Journal Entries
+Managing Chart of Accounts (COA)
+Managing GST
+Managing Banking
+Managing Cash & Bank Transactions
+Managing Outstanding Balances
+Managing Financial Reports
+Supporting Financial Analytics
+17.3 Finance Workflow
+Sales / Purchase / Production
+                │
+                ▼
+Financial Transaction
+                │
+                ▼
+Journal Entry
+                │
+                ▼
+General Ledger
+                │
+      ┌─────────┴─────────┐
+      ▼                   ▼
+Accounts Receivable   Accounts Payable
+      │                   │
+      ▼                   ▼
+Customer Payment    Vendor Payment
+      │                   │
+      └─────────┬─────────┘
+                ▼
+          Bank / Cash
+                │
+                ▼
+GST Calculation
+                │
+                ▼
+Financial Reports
+17.4 Chart of Accounts (COA)
 
-Business Events may originate from:
+The Chart of Accounts defines every accounting head used by the ERP.
 
-Employee
+Account Categories
+Assets
+Liabilities
+Equity
+Revenue
+Expenses
+
+Every financial transaction must reference valid accounts.
+
+17.5 Journal Entry
+
+Every financial transaction generates one or more Journal Entries.
+
+Examples:
+
+Sales Invoice
+Purchase Invoice
+Customer Payment
+Vendor Payment
+Expense Entry
+Salary Posting
+Inventory Adjustment
+Depreciation
+
+Each Journal Entry follows the Double Entry Accounting principle.
+
+17.6 General Ledger (GL)
+
+The General Ledger stores every posted accounting transaction.
+
+Each Ledger Entry contains:
+
+Ledger Number
+Voucher Number
+Date
+Account
+Debit
+Credit
+Reference Document
+Narration
+
+The General Ledger serves as the primary accounting record.
+
+17.7 Customer Invoice
+
+Sales Dispatch automatically generates a Customer Invoice.
+
+Invoice includes:
+
+Invoice Number
 Customer
-Vendor
-Purchase
-Inventory
-Production
-Warehouse
-Sales
-Finance
-Returns
-Reports
-System Scheduler
-
-Every event is processed through the Workflow Engine.
-
-17.4 Workflow Engine
-
-The Workflow Engine automates business processes without requiring manual communication.
-
-Example workflows:
-
-Purchase Order Approval
-RFQ Approval
-Sales Order Approval
-Production Approval
-Dispatch Confirmation
-Invoice Generation
-Payment Receipt
-Return Approval
-Employee Onboarding
-17.5 Template Engine
-
-Every communication uses predefined templates.
-
-Supported Templates:
-
-RFQ
-Purchase Order
-Sales Quotation
 Sales Order
-Invoice
-Credit Note
-Debit Note
-Payment Receipt
-Dispatch Advice
-Salary Slip
-Offer Letter
-Appointment Letter
-Welcome Email
-Password Reset
-Return Approval
+Product Details
+GST
+Discounts
+Shipping Charges
+Total Amount
 
-Templates support dynamic placeholders.
+Invoice Status:
 
-Example:
+Draft
+Posted
+Paid
+Partially Paid
+Cancelled
+17.8 Vendor Bill
 
-Hello {{vendor_name}},
+Vendor Bills are received after Goods Receipt.
 
-Purchase Order {{po_number}} has been approved.
+Vendor Bill contains:
 
-Please find the attached PDF.
+Vendor
+Purchase Order
+GRN
+GST
+Total Amount
+Due Date
 
-Regards,
-DS Footwear
-17.6 Document Generation
+Finance verifies the bill before posting.
 
-The ERP automatically generates business documents.
+17.9 Accounts Receivable (AR)
 
-Supported Documents:
+Accounts Receivable tracks customer dues.
 
-RFQ PDF
-Purchase Order PDF
-Sales Order PDF
-Invoice PDF
-Credit Note PDF
-Debit Note PDF
-Payment Receipt PDF
-Dispatch Slip
-Packing Slip
-Salary Slip
-Offer Letter
+The ERP records:
 
-Generated documents may be attached automatically to emails.
+Invoice Amount
+Paid Amount
+Outstanding Amount
+Due Date
+Payment Status
+17.10 Accounts Payable (AP)
 
-17.7 Email Communication
+Accounts Payable tracks vendor liabilities.
 
-The ERP automatically sends business emails.
+The ERP records:
 
-Examples:
+Vendor Bill
+Payment Due
+Paid Amount
+Outstanding Amount
+Credit Period
+17.11 Customer Payment
 
-RFQ to Vendors
-Purchase Order to Vendor
-Sales Quotation to Customer
-Invoice to Customer
-Payment Receipt
-Dispatch Confirmation
-Employee Welcome Email
-Password Reset
-Return Approval
+The ERP supports:
 
-Email delivery uses configurable SMTP settings.
+UPI
+Bank Transfer
+Credit Card
+Debit Card
+Cash
+Cheque
+NEFT
+RTGS
+IMPS
 
-17.8 SMS Communication
+Payment updates:
 
-SMS is used for time-sensitive communication.
+Accounts Receivable
+Ledger
+Bank Account
+17.12 Vendor Payment
 
-Examples:
+Vendor Payments update:
 
-OTP
-Login Verification
-Order Confirmation
-Dispatch Update
-Payment Confirmation
-Return Status
-Delivery Notification
-17.9 Real-Time Notifications
+Accounts Payable
+General Ledger
+Bank Ledger
 
-Socket.IO delivers real-time notifications.
+Payment Methods:
 
-Examples:
+Bank Transfer
+NEFT
+RTGS
+IMPS
+Cheque
+17.13 Banking
 
-New Sales Order
-Purchase Approval
-Stock Shortage
-Production Completion
-Payment Received
-Return Request
-Approval Pending
-17.10 In-App Notification Center
+The ERP manages:
 
-The ERP provides a centralized Notification Center.
+Bank Accounts
+Cash Accounts
+Bank Transfers
+Bank Reconciliation
+Payment Advice
+Cheque Management
+17.14 GST Management
 
-Notification Types:
+GST Module manages:
 
-Information
-Success
-Warning
-Error
-Approval
-Reminder
+CGST
+SGST
+IGST
+GST Input Credit
+GST Output Tax
+GST Reports
 
-Status:
+GST is automatically calculated during Sales and Purchase.
 
-Read
-Unread
-Archived
-17.11 Communication Queue
+17.15 Outstanding Management
 
-Business communications are processed asynchronously.
+Outstanding tracking includes:
 
-Business Event
+Customer Outstanding
 
-↓
+Current
+Overdue
+Bad Debt (Future)
 
-Communication Queue
+Vendor Outstanding
 
-↓
-
-Email Queue
-
-↓
-
-SMS Queue
-
-↓
-
-Socket Queue
-
-↓
-
-Delivery
-
-Failed communications are retried automatically.
-
-17.12 Communication Logs
-
-Every communication is logged.
-
-Log Information:
-
-Communication ID
-Business Event
-Recipient
-Channel
-Template
-Delivery Status
-Sent Time
-Read Time
-Retry Count
-17.13 Notification Preferences
-
-Employees may configure:
-
-Email Notifications
-SMS Notifications
-In-App Notifications
-Socket Notifications
-
-Future Support:
-
-WhatsApp
-Push Notifications
-17.14 Communication Analytics
+Pending Bills
+Overdue Payments
+Advance Payments
+17.16 Financial Reports
 
 The ERP provides:
 
-Total Emails Sent
-Total SMS Sent
-Notification Count
-Delivery Success Rate
-Failed Deliveries
-Read Rate
-Average Delivery Time
-Module-wise Communication Statistics
-17.15 Business Rules
+Profit & Loss Statement
+Balance Sheet
+Trial Balance
+Cash Flow Statement
+General Ledger Report
+GST Reports
+Sales Register
+Purchase Register
+Outstanding Reports
+Payment Reports
+17.17 Financial Analytics
 
-The Communication, Notification & Workflow Automation Domain follows these business rules:
+Dashboard Metrics:
 
-Every important business transaction generates a System Event.
-The Workflow Engine determines the next business action.
-Business documents are generated automatically when required.
-Emails are sent automatically using predefined templates.
-Purchase Orders and RFQs are emailed directly to Vendors after approval.
-Sales Invoices and Payment Receipts are emailed automatically to Customers.
-Socket.IO delivers real-time notifications to logged-in users.
-Failed communications are automatically retried.
-Every communication is permanently logged for auditing.
-Communication templates support dynamic placeholders and PDF attachments.
-17.16 Domain Relationship Diagram
-Business Event
-      │
-      ▼
-Workflow Engine
-      │
-      ▼
-Business Rules
-      │
-      ▼
-Template Engine
-      │
-      ▼
-Document Generator
-      │
-      ▼
-Communication Service
-      │
- ┌────┼─────────┬──────────┬───────────┬────────────┐
- ▼    ▼         ▼          ▼           ▼
-In-App Socket   Email      SMS     WhatsApp*
-Notification    │                    (Future)
-                ▼
-Employees / Customers / Vendors
-17.17 Dependencies
+Revenue
+Expenses
+Gross Profit
+Net Profit
+Accounts Receivable
+Accounts Payable
+Cash Position
+Outstanding Amount
+GST Liability
+Monthly Financial Trends
+17.18 Business Rules
 
-The Communication, Notification & Workflow Automation Domain integrates with:
+The Finance & Accounting Domain follows these business rules:
 
-Organization Domain
-Employee Domain
+Every financial transaction must generate Journal Entries.
+Every Journal Entry follows Double Entry Accounting.
+General Ledger entries cannot be deleted after posting.
+Customer Invoices are generated only after Dispatch.
+Vendor Bills must reference an approved Purchase Order and GRN.
+Customer Payments update Accounts Receivable.
+Vendor Payments update Accounts Payable.
+GST calculations are mandatory for taxable transactions.
+Financial reports use only posted accounting entries.
+Every financial transaction must remain permanently auditable.
+A due owed to any party outside the PO/GRN flow (Payables, 17.21) posts no transaction until money actually moves — registering the due is not itself a cash event.
+A marketplace Payment Advice (Marketplace Settlement, 17.22) posts only its net amount received as a transaction — the individual deductions netted off by the marketplace are cost/tax detail, not separate cash movements.
+Input Tax Credit is claimed only for GST-applicable purchases carrying this business's own GSTIN as the buyer (17.23) — a B2C purchase's GST is cost, never a claimable credit.
+17.19 Finance Relationship Diagram
+Sales
+      │
+      ▼
+Customer Invoice
+      │
+      ▼
+Accounts Receivable
+      │
+      ▼
+Customer Payment
+      │
+      ▼
+Bank
+      │
+      ▼
+Journal Entry
+      │
+      ▼
+General Ledger
+      ▲
+      │
+Vendor Bill
+      │
+Accounts Payable
+      │
+Vendor Payment
+      │
+GST
+      │
+Financial Reports
+17.20 Dependencies
+
+The Finance & Accounting Domain integrates with:
+
+Sales & Order Management Domain
+Purchase & Procurement Domain
+Inventory & Warehouse Management Domain
+Production Planning & Manufacturing Domain
 Customer Domain
 Vendor Domain
-Purchase Domain
-Production Planning & Manufacturing Domain
-Inventory & Warehouse Management Domain
-Sales & Order Management Domain
-Finance & Accounting Domain
-Return & Reverse Logistics Domain
+Employee Domain (Payroll – Future)
 Reports
 Dashboard
+Notifications
 Audit Logs
+
+17.21 Payables (Generic Dues)
+
+Accounts Payable (17.10) tracks Vendor Bills — always bound to a Purchase Order and GRN. Not every amount the business owes fits that shape: a landlord's rent deposit that stays unpaid for now, or an owner's personal advance that needs repaying, has no PO/GRN behind it at all. Payables is the general-purpose equivalent for exactly that case — a due amount owed to any party outside the PO/GRN flow.
+
+A Payable records Party, Purpose, Total Amount, Amount Paid, and a derived Amount Due (Total − Paid, never stored directly). Registering a Payable posts no Ledger entry by itself — no cash has moved yet. Only recording a payment against it posts a debit transaction, at which point Amount Paid rises and Amount Due falls; the Payable auto-closes to Paid once Amount Due reaches zero, or can be manually Written Off if it will never be paid.
+
+17.22 Marketplace Channels & Settlements
+
+Where the company sells through third-party marketplaces (Meesho, Flipkart, Amazon, Myntra), the actual cost of that channel — courier/shipping, return and RTO handling, ads, commission — is not known in advance for a brand-new listing. Two entities support this:
+
+Marketplace Channel — one row per marketplace, holding a bootstrap-mode blended cost-per-unit assumption (courier + return/RTO-weighted + ads + GST, all-in per pair sold), an assumed Customer-Return % and RTO %, a commission %, and a configured margin range. Used by the Pricing Calculator (Chapter 10 §10.11.1) until real data exists.
+Marketplace Settlement — one row per marketplace Payment Advice line item: the real, itemized deductions (commission, shipping, return charge, ads) plus TCS and TDS kept as separate fields, since those are advance tax collected/deducted by the marketplace and credited back against GST/income-tax liability, not a real cost. Matched against the printed Tax Invoice, from which its linked Sales Order is derived — never picked independently. Recording a Settlement posts only its Net Amount Received as a credit transaction; the deduction fields are cost/tax detail already netted off before that number was arrived at.
+
+Return rate, damage rate, and marketplace cost are never one blanket figure for the whole business — a "Sandal" design and a "Sneaker" design do not share a return rate or a marketplace cost. Both Returns (Chapter 18) and Marketplace Settlements support a per-product/category/variant breakdown for exactly this reason; the Pricing Calculator prefers a Variant's own actual settlement data over the channel-wide average, and only falls back to the channel's default assumption when neither real figure exists.
+
+17.23 GST Input Tax Credit (ITC) Eligibility
+
+A purchase's GST is only recoverable as Input Tax Credit when the supplier's invoice actually carries this business's own GSTIN as the buyer — a genuine B2B invoice. A B2C purchase (billed to an individual, no buyer GSTIN captured — e.g. an Amazon order placed on a personal account rather than Amazon Business) pays the identical GST, but that tax is not recoverable; it is simply part of the purchase's cost.
+
+The GSTR-3B summary therefore reports two figures, never one: ITC Claimed (the CGST/SGST/IGST on purchases where the buyer's GSTIN is genuinely present) and ITC Not Eligible (the same tax total on every B2C purchase, which stays cost). A row carrying some GSTIN value is not, by itself, proof of eligibility — that GSTIN may belong to the seller, present on the row for reference, not to this business as buyer; both the B2B classification and a genuine buyer GSTIN must hold together before ITC is counted as claimed.
+
 Chapter Summary
 
-The Communication, Notification & Workflow Automation Domain acts as the centralized communication engine of the DS Footwear ERP SaaS platform. It transforms business events into automated workflows by generating business documents, applying workflow rules, and delivering communications through In-App Notifications, Socket.IO, Email, SMS, and future channels such as WhatsApp and Push Notifications. By integrating with every ERP module, it eliminates manual communication, standardizes business processes, and ensures complete traceability, automation, and auditability across the enterprise.
+The Finance & Accounting Domain serves as the financial backbone of the DS Footwear ERP SaaS platform. It manages customer invoicing, vendor billing, accounts receivable, accounts payable, banking, GST compliance, journal entries, general ledger, and financial reporting. By implementing double-entry accounting principles and integrating seamlessly with Sales, Purchase, Inventory, Production, and Warehouse operations, the Finance Domain ensures complete financial accuracy, statutory compliance, auditability, and real-time business insights comparable to SAP FICO, Oracle Financials, and Microsoft Dynamics 365 Finance. Payables (17.21) and Marketplace Settlements (17.22) extend that backbone to dues and channel sales that fall outside the PO/GRN and standard invoice flows, while GST ITC Eligibility (17.23) ensures the platform never overstates a claimable credit that a real invoice cannot actually support.

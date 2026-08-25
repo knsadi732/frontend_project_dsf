@@ -1,411 +1,506 @@
 Chapter 14
-Warehouse Management Domain
+Production Planning & Manufacturing Domain
 14.1 Introduction
 
-The Warehouse Management Domain manages the complete storage, movement, handling, and tracking of inventory within the DS Footwear ERP SaaS platform.
+The Production Planning & Manufacturing Domain manages the complete manufacturing lifecycle within the DS Footwear ERP SaaS platform.
 
-It ensures that every inventory movement—from Goods Receipt to Storage, Picking, Packing, Dispatch, Production Material Issue, and Customer Returns—is accurately recorded and traceable.
+It is responsible for planning, scheduling, controlling, executing, and monitoring the production process while ensuring efficient utilization of materials, machines, manpower, and production capacity.
 
-The Warehouse Management Domain integrates with Inventory, Purchase, Production, Sales, Finance, Reports, Notifications, and Analytics to provide real-time warehouse operations.
+The domain converts raw materials into finished goods through standardized manufacturing processes while maintaining complete traceability, quality control, production costing, and inventory synchronization.
+
+This domain integrates with Sales, Inventory, Purchase, Warehouse, Finance, Reports, Notifications, and Analytics to provide an enterprise-grade manufacturing solution.
 
 14.2 Purpose
 
-The Warehouse Management Domain is responsible for:
+The Production Planning & Manufacturing Domain is responsible for:
 
-Managing Warehouses
-Managing Storage Locations
-Managing Warehouse Zones
-Managing Rack Structure
-Managing Shelf Structure
-Managing Bin Locations
-Managing Goods Receipt
-Managing Put-away
-Managing Inventory Movements
-Managing Stock Transfers
-Managing Picking
-Managing Packing
-Managing Dispatch Preparation
+Managing Production Planning & Control (PPC)
+Managing Demand Planning
+Managing Material Requirement Planning (MRP)
+Managing Capacity Planning
+Managing Production Scheduling
+Managing Production Requests
+Managing Bill of Materials (BOM)
+Checking Raw Material Availability
+Managing Production Orders
 Managing Material Issue
-Managing Stock Verification
-Managing Cycle Count
-Managing Physical Stock Audit
-14.3 Warehouse Structure
-Company
-      │
-      ▼
-Branch
-      │
-      ▼
+Tracking Work-In-Progress (WIP)
+Managing Finished Goods
+Managing Quality Control
+Updating Inventory
+Recording Production Costs
+Providing Production Analytics
+14.3 Production Workflow
+Sales Forecast
+        │
+        ▼
+Sales Orders
+        │
+        ▼
+Production Planning & Control (PPC)
+        │
+        ▼
+Demand Planning
+        │
+        ▼
+Material Requirement Planning (MRP)
+        │
+        ▼
+Capacity Planning
+        │
+        ▼
+Production Planning
+        │
+        ▼
+Production Scheduling
+        │
+        ▼
+Production Request
+        │
+        ▼
+Bill Of Materials (BOM)
+        │
+        ▼
+Raw Material Availability Check
+        │
+        ├── Available
+        │
+        └── Not Available
+                │
+                ▼
+        Purchase Request
+                │
+                ▼
+        Purchase Process
+                │
+                ▼
+Raw Material Available
+                │
+                ▼
+Production Order
+                │
+                ▼
+Material Issue
+                │
+                ▼
+Shop Floor Manufacturing
+                │
+                ▼
+Work In Progress (WIP)
+                │
+                ▼
+Quality Inspection
+                │
+                ▼
+Finished Goods
+                │
+                ▼
+Inventory Update
+                │
+                ▼
+Stock Ledger
+14.4 Production Planning & Control (PPC)
+
+Production Planning & Control (PPC) is responsible for planning, scheduling, monitoring, and controlling the entire manufacturing process.
+
+The PPC team ensures that the right product is manufactured in the right quantity, at the right time, using the available resources.
+
+PPC Responsibilities
+Demand Planning
+Sales Forecast Analysis
+Material Requirement Planning (MRP)
+Capacity Planning
+Machine Planning
+Workforce Planning
+Production Planning
+Production Scheduling
+Resource Allocation
+Production Monitoring
+14.5 Demand Planning
+
+Demand Planning estimates future production requirements based on:
+
+Sales Forecast
+Sales Orders
+Historical Sales
+Seasonal Demand
+Marketing Campaigns
+Customer Contracts
+
+Demand Planning helps optimize inventory and production capacity.
+
+14.6 Material Requirement Planning (MRP)
+
+MRP determines the materials required for production.
+
+The ERP automatically calculates:
+
+Required Raw Materials
+Current Inventory
+Purchase Requirement
+Production Requirement
+Material Shortages
+
+If raw materials are unavailable:
+
+MRP
+
+↓
+
+Purchase Request
+
+↓
+
+Purchase Department
+14.7 Capacity Planning
+
+Capacity Planning verifies manufacturing capability before production.
+
+The ERP evaluates:
+
+Machine Capacity
+Production Line Capacity
+Labour Availability
+Shift Capacity
+Daily Production Capacity
+
+Production Orders cannot exceed available capacity.
+
+14.8 Production Planning
+
+Production Planning defines:
+
+Product Variant
+Quantity
+Target Warehouse
+Production Date
+Expected Completion Date
+Priority
+Production Line
+
+The planning process balances demand with available resources.
+
+14.9 Production Scheduling
+
+Production Scheduling allocates manufacturing tasks across production lines and shifts.
+
+Example:
+
+Monday
+
+↓
+
+Sports Shoes
+
+↓
+
+Production Line-1
+
+↓
+
+Morning Shift
+
+↓
+
+1000 Pairs
+
+Scheduling minimizes idle time and maximizes production efficiency.
+
+14.10 Production Request
+
+The Production Request is an internal document authorizing production planning.
+
+It contains:
+
+Production Request Number
+Product Variant
+Quantity
+Required Date
 Warehouse
-      │
-      ▼
-Zone
-      │
-      ▼
-Rack
-      │
-      ▼
-Shelf
-      │
-      ▼
-Bin
-      │
-      ▼
-Inventory
-
-Every inventory item is stored at a unique warehouse location.
-
-14.4 Warehouse
-
-A Warehouse is the physical storage facility used for storing inventory.
-
-A company may have multiple warehouses across different branches.
-
-Warehouse Information
-Warehouse Code
-Warehouse Name
-Branch
-Address
-Manager
-Warehouse Type
-Capacity
+Priority
+Requested By
 Status
-Warehouse Types
-Raw Material Warehouse
-Finished Goods Warehouse
-Packaging Warehouse
-Return Warehouse
-Damaged Goods Warehouse
-Transit Warehouse
-14.5 Warehouse Zones
-
-Each warehouse is divided into operational Zones.
-
-Example:
-
-Warehouse
-
-├── Receiving Zone
-
-├── Storage Zone
-
-├── Production Zone
-
-├── Packing Zone
-
-├── Dispatch Zone
-
-├── Return Zone
-
-└── Damage Zone
-
-Zones simplify inventory movement and operational control.
-
-14.6 Rack Management
-
-Each Zone contains multiple Racks.
-
-Rack Information:
-
-Rack Code
-Rack Name
-Maximum Capacity
-Current Occupancy
 Status
-14.7 Shelf Management
+Draft
+Pending Approval
+Approved
+Rejected
+Converted to Production Order
+14.11 Bill of Materials (BOM)
 
-Each Rack contains multiple Shelves.
+The Bill of Materials defines every component required to manufacture one Product Variant.
 
-Shelf stores inventory in an organized manner.
+Each BOM contains:
 
-Shelf Information:
+Raw Materials
+Packaging Materials
+Consumables
+Standard Quantity
+Unit of Measure
+Wastage Percentage
 
-Shelf Number
-Shelf Capacity
-Current Load
-14.8 Bin Management
+Each manufactured product must have an approved BOM.
 
-Bins represent the smallest physical storage unit.
+14.12 Raw Material Availability
 
-Every inventory movement references a Bin.
+Before production begins, the ERP checks raw material availability.
 
-Example:
-
-Warehouse-A
-
-↓
-
-Rack-05
-
-↓
-
-Shelf-03
+BOM
 
 ↓
 
-Bin-02
-
-Each Bin contains:
-
-Bin Code
-Capacity
-Current Quantity
-Available Space
-14.9 Inventory Location
-
-Every Product Variant is mapped to a physical storage location.
-
-Example:
-
-SKU
+Inventory Check
 
 ↓
 
-Warehouse
+Material Available?
 
 ↓
 
-Zone
+Yes → Production
 
-↓
+No → Purchase Request
 
-Rack
+Production cannot begin until all mandatory materials are available.
 
-↓
+14.13 Production Order
 
-Shelf
+The Production Order authorizes manufacturing execution.
 
-↓
+Each Production Order contains:
 
-Bin
-
-A SKU may exist in multiple warehouses.
-
-14.10 Goods Receipt
-
-Incoming inventory is received through:
-
-Purchase GRN
-Production Completion
-Customer Return
-Stock Transfer
-Opening Stock
-
-Goods Receipt updates warehouse inventory.
-
-14.11 Put-away
-
-After Goods Receipt, inventory is placed into storage.
-
-Workflow:
-
-Goods Receipt
-
-↓
-
-Warehouse
-
-↓
-
-Zone
-
-↓
-
-Rack
-
-↓
-
-Shelf
-
-↓
-
-Bin
-
-Put-away creates the permanent storage location.
-
-14.12 Internal Stock Movement
-
-Warehouse supports internal transfers.
-
-Examples:
-
-Bin to Bin
-Shelf to Shelf
-Rack to Rack
-Zone to Zone
-Warehouse to Warehouse
-
-Every movement generates an Inventory Transaction.
-
-14.13 Material Issue
-
-Materials are issued from warehouse for:
-
-Production
-Sales
-Sample Issue
-Internal Consumption
-
-Material Issue decreases warehouse inventory.
-
-14.14 Picking
-
-Picking begins after a Sales Order is approved.
-
-The ERP automatically generates a Pick List.
-
-Pick List contains:
-
-Sales Order
-SKU
+Production Order Number
+Product Variant
+BOM
 Quantity
 Warehouse
-Zone
-Rack
-Shelf
-Bin
-14.15 Packing
+Production Line
+Planned Start Date
+Planned Completion Date
+Assigned Supervisor
+Status
+Status
+Planned
+Released
+In Progress
+On Hold
+Completed
+Cancelled
+14.14 Material Issue
 
-After Picking:
+Before manufacturing begins, materials are issued from Inventory.
 
-Quantity Verification
-Quality Check
+Material Issue:
+
+Reduces Raw Material Inventory
+Updates Stock Ledger
+Records Material Consumption
+
+Every issue transaction is auditable.
+
+14.15 Shop Floor Manufacturing
+
+The Shop Floor executes production according to the Production Order.
+
+Typical footwear manufacturing stages include:
+
+Cutting
+Stitching
+Upper Assembly
+Lasting
+Sole Bonding
+Finishing
+Cleaning
 Packing
-Barcode Verification
-Shipping Label Printing
 
-Packed orders become ready for Dispatch.
+The ERP records progress at every stage.
 
-14.16 Dispatch Preparation
+14.16 Work-In-Progress (WIP)
 
-Warehouse prepares:
+During production, products remain in Work-In-Progress status.
 
-Packing Slip
-Dispatch Note
-Shipping Labels
-Courier Assignment
+The ERP tracks:
 
-Orders are then handed over for dispatch.
+Started Quantity
+Completed Quantity
+Rejected Quantity
+Pending Quantity
+Production Time
+Machine Utilization
+14.17 Quality Inspection
 
-14.17 Stock Transfer
+Finished products undergo Quality Control before entering inventory.
 
-Warehouse supports:
+Inspection Results:
 
-Branch Transfer
-Warehouse Transfer
-Emergency Transfer
-Production Transfer
+Accepted
+Rework Required
+Rejected
 
-Every transfer creates corresponding inventory transactions.
+Only accepted products proceed to Finished Goods Inventory.
 
-14.18 Cycle Count
+14.18 Finished Goods
 
-Warehouse performs periodic inventory verification.
+Accepted products become Finished Goods.
 
-Cycle Count Types:
+The ERP records:
 
-Daily
-Weekly
-Monthly
-Quarterly
-
-Inventory differences require approval before adjustment.
-
-14.19 Physical Stock Audit
-
-The ERP supports full warehouse audits.
-
-Audit verifies:
-
-Physical Quantity
-System Quantity
-Variance
-Damage
-Missing Items
-
-Approved variances update inventory records.
-
-14.20 Warehouse Analytics
-
-The ERP provides warehouse KPIs:
-
-Warehouse Capacity Utilization
-Storage Occupancy
-Picking Efficiency
-Dispatch Time
-Stock Accuracy
-Inventory Turnover
-Bin Utilization
-Stock Aging
-Damaged Stock
-Return Stock
-14.21 Business Rules
-
-The Warehouse Management Domain follows these business rules:
-
-Every Warehouse belongs to a Branch.
-Every Warehouse contains one or more Zones.
-Every Zone contains multiple Racks.
-Every Rack contains multiple Shelves.
-Every Shelf contains multiple Bins.
-Every inventory item must have a valid Bin Location.
-Goods Receipt must be completed before Put-away.
-Inventory movements must always record source and destination locations.
-Picking is allowed only after Stock Reservation.
-Packing is allowed only after Picking.
-Dispatch is allowed only after Packing.
-Every warehouse transaction generates an Inventory Ledger entry.
-All warehouse operations must be fully auditable.
-14.22 Warehouse Relationship Diagram
-Company
-      │
-      ▼
-Branch
-      │
-      ▼
+Finished Quantity
+Production Date
 Warehouse
+Batch Number
+Production Cost
+
+Finished Goods are transferred to Inventory.
+
+14.19 Inventory Update
+
+After production completion:
+
+Finished Goods
+
+↓
+
+Inventory Update
+
+↓
+
+Stock Ledger
+
+↓
+
+Available Inventory
+
+Finished Goods become available for Sales and Dispatch.
+
+14.20 Production Costing
+
+The ERP records manufacturing costs including:
+
+Raw Material Cost
+Labour Cost
+Machine Cost
+Electricity Cost
+Packaging Cost
+Overhead Cost
+
+These values are forwarded to the Finance Domain.
+
+14.21 Production Analytics
+
+The ERP provides production metrics including:
+
+Production Quantity
+Production Efficiency
+Material Consumption
+Wastage Percentage
+Machine Utilization
+Labour Productivity
+Production Cost
+Production Lead Time
+Rework Percentage
+Overall Equipment Effectiveness (OEE)
+14.22 Business Rules
+
+The Production Planning & Manufacturing Domain follows these business rules:
+
+Production begins only after PPC approval.
+Every manufactured product must have an approved BOM.
+MRP must validate raw material availability before production.
+Material shortages automatically generate Purchase Requests.
+Capacity Planning must validate machine and labour availability.
+Every Production Order originates from an approved Production Request.
+Material Issue reduces Raw Material Inventory.
+Work-In-Progress must be tracked until production completion.
+Finished Goods update Inventory only after successful Quality Inspection.
+Every inventory movement generates a Stock Ledger entry.
+Production costs must be recorded for every Production Order.
+Completed Production Orders remain permanently auditable.
+Manufacturing Labour Cost and Packaging Cost auto-compute from the Product Variant's own per-unit rates the moment a Work Order completes, unless the caller supplies an explicit value for that specific run.
+
+14.22.1 Automated Production Costing — Manufacturing Rate & Packaging Cost
+
+Manpower here is not on a fixed salary paid per shift — it is paid a **piece rate per pair**, and that rate differs by design (a Sandal design and a Sneaker design pay different per-pair labour rates). To reflect that, each Product Variant (Chapter 10) carries its own `manufacturingRatePerUnit` (₹/pair, piece-rate labour for that design) and `packagingMaterialCostPerUnit` (₹/pair, box + poly/wrap) — both direct/variable costs, deliberately kept separate from the shared Overhead pool (14.20), which only holds true fixed/period costs (rent, admin salary, loan interest).
+
+The moment a Work Order's stage transitions into `"completed"`:
+
+Labour Cost = manufacturingRatePerUnit × Actual Quantity produced
+Packaging Cost = packagingMaterialCostPerUnit × Actual Quantity produced
+
+Both auto-fill only when the Work Order is tied to a Product Variant carrying a non-zero rate, and only for whichever of the two the caller did not already enter manually for that specific completion — a manual value always takes precedence over the auto-calculation. This mirrors the existing Overhead reallocation (14.20): both are computed and persisted at the moment of completion, not continuously.
+
+14.23 Production Relationship Diagram
+Sales Forecast
       │
       ▼
-Zone
+Sales Order
       │
       ▼
-Rack
+Production Planning & Control
       │
       ▼
-Shelf
+Demand Planning
       │
       ▼
-Bin
+MRP
+      │
+      ▼
+Capacity Planning
+      │
+      ▼
+Production Planning
+      │
+      ▼
+Production Scheduling
+      │
+      ▼
+Production Request
+      │
+      ▼
+BOM
+      │
+      ▼
+Raw Material
+      │
+      ▼
+Production Order
+      │
+      ▼
+Material Issue
+      │
+      ▼
+Shop Floor
+      │
+      ▼
+WIP
+      │
+      ▼
+Quality Inspection
+      │
+      ▼
+Finished Goods
       │
       ▼
 Inventory
       │
-      ├── Goods Receipt
-      ├── Put-away
-      ├── Stock Transfer
-      ├── Material Issue
-      ├── Picking
-      ├── Packing
-      ├── Dispatch
-      ├── Cycle Count
-      └── Physical Audit
-14.23 Dependencies
+      ▼
+Stock Ledger
+14.24 Dependencies
 
-The Warehouse Management Domain integrates with:
+The Production Planning & Manufacturing Domain integrates with:
 
-Organization Domain
-Product Domain
 Product Variant & SKU Domain
-Inventory Management Domain
-Purchase Domain
-Production Planning & Manufacturing Domain
-Sales & Order Management Domain
+Item & Material Master Domain
+Inventory & Warehouse Management Domain
+Purchase & Procurement Domain
+Sales Domain
 Finance Domain
-Return Management Domain
+Quality Control (Future)
+Maintenance (Future)
 Reports
 Dashboard
 Notifications
 Audit Logs
 Chapter Summary
 
-The Warehouse Management Domain manages the complete physical movement and storage of inventory across warehouses. It provides structured storage through Zones, Racks, Shelves, and Bins, while supporting Goods Receipt, Put-away, Internal Transfers, Material Issue, Picking, Packing, Dispatch, Cycle Counting, and Physical Audits. By integrating with Inventory, Purchase, Production, Sales, and Finance, it ensures accurate inventory control, full traceability, and efficient warehouse operations for an enterprise-grade ERP system.
+The Production Planning & Manufacturing Domain provides a complete enterprise manufacturing solution for the DS Footwear ERP SaaS platform. It combines Production Planning & Control (PPC), Material Requirement Planning (MRP), Capacity Planning, Production Scheduling, Bill of Materials (BOM), Shop Floor Execution, Work-In-Progress (WIP), Quality Inspection, Finished Goods Management, Inventory synchronization, and Production Costing into a unified workflow. Production Costing itself is largely automatic — piece-rate Labour Cost and Packaging Cost derive from each Product Variant's own per-unit rates the moment a Work Order completes (14.22.1), rather than being typed in by hand every time. By integrating tightly with Sales, Inventory, Purchase, Warehouse, and Finance, the domain delivers a scalable, auditable, and enterprise-grade manufacturing process aligned with industry best practices followed by SAP PP, Oracle Manufacturing, and Microsoft Dynamics 365 Manufacturing.

@@ -1,286 +1,335 @@
+Chapter 18
+Return & Reverse Logistics Domain
 18.1 Introduction
 
-The Reporting & Business Intelligence (BI) Domain provides centralized reporting, analytics, dashboards, KPIs, and business insights across the DS Footwear ERP SaaS platform.
+The Return & Reverse Logistics Domain manages the complete lifecycle of customer returns, product inspection, replacement, refund processing, inventory adjustments, and financial reconciliation within the DS Footwear ERP SaaS platform.
 
-It consolidates operational and financial data from every ERP module into meaningful reports, enabling management to make informed business decisions through real-time and historical analysis.
-
-The Reporting Domain integrates with all business domains while maintaining data consistency, traceability, and auditability.
+It ensures that every returned product is tracked, inspected, approved or rejected, and processed through Inventory and Finance while maintaining complete auditability.
 
 18.2 Purpose
 
-The Reporting & BI Domain is responsible for:
+The Return & Reverse Logistics Domain is responsible for:
 
-Operational Reports
-Financial Reports
-Inventory Reports
-Sales Reports
-Purchase Reports
-Production Reports
-Warehouse Reports
-Customer Reports
-Vendor Reports
-Employee Reports
-Dashboard Analytics
-KPI Monitoring
-Trend Analysis
-Comparative Reports
-Export & Printing
-18.3 Reporting Architecture
-ERP Modules
-        │
-        ▼
-Business Database
-        │
-        ▼
-Reporting Engine
-        │
-        ▼
-Analytics Engine
-        │
- ┌──────┼────────────┬────────────┐
- ▼      ▼            ▼            ▼
-Dashboard Reports   Charts    Export Engine
-                             (PDF/Excel/CSV)
-18.4 Sales Reports
-
-Sales reports include:
-
-Sales Register
-Sales Summary
-Sales Order Report
-Dispatch Report
-Invoice Register
-Customer Sales Report
-Product-wise Sales
-Category-wise Sales
-Brand-wise Sales
-Sales Executive Performance
-Sales Trend
-Sales Forecast
-18.5 Purchase Reports
-
-Purchase reports include:
-
-Purchase Register
-Purchase Order Report
-Vendor-wise Purchase
-GRN Report
-Pending Purchase Orders
-Purchase Return Report
-Vendor Performance
-Material Cost Analysis
-18.6 Inventory Reports
-
-Inventory reports include:
-
-Current Stock
-Stock Ledger
-Stock Movement
-Stock Aging
-Reserved Stock
-Damaged Stock
-Returned Stock
-Low Stock Report
-Dead Stock Report
-Inventory Valuation
-18.7 Production Reports
-
-Production reports include:
-
-Production Orders
-Production Planning
-Work In Progress (WIP)
-Material Consumption
-BOM Cost Analysis
-Production Efficiency
-Machine Utilization
-Labour Productivity
-Production Cost Report
-Production Variance
-18.8 Warehouse Reports
-
-Warehouse reports include:
-
-Warehouse Stock
-Bin-wise Inventory
-Rack Utilization
-Goods Receipt
-Goods Issue
-Picking Report
-Packing Report
-Dispatch Report
-Stock Transfer Report
-Physical Stock Audit
-18.9 Finance Reports
-
-Finance reports include:
-
-General Ledger
-Trial Balance
-Balance Sheet
-Profit & Loss Statement
-Cash Flow Statement
-GST Reports
-Accounts Receivable Aging
-Accounts Payable Aging
-Outstanding Report
-Payment Register
-Bank Book
-18.10 Customer Reports
-
-Customer reports include:
-
-Customer Register
-Customer Outstanding
-Customer Sales History
-Return History
-Payment History
-Customer Lifetime Value (Future)
-Customer Performance
-18.11 Vendor Reports
-
-Vendor reports include:
-
-Vendor Register
-Vendor Performance
-Vendor Purchase History
-Vendor Outstanding
-Payment History
-Delivery Performance
-Vendor Rating
-18.12 Employee Reports
-
-Employee reports include:
-
-Employee Register
-Attendance Report
-Leave Report
-Salary Report
-Login History
-Department Performance
-Employee Productivity
-Asset Allocation
-18.13 Dashboard Analytics
-
-The ERP Dashboard provides:
-
-Revenue
-Sales
-Purchase
-Inventory Value
-Production Efficiency
-Outstanding Receivables
-Outstanding Payables
-Low Stock Alerts
-Pending Approvals
-Business KPIs
-18.14 Comparative Analytics
-
-The ERP supports:
-
-Daily Comparison
-Weekly Comparison
-Monthly Comparison
-Quarterly Comparison
-Yearly Comparison
-Month-over-Month (MoM)
-Year-over-Year (YoY)
-Budget vs Actual (Future)
-Forecast vs Actual (Future)
-18.15 Filters
-
-Every report supports:
-
-Company
-Branch
-Warehouse
-Department
-Employee
+Managing Return Requests
+Managing Return Approvals
+Product Inspection
+Damage Assessment
+Return Pickup Tracking
+Inventory Adjustment
+Replacement Orders
+Refund Processing
+Credit Notes
+Financial Adjustments
+Return Analytics
+18.3 Return Workflow
 Customer
-Vendor
+
+↓
+
+Return Request
+
+↓
+
+Sales Review
+
+↓
+
+Return Approval
+
+↓
+
+Pickup
+
+↓
+
+Warehouse Receipt
+
+↓
+
+Quality Inspection
+
+↓
+
+Decision
+
+├── Approved
+│      ↓
+│ Inventory Update
+│      ↓
+│ Refund / Replacement
+│      ↓
+│ Finance
+│
+└── Rejected
+       ↓
+Customer Notification
+18.4 Return Request
+
+Customers can create return requests for eligible Sales Orders.
+
+Return Request includes:
+
+Return Request Number
+Sales Order
+Invoice Number
+Customer
 Product
-Category
-Brand
-Date Range
+Variant
+Quantity
+Return Reason
+Return Images
+Return Date
 Status
-18.16 Export & Print
+18.5 Return Reasons
 
-Supported export formats:
-
-PDF
-Excel (XLSX)
-CSV
-
-Printing supports:
-
-A4
-Letter
-Thermal (Future)
-18.17 Scheduled Reports (Future)
-
-The ERP can automatically generate reports on schedule.
+The ERP supports standardized return reasons.
 
 Examples:
 
-Daily Sales Report
-Weekly Inventory Report
-Monthly Financial Report
-Quarterly GST Report
+Wrong Product
+Wrong Size
+Wrong Color
+Manufacturing Defect
+Damaged in Transit
+Packaging Damage
+Quality Issue
+Customer Changed Mind
+Duplicate Order
+Other
+18.6 Return Approval
 
-Reports may be automatically delivered through:
+The Sales/Customer Support team reviews every request.
 
-Email
-Notification Center
-18.18 Business Rules
+Approval Status:
 
-The Reporting & BI Domain follows these business rules:
+Pending
+Approved
+Partially Approved
+Rejected
+Cancelled
 
-Reports are generated only from committed ERP transactions.
-Financial reports use only posted accounting entries.
-Users can access reports based on RBAC permissions.
-Every report supports configurable filters.
-Exported reports must match on-screen data.
-Dashboard KPIs refresh using configurable intervals.
-Historical reports remain immutable for audit purposes.
-Scheduled reports are generated automatically based on configured schedules.
-Every report execution is logged for auditing.
-18.19 Reporting Relationship Diagram
-Sales ─────────────┐
-Purchase ──────────┤
-Inventory ─────────┤
-Production ────────┤
-Warehouse ─────────┤
-Finance ───────────┤
-Customer ──────────┤
-Vendor ────────────┤
-Employee ──────────┤
-                   ▼
-           Reporting Engine
-                   │
-                   ▼
-           Analytics Engine
-                   │
-        ┌──────────┼──────────┐
-        ▼          ▼          ▼
-   Dashboards   Reports   Export Engine
-18.20 Dependencies
+Only approved requests proceed to warehouse.
 
-The Reporting & Business Intelligence Domain integrates with:
+18.7 Return Pickup
 
-Organization Domain
-Employee Domain
+After approval, pickup is scheduled.
+
+Pickup Information:
+
+Courier Partner
+Pickup Date
+Tracking Number
+Pickup Status
+18.8 Warehouse Receipt
+
+After pickup, the returned product reaches the warehouse.
+
+Warehouse verifies:
+
+Quantity
+Product Variant
+Barcode
+Packaging
+Physical Condition
+18.9 Quality Inspection
+
+Quality Control (QC) inspects every returned product.
+
+Inspection checks:
+
+Manufacturing Defect
+Damage
+Usage Condition
+Packaging
+Accessories
+Barcode Verification
+
+Inspection Status:
+
+Passed
+Failed
+Repairable
+Scrap
+18.10 Return Decision
+
+Based on inspection, the ERP decides:
+
+Restock
+
+Product is returned to Finished Goods Inventory.
+
+Repair
+
+Product is moved to Repair Inventory.
+
+Scrap
+
+Product is moved to Scrap/Damaged Inventory.
+
+Reject
+
+Return request is rejected.
+
+18.11 Inventory Adjustment
+
+Approved returns automatically update inventory.
+
+Possible inventory movements:
+
+Finished Goods Stock
+Returned Stock
+Damaged Stock
+Repair Stock
+Scrap Stock
+
+Every adjustment generates an Inventory Transaction.
+
+18.12 Replacement Order
+
+If the customer requests a replacement:
+
+Approved Return
+
+↓
+
+Replacement Sales Order
+
+↓
+
+Inventory Check
+
+↓
+
+Stock Reservation
+
+↓
+
+Warehouse
+
+↓
+
+Dispatch
+
+Replacement Orders follow the normal Sales workflow.
+
+18.13 Refund Processing
+
+If the customer requests a refund:
+
+Finance processes:
+
+Refund Amount
+Refund Method
+Transaction Reference
+Refund Date
+Refund Status
+
+Supported Methods:
+
+UPI
+Bank Transfer
+Credit Card
+Debit Card
+Wallet
+Original Payment Method
+18.14 Credit Note
+
+For approved returns, the ERP generates a Credit Note.
+
+Credit Note includes:
+
+Credit Note Number
+Invoice Reference
+Customer
+Return Amount
+GST Adjustment
+
+Credit Notes update financial records.
+
+18.15 Financial Adjustment
+
+Finance automatically updates:
+
+Customer Ledger
+Accounts Receivable
+GST Adjustment
+Refund Register
+Credit Note Register
+18.16 Return Analytics
+
+Dashboard KPIs include:
+
+Total Returns
+Return Rate
+Refund Amount
+Replacement Orders
+Damage Percentage
+Manufacturing Defect %
+Courier Damage %
+Return Cost
+Net Return Loss
+Return Trend
+18.17 Business Rules
+
+The Return & Reverse Logistics Domain follows these business rules:
+
+Returns are allowed only against completed Sales Orders.
+Return requests must be submitted within the configured return window.
+Every return request requires a valid reason.
+Approved returns require warehouse inspection.
+Inventory is updated only after successful inspection.
+Replacement Orders follow the standard Sales workflow.
+Refunds are processed only after final approval.
+Every refund generates a financial transaction.
+Every approved return generates inventory and audit records.
+Every return remains fully traceable for compliance.
+Return Rate and Damage % are never reported as one blanket figure for the whole business — see 18.16.1.
+
+18.16.1 Per-Product Return Analytics
+
+A "Sandal" design and a "Sneaker" design do not share one return rate, RTO rate, or damage rate — a Return always carries its Product Variant (not just the Sales Order), so every return-analytics figure can be sliced by Product, Category, or Variant, not only company-wide. The same Customer-Return-vs-Courier-Return (RTO) split used company-wide (18.16) is available per Variant, so a design with an unusually high return or damage rate is visible on its own, not averaged away into a single company-wide number. This per-Variant breakdown is also what feeds the Manufacturing Rate/Pricing decisions in the Product Variant & SKU Domain (Chapter 10 §10.11.1) and the Finance Domain's Marketplace Settlement analytics (Chapter 17 §17.22) — all three read the same underlying per-Variant return data rather than three separate blended assumptions.
+
+18.18 Return Relationship Diagram
+Customer
+      │
+      ▼
+Return Request
+      │
+      ▼
+Sales Review
+      │
+      ▼
+Warehouse
+      │
+      ▼
+Quality Inspection
+      │
+      ▼
+Decision
+      │
+ ┌────┴─────────────┐
+ ▼                  ▼
+Inventory      Finance
+ │                  │
+ ▼                  ▼
+Replacement      Refund
+ │                  │
+ └──────┬───────────┘
+        ▼
+Customer
+18.19 Dependencies
+
+The Return & Reverse Logistics Domain integrates with:
+
 Customer Domain
-Vendor Domain
+Sales & Order Management Domain
 Product Domain
 Product Variant & SKU Domain
 Inventory & Warehouse Management Domain
-Purchase Domain
-Production Planning & Manufacturing Domain
-Sales & Order Management Domain
 Finance & Accounting Domain
-Return & Reverse Logistics Domain
-Communication, Notification & Workflow Automation Domain
+Notification Domain
+Reports & Analytics
 Audit Logs
 Chapter Summary
 
-The Reporting & Business Intelligence (BI) Domain serves as the centralized analytics and reporting layer of the DS Footwear ERP SaaS platform. It consolidates operational, financial, and transactional data from every ERP module to generate real-time dashboards, business KPIs, analytical reports, comparative insights, and regulatory reports. With role-based access, flexible filtering, export capabilities, and scheduled reporting, it enables management to monitor performance, identify trends, ensure compliance, and make data-driven decisions across the entire enterprise. This design aligns with the reporting capabilities found in SAP Analytics, Oracle BI, and Microsoft Power BI–integrated ERP solutions.
+The Return & Reverse Logistics Domain manages the complete post-sales return lifecycle within the DS Footwear ERP SaaS platform. It handles return requests, approvals, warehouse receipt, quality inspection, inventory adjustments, replacements, refunds, and financial reconciliation. By integrating with Sales, Inventory, Warehouse, and Finance, it provides complete traceability, accurate stock management, customer satisfaction, and detailed return analytics — sliced per Product/Category/Variant (18.16.1), never blended into one company-wide number — making it suitable for enterprise-scale footwear manufacturing and e-commerce operations.

@@ -10,6 +10,8 @@ The Product Domain serves as the single source of truth for all product-related 
 
 The Product Domain does not maintain stock quantities. All inventory quantities are managed separately by the Inventory Domain.
 
+The Product Domain represents only sellable/manufactured finished goods. Raw material, packaging material, consumables, spare parts, tools, fixed assets, and services purchased or consumed internally by the organization are never modeled as Products — they belong to the Item & Material Master Domain (Chapter 8).
+
 7.2 Purpose
 
 The Product Domain is responsible for:
@@ -325,6 +327,7 @@ Product Master stores only business master data.
 Inventory quantities are stored exclusively in the Inventory Domain.
 Pricing defined in the Product Master serves as the default price.
 Products with transaction history cannot be deleted; they may only be marked Inactive or Discontinued.
+Raw material, packaging, consumables, spare parts, tools, fixed assets, and services are never modeled as Products — they belong to the Item & Material Master Domain (Chapter 8).
 7.17 Product Relationship Diagram
 Category
     │

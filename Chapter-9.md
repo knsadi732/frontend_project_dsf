@@ -1,269 +1,214 @@
 Chapter 9
-Product Variant & SKU Domain
+Category Domain
 9.1 Introduction
 
-The Product Variant & SKU Domain defines every sellable, purchasable, manufacturable, and inventory-managed item within the DS Footwear ERP SaaS platform.
+The Category Domain defines the hierarchical classification system for all products managed within the DS Footwear ERP SaaS platform.
 
-While the Product Domain stores generic product information, the Product Variant & SKU Domain represents the actual business item that is purchased, manufactured, stocked, sold, and dispatched.
+Categories organize products into logical business groups, making product management, inventory control, purchasing, reporting, manufacturing, and e-commerce navigation more efficient.
 
-Every inventory movement, purchase transaction, production order, sales order, warehouse operation, and financial transaction references a Product Variant (SKU), not the Product Master.
+The ERP follows a Parent-Child Category Model, allowing unlimited hierarchy levels without requiring a separate SubCategory entity.
 
 9.2 Purpose
 
-The Product Variant & SKU Domain is responsible for:
+The Category Domain is responsible for:
 
-Managing Product Variants.
-Managing Stock Keeping Units (SKU).
-Managing Barcode Information.
-Defining Variant Attributes.
-Supporting Inventory Management.
-Supporting Purchase Operations.
-Supporting Production Operations.
-Supporting Sales Operations.
-Supporting Warehouse Operations.
-Providing unique business identity for every sellable item.
-9.3 Product Variant Hierarchy
+Organizing products into logical groups.
+Supporting unlimited category hierarchy.
+Improving product search and filtering.
+Standardizing product classification.
+Supporting reporting and analytics.
+Providing category navigation for websites and mobile applications.
+Eliminating duplicate category structures.
+9.3 Category Hierarchy
 
-The ERP follows the hierarchy below:
+The ERP uses a hierarchical category structure.
 
 Category
       │
       ▼
-Brand
+Parent Category
+      │
+      ▼
+Child Category
       │
       ▼
 Product
       │
       ▼
 Variant
-      │
-      ▼
-SKU
-      │
-      ▼
-Barcode
-      │
-      ▼
-Inventory
 
-The Inventory Domain always references the Variant (SKU).
+Each category may have zero or more child categories.
 
-9.4 Product Variant
-
-A Product Variant represents a specific version of a Product.
-
-Each Variant is independently managed within the ERP.
-
-Examples include differences in:
-
-Size
-Color
-Material
-Width
-Gender
-Packaging
-
-Example
-
-Product
-
-DS Running Shoes
-
+9.4 Example Category Structure
+Footwear
 │
+├── Shoes
+│      ├── Sports Shoes
+│      ├── Casual Shoes
+│      ├── Formal Shoes
+│      ├── Running Shoes
+│      └── School Shoes
+│
+├── Sandals
+│      ├── Men Sandals
+│      ├── Women Sandals
+│      └── Kids Sandals
+│
+├── Slippers
+│      ├── EVA Slippers
+│      ├── Bathroom Slippers
+│      └── Indoor Slippers
+│
+└── Boots
+       ├── Safety Boots
+       ├── Leather Boots
+       └── Trekking Boots
 
-├── Size 7 • Black
+The hierarchy can be extended at any level without changing the database structure.
 
-├── Size 8 • Black
+9.5 Category Master
 
-├── Size 9 • Black
-
-├── Size 8 • White
-
-└── Size 10 • Blue
-
-Each Variant is treated as a unique business item.
-
-9.5 Variant Attributes
-
-Each Product Variant contains:
+Each Category stores the following information:
 
 Basic Information
-Variant ID
-Product ID
-Variant Name
-Attributes
-Size
-Color
-Material (Optional)
-Gender (Optional)
-Width (Optional)
-Pattern (Optional)
-Packaging Type (Optional)
-Pricing
-MRP
-Selling Price
-Wholesale Price (Optional)
-Dealer Price (Optional)
-Identification
-SKU
-Barcode
+Category ID
+Parent Category ID
+Category Code
+Category Name
+Display Name
+Description
+Display Information
+Category Image
+Category Icon
+Display Order
+SEO Information (Future)
+SEO URL
+Meta Title
+Meta Description
+Keywords
 Status
 Active
 Inactive
-Discontinued
-9.6 SKU (Stock Keeping Unit)
+9.6 Parent-Child Relationship
 
-A SKU uniquely identifies every sellable or inventory-managed variant.
+The Category Domain uses a self-referencing hierarchy.
 
-Every inventory movement references the SKU.
+Relationship
 
-Example SKUs:
+Category
+      │
+      ├── Parent Category
+      │
+      └── Child Categories
 
-DS-RUN-BLK-07
+Database Structure
 
-DS-RUN-BLK-08
+categories
 
-DS-RUN-WHT-08
+id
 
-DS-RUN-BLU-09
-Business Rules
-Every SKU must be unique.
-SKU is generated automatically by the ERP.
-SKU cannot be reused after creation.
-Inventory always references the SKU.
-9.7 Barcode
+parent_category_id
 
-Each SKU may have one barcode.
+category_code
 
-The barcode is used for:
+category_name
 
-Warehouse Receiving
-Stock Transfer
-Picking
-Packing
-Dispatch
-POS Billing
-Inventory Counting
+The parent_category_id references another record in the same table.
 
-Supported barcode formats include:
+9.7 Product Assignment
 
-Code 128
-EAN-13
-UPC
-QR Code (Future)
+Products are assigned only to the lowest applicable category.
 
-Business Rule:
+Example
 
-Every barcode must be unique.
+Footwear
 
-9.8 Variant Pricing
+↓
 
-Pricing may differ between variants.
+Shoes
+
+↓
+
+Sports Shoes
+
+↓
+
+Product
+
+Products should not be assigned to intermediate parent categories unless explicitly required by business rules.
+
+9.8 Category Usage
+
+The Category Domain is used by multiple ERP modules.
 
 Examples:
 
-Variant	Selling Price
-Size 7 Black	₹1,499
-Size 8 Black	₹1,499
-Size 9 Black	₹1,549
-Size 10 Blue	₹1,599
-
-Transaction-level discounts are applied during Sales Orders and are not stored in the Variant Master.
-
-9.9 Variant & Inventory Relationship
-
-The Inventory Domain stores stock against Product Variants.
-
-Relationship:
-
-Product
-      │
-      ▼
-Variant
-      │
-      ▼
-SKU
-      │
-      ▼
-Inventory
-
-Inventory stores:
-
-Available Quantity
-Reserved Quantity
-Damaged Quantity
-Returned Quantity
-Warehouse Quantity
-
-The Variant Domain never stores stock quantities.
-
-9.10 Variant Lifecycle
-Create Product
-      │
-      ▼
-Create Variant
-      │
-      ▼
-Generate SKU
-      │
-      ▼
-Generate Barcode
-      │
-      ▼
-Enable Inventory
-      │
-      ▼
-Available for Purchase / Production / Sales
-9.11 Business Rules
-
-The Product Variant & SKU Domain follows these business rules:
-
-Every Product may contain multiple Variants.
-Every Variant belongs to exactly one Product.
-Every Variant must have a unique SKU.
-Every Barcode must be unique.
-Every inventory record references a Variant (SKU).
-Variant pricing may differ between variants of the same product.
-Stock quantities are stored only in the Inventory Domain.
-Variants with historical transactions cannot be deleted; they may only be marked Inactive or Discontinued.
-SKU values are immutable after creation.
-9.12 Variant Relationship Diagram
-Product
-    │
-    ▼
-Product Variant
-    │
-    ├── Size
-    ├── Color
-    ├── Material
-    ├── Pricing
-    │
-    ▼
-SKU
-    │
-    ▼
-Barcode
-    │
-    ▼
-Inventory
-9.13 Dependencies
-
-The Product Variant & SKU Domain is referenced by the following ERP modules:
-
+Product Management
 Inventory
 Purchase
 Production
 Sales
-Warehouse
-Dispatch
-Finance
+Reports
+Dashboard
+Website
+Mobile Application
+
+Category information is shared across all these modules.
+
+9.9 Search & Filtering
+
+Categories provide standardized filtering capabilities.
+
+Supported filters include:
+
+Parent Category
+Child Category
+Brand
+Product
+Product Type
+Active Status
+
+These filters are used throughout ERP lists, reports, dashboards, and e-commerce interfaces.
+
+9.10 Business Rules
+
+The Category Domain follows these business rules:
+
+Every category must have a unique Category Code.
+Every category must have a unique Category Name within the same parent.
+Categories support unlimited Parent-Child hierarchy.
+A separate SubCategory table shall not exist.
+Child categories are stored in the same Category table using parent_category_id.
+Products should be assigned to the lowest applicable category.
+Categories with associated products cannot be deleted; they may only be marked Inactive.
+Category hierarchy changes must preserve existing product relationships.
+9.11 Category Relationship Diagram
+Category
+│
+├── Child Category
+│      ├── Child Category
+│      │      ├── Product
+│      │      │      └── Product Variant
+│      │
+│      └── Product
+│
+└── Product
+9.12 Dependencies
+
+The Category Domain is referenced by the following ERP modules:
+
+Product
+Inventory
+Purchase
+Production
+Sales
 Reports
 Dashboard
 Website / E-Commerce
-POS (Future)
+Mobile Application
 
-Every stock movement, purchase order, production order, sales order, dispatch, invoice, and inventory transaction references the Product Variant (SKU).
+Every Product belongs to exactly one Category within the hierarchy.
 
 Chapter Summary
 
-The Product Variant & SKU Domain represents the operational identity of every sellable, purchasable, manufacturable, and inventory-managed item within the DS Footwear ERP SaaS platform. By separating Product Master data from Product Variants and assigning a unique SKU and Barcode to each variant, the ERP achieves a scalable and normalized architecture. This design ensures that all inventory, warehouse, purchase, production, sales, dispatch, and financial transactions operate on Variant-level entities, providing precise stock control, accurate pricing, and complete traceability across the entire business lifecycle.
+The Category Domain provides the hierarchical classification framework for products within the DS Footwear ERP SaaS platform. By implementing a self-referencing Parent-Child model, the ERP supports unlimited category levels without requiring a separate SubCategory table. This design simplifies database management, improves scalability, enhances product organization, and ensures consistent categorization across Product Management, Inventory, Sales, Purchase, Reporting, and future e-commerce integrations.

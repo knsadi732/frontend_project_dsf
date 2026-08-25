@@ -1,185 +1,328 @@
 Chapter 19
-Enterprise Business Rules
+Communication, Notification & Workflow Automation Domain
+Business Event
+        │
+        ▼
+Workflow Engine
+        │
+        ▼
+Business Rules
+        │
+        ▼
+Template Engine
+        │
+        ▼
+Document Generator
+        │
+        ▼
+Communication Service
+        │
+ ┌──────┼──────────┬────────────┬──────────────┬────────────┐
+ ▼      ▼          ▼            ▼              ▼
+In-App  Socket.IO  Email        SMS        WhatsApp*
+Notification                              (Future)
+        │
+        ▼
+Employees / Customers / Vendors
 19.1 Introduction
 
-The Enterprise Business Rules define the core operational logic governing every business process within the DS Footwear ERP SaaS platform.
+The Communication, Notification & Workflow Automation Domain manages all business communications, notifications, document generation, approval workflows, and automated message delivery throughout the DS Footwear ERP SaaS platform.
 
-These rules ensure consistency, data integrity, automation, auditability, and standardized business workflows across all ERP modules.
+It automatically converts business events into actionable communications by generating documents, applying workflow rules, and delivering information through multiple communication channels.
 
-Every frontend screen, backend API, database transaction, and business workflow must comply with these rules.
+This domain serves as the central communication hub for all ERP modules.
 
-19.2 Organization Rules
-Every Company may have multiple Branches.
-Every Branch may have multiple Warehouses.
-Every Warehouse belongs to exactly one Branch.
-Every Employee belongs to one primary Branch.
-Every business transaction must belong to a Company.
-19.3 Employee Rules
-Employee = ERP User.
-No separate User table exists.
-Every Employee has a unique Employee Code.
-Phone Number must be unique.
-Employees may have multiple Roles.
-Roles determine Permissions.
-Employee login uses Phone Number and Password.
-Employee documents are uploaded only once and reused by all departments.
-Deleted Employees are soft deleted.
-Every Employee activity is recorded in Audit Logs.
-19.4 RBAC Rules
-Every API requires permission validation.
-Every page requires View permission.
-Buttons require Create, Update or Delete permission.
-Hidden menus cannot be accessed through URL manipulation.
-Backend permission validation is mandatory.
-Multiple Roles are merged to calculate effective permissions.
-19.5 Product Rules
-Product stores only Master Data.
-Product never stores stock quantities.
-Product Code must be unique.
-Product belongs to one Category.
-Category uses Parent–Child hierarchy.
-One Product may have multiple Variants.
-Product deletion is restricted if transactions exist.
-Product status controls availability.
-19.6 Product Variant Rules
-Every Variant belongs to one Product.
-Every Variant has a unique SKU.
-Every Variant has one Barcode.
-Size and Color define Variant uniqueness.
-Selling Price is maintained at Variant level.
-Inventory is maintained at Variant level.
-19.7 Inventory Rules
-Inventory stores all stock quantities.
-Product never stores quantities.
-Stock exists at Warehouse level.
-One Variant may exist in multiple Warehouses.
-Inventory Transactions are immutable.
-Negative Stock is not allowed.
-Every stock movement generates an Inventory Transaction.
-Reserved Stock cannot be sold twice.
-19.8 Purchase Rules
-Purchase Requests require approval.
-Approved Purchase Requests generate RFQs.
-RFQs are sent automatically to Vendors.
-Vendor Quotations are compared before selection.
-Approved Vendor generates Purchase Order.
-Purchase Orders are emailed automatically.
-Inventory updates only after GRN approval.
-Purchase Orders cannot be edited after approval.
-19.9 Production Rules
-Production starts only from an approved Production Order.
-BOM is mandatory.
-Raw Materials must be available before production starts.
-Raw Materials are reserved before manufacturing.
-Finished Goods are added only after Production Completion.
-Production Cost is calculated automatically.
-Production updates Inventory automatically.
-19.10 Sales Rules
-Orders from Website/Marketplace enter Sales Review.
-Sales Team approves or rejects every order.
-Sales Order (SO) is generated only after approval.
-Inventory availability is checked before confirmation.
-Stock is reserved immediately after SO approval.
-Reserved Stock cannot be allocated elsewhere.
-Warehouse receives Picking Requests automatically.
-Dispatch is allowed only after Packing completion.
-Invoice is generated only after Dispatch.
-Customer receives Invoice automatically.
-19.11 Warehouse Rules
-Inventory is stored at Bin level.
-Every Picking activity is logged.
-Barcode scanning is mandatory during Picking.
-Packing verification is mandatory.
-Dispatch requires Shipment Confirmation.
-Warehouse transfers update Inventory immediately.
-19.12 Finance Rules
-Every Invoice generates Journal Entries.
-Double Entry Accounting is mandatory.
-General Ledger entries cannot be modified after posting.
-Customer Payments update Accounts Receivable.
-Vendor Payments update Accounts Payable.
-GST is calculated automatically.
-Financial Reports use only posted entries.
-19.13 Return Rules
-Returns are allowed only against completed Sales Orders.
-Warehouse inspection is mandatory.
-Inventory updates only after approval.
-Refunds require Finance approval.
-Replacement Orders follow the Sales workflow.
-Credit Notes are generated automatically.
-19.14 Communication Rules
-Every important business event generates a System Event.
-Approved Purchase Orders are emailed automatically.
-RFQs are emailed automatically to Vendors.
-Customer Invoices are emailed automatically.
-Payment Receipts are emailed automatically.
-Real-time notifications use Socket.IO.
-All communications are logged.
-19.15 Reporting Rules
-Reports use committed business transactions only.
-Dashboard KPIs update automatically.
-Users access reports according to RBAC.
-Reports support filtering and export.
-Historical reports remain immutable.
-19.16 Audit Rules
-Every Create operation is logged.
-Every Update operation is logged.
-Every Delete operation is logged.
-Every Login is logged.
-Every Approval is logged.
-Every Financial Transaction is logged.
-Audit Logs cannot be deleted.
-19.17 Security Rules
-JWT Authentication is mandatory.
-Passwords are stored using secure hashing.
-Sessions expire automatically.
-APIs validate authentication before execution.
-Authorization is checked on every request.
-Sensitive data is encrypted where required.
-19.18 Data Integrity Rules
-Foreign Key relationships must remain valid.
-Soft Delete is preferred over Hard Delete.
-Cascading deletes are restricted.
-Duplicate business records are not allowed.
-Every business entity has Created By and Updated By fields.
-Timestamps are mandatory for all transactional tables.
-19.19 Enterprise Workflow Summary
-Website / Marketplace Order
-            │
-            ▼
-      Sales Review
-            │
-            ▼
-      Sales Order (SO)
-            │
-            ▼
-    Inventory Check
-            │
-      ┌─────┴─────┐
-      ▼           ▼
-Stock Available   Stock Not Available
-      │           │
-      ▼           ▼
-Stock Reserved   Production Request
-      │           │
-      ▼           ▼
-Warehouse Pick   Production Planning
-      │           │
-      ▼           ▼
-Packing      Finished Goods
-      │           │
-      └─────┬─────┘
-            ▼
-        Dispatch
-            │
-            ▼
-         Invoice
-            │
-            ▼
-        Finance
-            │
-            ▼
-         Customer
-19.20 Chapter Summary
+19.2 Purpose
 
-The Enterprise Business Rules establish the governing principles for all business operations within the DS Footwear ERP SaaS platform. They define how data flows across Organization, Employee, Product, Inventory, Purchase, Production, Sales, Warehouse, Finance, Returns, Communication, Reporting, and Security domains. By enforcing these rules consistently across the database, backend APIs, frontend interfaces, and automated workflows, the ERP ensures data integrity, process automation, compliance, scalability, and auditability, providing a robust foundation comparable to enterprise-grade ERP systems such as SAP S/4HANA, Oracle ERP Cloud, and Microsoft Dynamics 365.
+The Communication & Workflow Domain is responsible for:
+
+Managing Business Events
+Managing Workflow Automation
+Managing Approval Workflows
+Managing Notification Rules
+Managing In-App Notifications
+Managing Real-Time Notifications
+Managing Email Communication
+Managing SMS Communication
+Managing Document Generation
+Managing Email Templates
+Managing PDF Attachments
+Managing Communication Logs
+Managing Delivery Status
+Managing Notification Preferences
+19.3 Business Event Sources
+
+Business Events may originate from:
+
+Employee
+Customer
+Vendor
+Purchase
+Inventory
+Production
+Warehouse
+Sales
+Finance
+Returns
+Reports
+System Scheduler
+
+Every event is processed through the Workflow Engine.
+
+19.4 Workflow Engine
+
+The Workflow Engine automates business processes without requiring manual communication.
+
+Example workflows:
+
+Purchase Order Approval
+RFQ Approval
+Sales Order Approval
+Production Approval
+Dispatch Confirmation
+Invoice Generation
+Payment Receipt
+Return Approval
+Employee Onboarding
+19.5 Template Engine
+
+Every communication uses predefined templates.
+
+Supported Templates:
+
+RFQ
+Purchase Order
+Sales Quotation
+Sales Order
+Invoice
+Credit Note
+Debit Note
+Payment Receipt
+Dispatch Advice
+Salary Slip
+Offer Letter
+Appointment Letter
+Welcome Email
+Password Reset
+Return Approval
+
+Templates support dynamic placeholders.
+
+Example:
+
+Hello {{vendor_name}},
+
+Purchase Order {{po_number}} has been approved.
+
+Please find the attached PDF.
+
+Regards,
+DS Footwear
+19.6 Document Generation
+
+The ERP automatically generates business documents.
+
+Supported Documents:
+
+RFQ PDF
+Purchase Order PDF
+Sales Order PDF
+Invoice PDF
+Credit Note PDF
+Debit Note PDF
+Payment Receipt PDF
+Dispatch Slip
+Packing Slip
+Salary Slip
+Offer Letter
+
+Generated documents may be attached automatically to emails.
+
+19.7 Email Communication
+
+The ERP automatically sends business emails.
+
+Examples:
+
+RFQ to Vendors
+Purchase Order to Vendor
+Sales Quotation to Customer
+Invoice to Customer
+Payment Receipt
+Dispatch Confirmation
+Employee Welcome Email
+Password Reset
+Return Approval
+
+Email delivery uses configurable SMTP settings.
+
+19.8 SMS Communication
+
+SMS is used for time-sensitive communication.
+
+Examples:
+
+OTP
+Login Verification
+Order Confirmation
+Dispatch Update
+Payment Confirmation
+Return Status
+Delivery Notification
+19.9 Real-Time Notifications
+
+Socket.IO delivers real-time notifications.
+
+Examples:
+
+New Sales Order
+Purchase Approval
+Stock Shortage
+Production Completion
+Payment Received
+Return Request
+Approval Pending
+19.10 In-App Notification Center
+
+The ERP provides a centralized Notification Center.
+
+Notification Types:
+
+Information
+Success
+Warning
+Error
+Approval
+Reminder
+
+Status:
+
+Read
+Unread
+Archived
+19.11 Communication Queue
+
+Business communications are processed asynchronously.
+
+Business Event
+
+↓
+
+Communication Queue
+
+↓
+
+Email Queue
+
+↓
+
+SMS Queue
+
+↓
+
+Socket Queue
+
+↓
+
+Delivery
+
+Failed communications are retried automatically.
+
+19.12 Communication Logs
+
+Every communication is logged.
+
+Log Information:
+
+Communication ID
+Business Event
+Recipient
+Channel
+Template
+Delivery Status
+Sent Time
+Read Time
+Retry Count
+19.13 Notification Preferences
+
+Employees may configure:
+
+Email Notifications
+SMS Notifications
+In-App Notifications
+Socket Notifications
+
+Future Support:
+
+WhatsApp
+Push Notifications
+19.14 Communication Analytics
+
+The ERP provides:
+
+Total Emails Sent
+Total SMS Sent
+Notification Count
+Delivery Success Rate
+Failed Deliveries
+Read Rate
+Average Delivery Time
+Module-wise Communication Statistics
+19.15 Business Rules
+
+The Communication, Notification & Workflow Automation Domain follows these business rules:
+
+Every important business transaction generates a System Event.
+The Workflow Engine determines the next business action.
+Business documents are generated automatically when required.
+Emails are sent automatically using predefined templates.
+Purchase Orders and RFQs are emailed directly to Vendors after approval.
+Sales Invoices and Payment Receipts are emailed automatically to Customers.
+Socket.IO delivers real-time notifications to logged-in users.
+Failed communications are automatically retried.
+Every communication is permanently logged for auditing.
+Communication templates support dynamic placeholders and PDF attachments.
+19.16 Domain Relationship Diagram
+Business Event
+      │
+      ▼
+Workflow Engine
+      │
+      ▼
+Business Rules
+      │
+      ▼
+Template Engine
+      │
+      ▼
+Document Generator
+      │
+      ▼
+Communication Service
+      │
+ ┌────┼─────────┬──────────┬───────────┬────────────┐
+ ▼    ▼         ▼          ▼           ▼
+In-App Socket   Email      SMS     WhatsApp*
+Notification    │                    (Future)
+                ▼
+Employees / Customers / Vendors
+19.17 Dependencies
+
+The Communication, Notification & Workflow Automation Domain integrates with:
+
+Organization Domain
+Employee Domain
+Customer Domain
+Vendor Domain
+Purchase Domain
+Production Planning & Manufacturing Domain
+Inventory & Warehouse Management Domain
+Sales & Order Management Domain
+Finance & Accounting Domain
+Return & Reverse Logistics Domain
+Reports
+Dashboard
+Audit Logs
+Chapter Summary
+
+The Communication, Notification & Workflow Automation Domain acts as the centralized communication engine of the DS Footwear ERP SaaS platform. It transforms business events into automated workflows by generating business documents, applying workflow rules, and delivering communications through In-App Notifications, Socket.IO, Email, SMS, and future channels such as WhatsApp and Push Notifications. By integrating with every ERP module, it eliminates manual communication, standardizes business processes, and ensures complete traceability, automation, and auditability across the enterprise.

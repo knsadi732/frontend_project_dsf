@@ -1,316 +1,288 @@
 Chapter 10
-Inventory & Warehouse Management Domain
+Product Variant & SKU Domain
 10.1 Introduction
 
-The Inventory & Warehouse Management Domain is responsible for managing the physical movement, storage, availability, reservation, and traceability of all business inventory within the DS Footwear ERP SaaS platform.
+The Product Variant & SKU Domain defines every sellable, purchasable, manufacturable, and inventory-managed item within the DS Footwear ERP SaaS platform.
 
-Unlike the Product Domain, which maintains only master data, the Inventory Domain stores the actual stock quantities available across warehouses.
+While the Product Domain stores generic product information, the Product Variant & SKU Domain represents the actual business item that is purchased, manufactured, stocked, sold, and dispatched.
 
-Every purchase, production, sales, dispatch, return, and stock transfer operation updates the Inventory Domain.
-
-Inventory is always maintained against a Product Variant (SKU) and is physically stored inside a Warehouse Location.
+Every inventory movement, purchase transaction, production order, sales order, warehouse operation, and financial transaction references a Product Variant (SKU), not the Product Master.
 
 10.2 Purpose
 
-The Inventory & Warehouse Management Domain is responsible for:
+The Product Variant & SKU Domain is responsible for:
 
-Managing Raw Material Inventory.
-Managing Finished Goods Inventory.
-Managing Packaging Material Inventory.
-Managing Warehouse Locations.
-Managing Stock Reservations.
-Managing Stock Transfers.
-Managing Inventory Adjustments.
-Managing Damaged and Returned Stock.
-Providing real-time inventory visibility.
-Supporting production, purchase, sales, and dispatch operations.
-10.3 Inventory Structure
+Managing Product Variants.
+Managing Stock Keeping Units (SKU).
+Managing Barcode Information.
+Defining Variant Attributes.
+Supporting Inventory Management.
+Supporting Purchase Operations.
+Supporting Production Operations.
+Supporting Sales Operations.
+Supporting Warehouse Operations.
+Providing unique business identity for every sellable item.
+10.3 Product Variant Hierarchy
+
+The ERP follows the hierarchy below:
+
+Category
+      │
+      ▼
+Brand
+      │
+      ▼
+Product
+      │
+      ▼
+Variant
+      │
+      ▼
+SKU
+      │
+      ▼
+Barcode
+      │
+      ▼
 Inventory
+
+The Inventory Domain always references the Variant (SKU).
+
+10.4 Product Variant
+
+A Product Variant represents a specific version of a Product.
+
+Each Variant is independently managed within the ERP.
+
+Examples include differences in:
+
+Size
+Color
+Material
+Width
+Gender
+Packaging
+
+Example
+
+Product
+
+DS Running Shoes
+
 │
-├── Raw Material
-├── Finished Goods
-├── Semi Finished Goods
-├── Packaging Material
-├── Reserved Stock
-├── Damaged Stock
-├── Returned Stock
-└── In Transit Stock
 
-Inventory stores quantities only.
+├── Size 7 • Black
 
-It never stores Product Master information.
+├── Size 8 • Black
 
-10.4 Warehouse Structure
+├── Size 9 • Black
 
-Inventory is physically stored inside warehouses.
+├── Size 8 • White
 
-The ERP follows a hierarchical warehouse structure.
+└── Size 10 • Blue
 
-Warehouse
-      │
-      ▼
-Zone
-      │
-      ▼
-Rack
-      │
-      ▼
-Shelf
-      │
-      ▼
-Bin
-      │
-      ▼
-Inventory
+Each Variant is treated as a unique business item.
 
-This hierarchy enables precise stock tracking and optimized picking operations.
+10.5 Variant Attributes
 
-10.5 Warehouse Types
+Each Product Variant contains:
 
-The ERP supports multiple warehouse types.
+Basic Information
+Variant ID
+Product ID
+Variant Name
+Attributes
+Size
+Color
+Material (Optional)
+Gender (Optional)
+Width (Optional)
+Pattern (Optional)
+Packaging Type (Optional)
+Pricing
+MRP
+Selling Price
+Wholesale Price (Optional)
+Dealer Price (Optional)
+Cost Price
+Manufacturing Rate (₹/pair — per-design piece-rate labour cost, see Chapter 14 §14.22.1)
+Packaging Material Cost (₹/pair — box + poly/wrap, see Chapter 14 §14.22.1)
+Identification
+SKU
+Barcode
+Status
+Active
+Inactive
+Discontinued
+10.6 SKU (Stock Keeping Unit)
 
-Examples:
+A SKU uniquely identifies every sellable or inventory-managed variant.
 
-Raw Material Warehouse
-Finished Goods Warehouse
-Packaging Warehouse
-Return Warehouse
-Quality Inspection Warehouse
-Transit Warehouse
+Every inventory movement references the SKU.
 
-Each warehouse serves a specific business purpose.
+Example SKUs:
 
-10.6 Inventory Types
+DS-RUN-BLK-07
 
-The ERP maintains different inventory categories.
+DS-RUN-BLK-08
 
-Raw Material
+DS-RUN-WHT-08
 
-Materials consumed during production.
+DS-RUN-BLU-09
+Business Rules
+Every SKU must be unique.
+SKU is generated automatically by the ERP.
+SKU cannot be reused after creation.
+Inventory always references the SKU.
+10.7 Barcode
 
-Examples:
+Each SKU may have one barcode.
 
-EVA Sheet
-Rubber Sole
-Fabric
-Adhesive
-Thread
-Finished Goods
+The barcode is used for:
 
-Products ready for sale.
-
-Examples:
-
-Shoes
-Sandals
-Slippers
-Boots
-Semi Finished Goods
-
-Items waiting for further production processes.
-
-Examples:
-
-Upper Assembly
-Sole Assembly
-Packaging Material
-
-Materials used for packing.
-
-Examples:
-
-Shoe Boxes
-Cartons
-Labels
-Packing Tape
-Poly Bags
-Reserved Stock
-
-Inventory allocated to approved Sales Orders but not yet dispatched.
-
-Reserved stock cannot be used by other orders.
-
-Damaged Stock
-
-Inventory damaged during production, storage, transportation, or returns.
-
-Damaged stock is excluded from available inventory.
-
-Returned Stock
-
-Products received back from customers.
-
-Returned items require inspection before becoming available inventory.
-
-In Transit Stock
-
-Inventory currently moving between warehouses or branches.
-
-10.7 Inventory Quantities
-
-Each Product Variant (SKU) maintains the following quantities:
-
-Available Quantity
-Reserved Quantity
-Ordered Quantity
-In Production Quantity
-In Transit Quantity
-Damaged Quantity
-Returned Quantity
-Total Quantity
-
-The Available Quantity is the only quantity eligible for new sales orders.
-
-10.8 Inventory Movement
-
-Every inventory change creates an inventory movement record.
-
-Movement Types:
-
-Purchase Receipt
-Production Receipt
-Sales Reservation
-Dispatch
+Warehouse Receiving
 Stock Transfer
-Return Receipt
-Damage Entry
-Stock Adjustment
-Physical Stock Count
-
-Inventory movements are fully auditable.
-
-10.9 Stock Reservation
-
-Once a Sales Order is approved:
-
-Sales Order
-      │
-      ▼
-Inventory Check
-      │
-      ▼
-Stock Reservation
-      │
-      ▼
-Warehouse Pick List
-
-Reserved stock is removed from Available Quantity but remains physically stored until dispatch.
-
-10.10 Warehouse Operations
-
-Warehouse staff perform the following operations:
-
-Goods Receiving
-Put Away
 Picking
 Packing
 Dispatch
-Stock Transfer
-Stock Adjustment
-Physical Stock Verification
+POS Billing
+Inventory Counting
 
-Each operation updates inventory in real time.
+Supported barcode formats include:
 
-10.11 Stock Transfer
+Code 128
+EAN-13
+UPC
+QR Code (Future)
 
-The ERP supports inventory transfers between:
+Business Rule:
 
-Warehouse to Warehouse
-Branch to Branch
-Zone to Zone
-Rack to Rack
-Shelf to Shelf
-Bin to Bin
+Every barcode must be unique.
 
-All transfers generate audit records.
+10.8 Variant Pricing
 
-10.12 Inventory Adjustment
-
-Inventory adjustments are allowed only through authorized workflows.
+Pricing may differ between variants.
 
 Examples:
 
-Physical Count Difference
-Damaged Goods
-Lost Goods
-Expired Goods
-Administrative Correction
+Variant	Selling Price
+Size 7 Black	₹1,499
+Size 8 Black	₹1,499
+Size 9 Black	₹1,549
+Size 10 Blue	₹1,599
 
-Every adjustment requires an audit trail.
+Transaction-level discounts are applied during Sales Orders and are not stored in the Variant Master.
 
-10.13 Inventory Availability Formula
-Available Quantity
+10.9 Variant & Inventory Relationship
 
-=
+The Inventory Domain stores stock against Product Variants.
 
-Total Quantity
+Relationship:
 
-− Reserved Quantity
-
-− Damaged Quantity
-
-− In Transit Quantity
-
-This value determines whether a Sales Order can be fulfilled immediately.
-
-10.14 Business Rules
-
-The Inventory & Warehouse Management Domain follows these business rules:
-
-Inventory quantities are always maintained against Product Variants (SKU).
-Product Master never stores stock quantities.
-Every inventory record belongs to exactly one Warehouse Location.
-Available Quantity must never become negative.
-Reserved Stock cannot be allocated to another Sales Order.
-Inventory is updated only through approved business transactions.
-Every inventory movement must generate an audit record.
-Returned stock requires inspection before becoming available.
-Damaged stock is excluded from available inventory.
-Warehouse transfers must preserve complete inventory traceability.
-10.15 Inventory Relationship Diagram
-Warehouse
+Product
       │
       ▼
-Zone
+Variant
       │
       ▼
-Rack
-      │
-      ▼
-Shelf
-      │
-      ▼
-Bin
-      │
-      ▼
-Product Variant (SKU)
+SKU
       │
       ▼
 Inventory
+
+Inventory stores:
+
+Available Quantity
+Reserved Quantity
+Damaged Quantity
+Returned Quantity
+Warehouse Quantity
+
+The Variant Domain never stores stock quantities.
+
+10.10 Variant Lifecycle
+Create Product
       │
-      ├── Available
-      ├── Reserved
-      ├── Damaged
-      ├── Returned
-      ├── In Transit
-      └── Total
-10.16 Dependencies
+      ▼
+Create Variant
+      │
+      ▼
+Generate SKU
+      │
+      ▼
+Generate Barcode
+      │
+      ▼
+Enable Inventory
+      │
+      ▼
+Available for Purchase / Production / Sales
+10.11 Business Rules
 
-The Inventory & Warehouse Management Domain is referenced by:
+The Product Variant & SKU Domain follows these business rules:
 
+Every Product may contain multiple Variants.
+Every Variant belongs to exactly one Product.
+Every Variant must have a unique SKU.
+Every Barcode must be unique.
+Every inventory record references a Variant (SKU).
+Variant pricing may differ between variants of the same product.
+Stock quantities are stored only in the Inventory Domain.
+Variants with historical transactions cannot be deleted; they may only be marked Inactive or Discontinued.
+SKU values are immutable after creation.
+MRP and Selling Price are set the same across every size/color Variant of one Product (one design) — they are not calculated independently per Variant, since the same design does not carry a different MRP by size.
+Manufacturing Rate and Packaging Material Cost, by contrast, are genuinely per-design — they must NOT be assumed identical across different Products the way MRP/Selling Price are identical across one Product's own Variants.
+
+10.11.1 Pricing Calculator
+
+Selling Price and MRP are computed, not guessed, from:
+
+Cost of Product — pulled from actual completed Work Orders for that Variant when available (Chapter 14), falling back to the Variant's own Cost Price only when no production history exists yet.
+Marketplace Cost — prefers this exact Variant's own actual Marketplace Settlement data (Chapter 17) for the current month, falls back to that channel's company-wide actual average, and only falls back further to the channel's configured default assumption if neither real figure exists yet.
+Margin — a manually chosen value within the selected Marketplace Channel's configured margin range.
+
+Selling Price = Cost of Product + Marketplace Cost + Margin
+MRP = round-to-nearest-₹9-ending( Selling Price ÷ (1 − assumed discount %) )
+
+The assumed discount % defaults to 30% (Selling Price ≈ 70% of MRP), matching how a marketplace typically displays a "discounted" price against a higher listed MRP. Applying a calculated Selling Price/MRP updates every Variant of that Product at once (see the rule above), not just the one the calculator was opened from.
+
+10.12 Variant Relationship Diagram
 Product
+    │
+    ▼
+Product Variant
+    │
+    ├── Size
+    ├── Color
+    ├── Material
+    ├── Pricing
+    │
+    ▼
+SKU
+    │
+    ▼
+Barcode
+    │
+    ▼
+Inventory
+10.13 Dependencies
+
+The Product Variant & SKU Domain is referenced by the following ERP modules:
+
+Inventory
 Purchase
 Production
 Sales
+Warehouse
 Dispatch
 Finance
-Returns
 Reports
 Dashboard
-Notifications
+Website / E-Commerce
+POS (Future)
 
-Every inventory movement is triggered by one of these business domains.
+Every stock movement, purchase order, production order, sales order, dispatch, invoice, and inventory transaction references the Product Variant (SKU).
 
 Chapter Summary
 
-The Inventory & Warehouse Management Domain serves as the operational backbone of the DS Footwear ERP SaaS platform. It manages all stock quantities at the Product Variant (SKU) level while maintaining complete warehouse location hierarchy, inventory movements, reservations, transfers, and adjustments. By separating inventory from the Product Master and enforcing warehouse-level traceability, the ERP provides accurate stock visibility, supports efficient procurement and fulfillment processes, and ensures complete auditability across the entire supply chain.
+The Product Variant & SKU Domain represents the operational identity of every sellable, purchasable, manufacturable, and inventory-managed item within the DS Footwear ERP SaaS platform. By separating Product Master data from Product Variants and assigning a unique SKU and Barcode to each variant, the ERP achieves a scalable and normalized architecture. This design ensures that all inventory, warehouse, purchase, production, sales, dispatch, and financial transactions operate on Variant-level entities, providing precise stock control, accurate pricing, and complete traceability across the entire business lifecycle. Accurate pricing itself is calculator-driven (§10.11.1) — Selling Price and MRP are derived from real production cost and real (or assumed) marketplace cost rather than set arbitrarily.

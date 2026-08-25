@@ -1,445 +1,317 @@
 Chapter 11
-Purchase & Procurement Domain
+Inventory & Warehouse Management Domain
 11.1 Introduction
 
-The Purchase & Procurement Domain manages the complete procurement lifecycle of materials, goods, and services required by the organization.
+The Inventory & Warehouse Management Domain is responsible for managing the physical movement, storage, availability, reservation, and traceability of all business inventory within the DS Footwear ERP SaaS platform.
 
-It ensures that every purchase follows a standardized approval workflow—from internal requirement generation to vendor selection, quotation comparison, purchase order creation, goods receipt, quality inspection, inventory update, and vendor payment.
+Unlike the Product Domain, which maintains only master data, the Inventory Domain stores the actual stock quantities available across warehouses.
 
-This domain integrates with Vendor Management, Inventory, Warehouse, Production, Finance, Reports, and Notifications to provide a fully auditable and controlled procurement process.
+Every purchase, production, sales, dispatch, return, and stock transfer operation updates the Inventory Domain.
+
+Inventory is always maintained against a Product Variant (SKU) and is physically stored inside a Warehouse Location.
 
 11.2 Purpose
 
-The Purchase & Procurement Domain is responsible for:
+The Inventory & Warehouse Management Domain is responsible for:
 
-Managing Purchase Requests (PR)
-Managing Purchase Approvals
-Managing Request for Quotations (RFQ)
-Managing Vendor Quotations
-Comparing Vendor Quotations
-Selecting Vendors
-Creating Purchase Orders (PO)
-Receiving Materials
-Performing Quality Inspection
-Generating Goods Receipt Notes (GRN)
-Updating Inventory
-Processing Vendor Invoices
-Supporting Accounts Payable
-Providing Procurement Analytics
-11.3 Procurement Workflow
-
-The DS Footwear ERP follows the complete procurement workflow below.
-
-Department Requirement
-        │
-        ▼
-Purchase Request (PR)
-        │
-        ▼
-Purchase Approval
-        │
-        ▼
-Request For Quotation (RFQ)
-        │
-        ▼
-Vendor Quotation
-        │
-        ▼
-Quotation Comparison
-        │
-        ▼
-Vendor Selection
-        │
-        ▼
-Purchase Order (PO)
-        │
-        ▼
-Vendor Dispatch
-        │
-        ▼
-Gate Entry
-        │
-        ▼
-Material Receiving
-        │
-        ▼
-Quality Inspection
-        │
-        ▼
-Goods Receipt Note (GRN)
-        │
-        ▼
-Inventory Update
-        │
-        ▼
-Stock Ledger
-        │
-        ▼
-Vendor Invoice
-        │
-        ▼
-Accounts Payable
-        │
-        ▼
-Vendor Payment
-11.4 Purchase Request (PR)
-
-A Purchase Request is an internal request raised by a department when materials or services are required.
-
-Purchase Requests may originate from:
-
+Managing Raw Material Inventory.
+Managing Finished Goods Inventory.
+Managing Packaging Material Inventory.
+Managing Warehouse Locations.
+Managing Stock Reservations.
+Managing Stock Transfers.
+Managing Inventory Adjustments.
+Managing Damaged and Returned Stock.
+Providing real-time inventory visibility.
+Supporting production, purchase, sales, and dispatch operations.
+11.3 Inventory Structure
 Inventory
-Production
+│
+├── Raw Material
+├── Finished Goods
+├── Semi Finished Goods
+├── Packaging Material
+├── Reserved Stock
+├── Damaged Stock
+├── Returned Stock
+└── In Transit Stock
+
+Inventory stores quantities only.
+
+It never stores Product Master information.
+
+11.4 Warehouse Structure
+
+Inventory is physically stored inside warehouses.
+
+The ERP follows a hierarchical warehouse structure.
+
 Warehouse
-Maintenance
-Administration
-Finance
-Purchase Request Information
-PR Number
-Request Date
-Requested By
-Department
-Priority
-Required Date
-Warehouse
-Items
-Quantity
-Remarks
-Status
-Purchase Request Status
-Draft
-Submitted
-Pending Approval
-Approved
-Rejected
-Converted to RFQ
-11.5 Purchase Approval
+      │
+      ▼
+Zone
+      │
+      ▼
+Rack
+      │
+      ▼
+Shelf
+      │
+      ▼
+Bin
+      │
+      ▼
+Inventory
 
-Every Purchase Request must be approved before procurement begins.
+This hierarchy enables precise stock tracking and optimized picking operations.
 
-Approval may follow multiple levels based on company policy.
+11.5 Warehouse Types
 
-Example:
+The ERP supports multiple warehouse types.
 
-Employee
+Examples:
 
-↓
+Raw Material Warehouse
+Finished Goods Warehouse
+Packaging Warehouse
+Return Warehouse
+Quality Inspection Warehouse
+Transit Warehouse
 
-Department Manager
+Each warehouse serves a specific business purpose.
 
-↓
+11.6 Inventory Types
 
-Purchase Manager
+The ERP maintains different inventory categories.
 
-↓
+Raw Material
 
-Owner / Finance (Optional)
-11.6 Request For Quotation (RFQ)
+Materials consumed during production.
 
-After PR approval, the Purchase Department issues RFQs to one or more vendors.
+Examples:
 
-RFQ includes:
+EVA Sheet
+Rubber Sole
+Fabric
+Adhesive
+Thread
+Finished Goods
 
-Material List
-Quantity
-Delivery Location
-Delivery Date
-Payment Terms
-Technical Specifications
+Products ready for sale.
 
-One RFQ may be sent to multiple vendors.
+Examples:
 
-11.7 Vendor Quotation
+Shoes
+Sandals
+Slippers
+Boots
+Semi Finished Goods
 
-Each vendor submits a quotation in response to the RFQ.
+Items waiting for further production processes.
 
-Quotation contains:
+Examples:
 
-Vendor
-Unit Price
-GST
-Freight
-Delivery Time
-Payment Terms
-Validity
-Discount
-Remarks
-11.8 Quotation Comparison
+Upper Assembly
+Sole Assembly
+Packaging Material
 
-The ERP provides a quotation comparison matrix.
+Materials used for packing.
 
-Comparison Parameters:
+Examples:
 
-Unit Price
-Total Cost
-Delivery Time
-Vendor Rating
-Quality Rating
-Previous Purchase History
-Credit Period
-Payment Terms
+Shoe Boxes
+Cartons
+Labels
+Packing Tape
+Poly Bags
+Reserved Stock
 
-The Purchase Department selects the best quotation before creating the Purchase Order.
+Inventory allocated to approved Sales Orders but not yet dispatched.
 
-11.9 Vendor Selection
+Reserved stock cannot be used by other orders.
 
-After quotation comparison, one vendor is selected.
+Damaged Stock
 
-Selection criteria may include:
+Inventory damaged during production, storage, transportation, or returns.
 
-Lowest Cost
-Fastest Delivery
-Best Vendor Rating
-Best Quality
-Long-term Contract
-Payment Terms
+Damaged stock is excluded from available inventory.
 
-Only the selected vendor proceeds to Purchase Order generation.
+Returned Stock
 
-11.10 Purchase Order (PO)
+Products received back from customers.
 
-The Purchase Order is the official procurement document issued to the selected vendor.
+Returned items require inspection before becoming available inventory.
 
-Each Purchase Order references:
+In Transit Stock
 
-Purchase Request
-Vendor
-Warehouse
-Delivery Address
-Items
-Quantity
-Price
-Taxes
-Payment Terms
-Expected Delivery Date
-Purchase Order Status
-Draft
-Pending Approval
-Approved
-Sent
-Acknowledged
-Partially Received
-Completed
-Cancelled
-11.11 Vendor Dispatch
+Inventory currently moving between warehouses or branches.
 
-The vendor dispatches materials after accepting the Purchase Order.
+11.7 Inventory Quantities
 
-Dispatch details include:
+Each Product Variant (SKU) maintains the following quantities:
 
-Transporter
-LR Number
-Vehicle Number
-Dispatch Date
-Expected Arrival Date
-11.12 Gate Entry
-
-When the shipment arrives, the Security Team records a Gate Entry.
-
-Gate Entry contains:
-
-Gate Entry Number
-Vehicle Number
-Driver Information
-Vendor
-Purchase Order
-Arrival Time
-
-Gate Entry authorizes unloading.
-
-11.13 Material Receiving
-
-Warehouse personnel verify:
-
-Physical Quantity
-Packaging Condition
-Visible Damage
-Purchase Order Match
-
-Materials are temporarily placed in the receiving area until inspection.
-
-11.14 Quality Inspection (QC)
-
-Quality Control verifies the received materials.
-
-Inspection Results:
-
-Accepted
-Partially Accepted
-Rejected
-
-Rejected materials are returned to the vendor.
-
-Only accepted quantities proceed to GRN.
-
-11.15 Goods Receipt Note (GRN)
-
-The Goods Receipt Note confirms successful receipt of materials.
-
-GRN contains:
-
-GRN Number
-Purchase Order
-Vendor
-Warehouse
-Received Quantity
-Accepted Quantity
-Rejected Quantity
+Available Quantity
+Reserved Quantity
+Ordered Quantity
+In Production Quantity
+In Transit Quantity
 Damaged Quantity
-Batch Number (Optional)
-Inspection Remarks
+Returned Quantity
+Total Quantity
 
-Only approved GRNs update inventory.
+The Available Quantity is the only quantity eligible for new sales orders.
 
-11.16 Inventory Update
+11.8 Inventory Movement
 
-Once the GRN is approved:
+Every inventory change creates an inventory movement record.
 
-GRN
+Movement Types:
 
-↓
+Purchase Receipt
+Production Receipt
+Sales Reservation
+Dispatch
+Stock Transfer
+Return Receipt
+Damage Entry
+Stock Adjustment
+Physical Stock Count
 
-Inventory Update
+Inventory movements are fully auditable.
 
-↓
+11.9 Stock Reservation
 
-Stock Ledger
+Once a Sales Order is approved:
 
-↓
-
-Available Inventory
-
-Inventory quantities increase only after GRN approval.
-
-11.17 Vendor Invoice
-
-After successful delivery, the vendor submits an invoice.
-
-Finance verifies:
-
-Purchase Order
-GRN
-Invoice
-Tax Details
-Quantity
-Price
-
-Only verified invoices proceed to Accounts Payable.
-
-11.18 Accounts Payable & Vendor Payment
-
-Finance creates the Accounts Payable entry.
-
-Payment Methods:
-
-Bank Transfer
-UPI
-RTGS
-NEFT
-IMPS
-Cheque
-
-Payment Status:
-
-Pending
-Partial
-Paid
-Overdue
-11.19 Procurement Analytics
-
-The ERP provides procurement analytics such as:
-
-Total Purchase Value
-Purchase Trends
-Pending Purchase Requests
-Pending RFQs
-Vendor Performance
-Pending GRNs
-Outstanding Vendor Payments
-Average Procurement Lead Time
-Material Cost Trends
-11.20 Business Rules
-
-The Purchase & Procurement Domain follows these business rules:
-
-Every Purchase Request must originate from a valid department.
-Purchase Requests require approval before procurement.
-RFQs may be sent to one or more vendors.
-Every quotation must reference a valid RFQ.
-Vendor selection must be based on quotation comparison.
-Purchase Orders can only be created for selected vendors.
-Goods can only be received against an approved Purchase Order.
-Every shipment must have a Gate Entry before unloading.
-Inventory is updated only after GRN approval.
-Every inventory update creates a Stock Ledger entry.
-Vendor invoices must reference an approved Purchase Order and GRN.
-Procurement transactions cannot be deleted after completion; they remain permanently auditable.
-11.21 Procurement Relationship Diagram
-Department
+Sales Order
       │
       ▼
-Purchase Request
+Inventory Check
       │
       ▼
-Purchase Approval
+Stock Reservation
       │
       ▼
-RFQ
+Warehouse Pick List
+
+Reserved stock is removed from Available Quantity but remains physically stored until dispatch.
+
+11.10 Warehouse Operations
+
+Warehouse staff perform the following operations:
+
+Goods Receiving
+Put Away
+Picking
+Packing
+Dispatch
+Stock Transfer
+Stock Adjustment
+Physical Stock Verification
+
+Each operation updates inventory in real time.
+
+11.11 Stock Transfer
+
+The ERP supports inventory transfers between:
+
+Warehouse to Warehouse
+Branch to Branch
+Zone to Zone
+Rack to Rack
+Shelf to Shelf
+Bin to Bin
+
+All transfers generate audit records.
+
+11.12 Inventory Adjustment
+
+Inventory adjustments are allowed only through authorized workflows.
+
+Examples:
+
+Physical Count Difference
+Damaged Goods
+Lost Goods
+Expired Goods
+Administrative Correction
+
+Every adjustment requires an audit trail.
+
+11.13 Inventory Availability Formula
+Available Quantity
+
+=
+
+Total Quantity
+
+− Reserved Quantity
+
+− Damaged Quantity
+
+− In Transit Quantity
+
+This value determines whether a Sales Order can be fulfilled immediately.
+
+11.14 Business Rules
+
+The Inventory & Warehouse Management Domain follows these business rules:
+
+Inventory quantities are always maintained against Product Variants (SKU).
+Product Master never stores stock quantities.
+Every inventory record belongs to exactly one Warehouse Location.
+Available Quantity must never become negative.
+Reserved Stock cannot be allocated to another Sales Order.
+Inventory is updated only through approved business transactions.
+Every inventory movement must generate an audit record.
+Returned stock requires inspection before becoming available.
+Damaged stock is excluded from available inventory.
+Warehouse transfers must preserve complete inventory traceability.
+11.15 Inventory Relationship Diagram
+Warehouse
       │
       ▼
-Vendor Quotation
+Zone
       │
       ▼
-Quotation Comparison
+Rack
       │
       ▼
-Vendor Selection
+Shelf
       │
       ▼
-Purchase Order
+Bin
       │
       ▼
-Vendor Dispatch
-      │
-      ▼
-Gate Entry
-      │
-      ▼
-Material Receiving
-      │
-      ▼
-Quality Inspection
-      │
-      ▼
-GRN
+Product Variant (SKU)
       │
       ▼
 Inventory
       │
-      ▼
-Stock Ledger
-      │
-      ▼
-Vendor Invoice
-      │
-      ▼
-Accounts Payable
-      │
-      ▼
-Vendor Payment
-11.22 Dependencies
+      ├── Available
+      ├── Reserved
+      ├── Damaged
+      ├── Returned
+      ├── In Transit
+      └── Total
+11.16 Dependencies
 
-The Purchase & Procurement Domain is referenced by:
+The Inventory & Warehouse Management Domain is referenced by:
 
-Vendor Domain
-Inventory & Warehouse Management
-Product Variant & SKU
+Product
+Item & Material Master
+Purchase
 Production
+Sales
+Dispatch
 Finance
+Returns
 Reports
 Dashboard
 Notifications
-Audit Logs
+
+Every inventory movement is triggered by one of these business domains.
+
 Chapter Summary
 
-The Purchase & Procurement Domain manages the complete lifecycle of organizational procurement, from internal purchase requests through quotation management, vendor selection, purchase order creation, goods receipt, quality inspection, inventory updates, stock ledger posting, vendor invoice verification, and payment processing. By separating each stage into independent yet integrated business processes, the DS Footwear ERP ensures a controlled, auditable, and scalable procurement system aligned with enterprise standards used in SAP, Oracle ERP, Microsoft Dynamics 365, and other modern manufacturing ERP solutions.
+The Inventory & Warehouse Management Domain serves as the operational backbone of the DS Footwear ERP SaaS platform. It manages all stock quantities at the Product Variant (SKU) level while maintaining complete warehouse location hierarchy, inventory movements, reservations, transfers, and adjustments. By separating inventory from the Product Master and enforcing warehouse-level traceability, the ERP provides accurate stock visibility, supports efficient procurement and fulfillment processes, and ensures complete auditability across the entire supply chain.

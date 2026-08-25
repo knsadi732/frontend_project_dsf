@@ -1,329 +1,411 @@
 Chapter 16
-Return & Reverse Logistics Domain
+Warehouse Management Domain
 16.1 Introduction
 
-The Return & Reverse Logistics Domain manages the complete lifecycle of customer returns, product inspection, replacement, refund processing, inventory adjustments, and financial reconciliation within the DS Footwear ERP SaaS platform.
+The Warehouse Management Domain manages the complete storage, movement, handling, and tracking of inventory within the DS Footwear ERP SaaS platform.
 
-It ensures that every returned product is tracked, inspected, approved or rejected, and processed through Inventory and Finance while maintaining complete auditability.
+It ensures that every inventory movement—from Goods Receipt to Storage, Picking, Packing, Dispatch, Production Material Issue, and Customer Returns—is accurately recorded and traceable.
+
+The Warehouse Management Domain integrates with Inventory, Purchase, Production, Sales, Finance, Reports, Notifications, and Analytics to provide real-time warehouse operations.
 
 16.2 Purpose
 
-The Return & Reverse Logistics Domain is responsible for:
+The Warehouse Management Domain is responsible for:
 
-Managing Return Requests
-Managing Return Approvals
-Product Inspection
-Damage Assessment
-Return Pickup Tracking
-Inventory Adjustment
-Replacement Orders
-Refund Processing
-Credit Notes
-Financial Adjustments
-Return Analytics
-16.3 Return Workflow
-Customer
+Managing Warehouses
+Managing Storage Locations
+Managing Warehouse Zones
+Managing Rack Structure
+Managing Shelf Structure
+Managing Bin Locations
+Managing Goods Receipt
+Managing Put-away
+Managing Inventory Movements
+Managing Stock Transfers
+Managing Picking
+Managing Packing
+Managing Dispatch Preparation
+Managing Material Issue
+Managing Stock Verification
+Managing Cycle Count
+Managing Physical Stock Audit
+16.3 Warehouse Structure
+Company
+      │
+      ▼
+Branch
+      │
+      ▼
+Warehouse
+      │
+      ▼
+Zone
+      │
+      ▼
+Rack
+      │
+      ▼
+Shelf
+      │
+      ▼
+Bin
+      │
+      ▼
+Inventory
 
-↓
+Every inventory item is stored at a unique warehouse location.
 
-Return Request
+16.4 Warehouse
 
-↓
+A Warehouse is the physical storage facility used for storing inventory.
 
-Sales Review
+A company may have multiple warehouses across different branches.
 
-↓
-
-Return Approval
-
-↓
-
-Pickup
-
-↓
-
-Warehouse Receipt
-
-↓
-
-Quality Inspection
-
-↓
-
-Decision
-
-├── Approved
-│      ↓
-│ Inventory Update
-│      ↓
-│ Refund / Replacement
-│      ↓
-│ Finance
-│
-└── Rejected
-       ↓
-Customer Notification
-16.4 Return Request
-
-Customers can create return requests for eligible Sales Orders.
-
-Return Request includes:
-
-Return Request Number
-Sales Order
-Invoice Number
-Customer
-Product
-Variant
-Quantity
-Return Reason
-Return Images
-Return Date
+Warehouse Information
+Warehouse Code
+Warehouse Name
+Branch
+Address
+Manager
+Warehouse Type
+Capacity
 Status
-16.5 Return Reasons
+Warehouse Types
+Raw Material Warehouse
+Finished Goods Warehouse
+Packaging Warehouse
+Return Warehouse
+Damaged Goods Warehouse
+Transit Warehouse
+16.5 Warehouse Zones
 
-The ERP supports standardized return reasons.
+Each warehouse is divided into operational Zones.
+
+Example:
+
+Warehouse
+
+├── Receiving Zone
+
+├── Storage Zone
+
+├── Production Zone
+
+├── Packing Zone
+
+├── Dispatch Zone
+
+├── Return Zone
+
+└── Damage Zone
+
+Zones simplify inventory movement and operational control.
+
+16.6 Rack Management
+
+Each Zone contains multiple Racks.
+
+Rack Information:
+
+Rack Code
+Rack Name
+Maximum Capacity
+Current Occupancy
+Status
+16.7 Shelf Management
+
+Each Rack contains multiple Shelves.
+
+Shelf stores inventory in an organized manner.
+
+Shelf Information:
+
+Shelf Number
+Shelf Capacity
+Current Load
+16.8 Bin Management
+
+Bins represent the smallest physical storage unit.
+
+Every inventory movement references a Bin.
+
+Example:
+
+Warehouse-A
+
+↓
+
+Rack-05
+
+↓
+
+Shelf-03
+
+↓
+
+Bin-02
+
+Each Bin contains:
+
+Bin Code
+Capacity
+Current Quantity
+Available Space
+16.9 Inventory Location
+
+Every Product Variant is mapped to a physical storage location.
+
+Example:
+
+SKU
+
+↓
+
+Warehouse
+
+↓
+
+Zone
+
+↓
+
+Rack
+
+↓
+
+Shelf
+
+↓
+
+Bin
+
+A SKU may exist in multiple warehouses.
+
+16.10 Goods Receipt
+
+Incoming inventory is received through:
+
+Purchase GRN
+Production Completion
+Customer Return
+Stock Transfer
+Opening Stock
+
+Goods Receipt updates warehouse inventory.
+
+16.11 Put-away
+
+After Goods Receipt, inventory is placed into storage.
+
+Workflow:
+
+Goods Receipt
+
+↓
+
+Warehouse
+
+↓
+
+Zone
+
+↓
+
+Rack
+
+↓
+
+Shelf
+
+↓
+
+Bin
+
+Put-away creates the permanent storage location.
+
+16.12 Internal Stock Movement
+
+Warehouse supports internal transfers.
 
 Examples:
 
-Wrong Product
-Wrong Size
-Wrong Color
-Manufacturing Defect
-Damaged in Transit
-Packaging Damage
-Quality Issue
-Customer Changed Mind
-Duplicate Order
-Other
-16.6 Return Approval
+Bin to Bin
+Shelf to Shelf
+Rack to Rack
+Zone to Zone
+Warehouse to Warehouse
 
-The Sales/Customer Support team reviews every request.
+Every movement generates an Inventory Transaction.
 
-Approval Status:
+16.13 Material Issue
 
-Pending
-Approved
-Partially Approved
-Rejected
-Cancelled
+Materials are issued from warehouse for:
 
-Only approved requests proceed to warehouse.
+Production
+Sales
+Sample Issue
+Internal Consumption
 
-16.7 Return Pickup
+Material Issue decreases warehouse inventory.
 
-After approval, pickup is scheduled.
+16.14 Picking
 
-Pickup Information:
+Picking begins after a Sales Order is approved.
 
-Courier Partner
-Pickup Date
-Tracking Number
-Pickup Status
-16.8 Warehouse Receipt
+The ERP automatically generates a Pick List.
 
-After pickup, the returned product reaches the warehouse.
+Pick List contains:
 
-Warehouse verifies:
-
+Sales Order
+SKU
 Quantity
-Product Variant
-Barcode
-Packaging
-Physical Condition
-16.9 Quality Inspection
+Warehouse
+Zone
+Rack
+Shelf
+Bin
+16.15 Packing
 
-Quality Control (QC) inspects every returned product.
+After Picking:
 
-Inspection checks:
-
-Manufacturing Defect
-Damage
-Usage Condition
-Packaging
-Accessories
+Quantity Verification
+Quality Check
+Packing
 Barcode Verification
+Shipping Label Printing
 
-Inspection Status:
+Packed orders become ready for Dispatch.
 
-Passed
-Failed
-Repairable
-Scrap
-16.10 Return Decision
+16.16 Dispatch Preparation
 
-Based on inspection, the ERP decides:
+Warehouse prepares:
 
-Restock
+Packing Slip
+Dispatch Note
+Shipping Labels
+Courier Assignment
 
-Product is returned to Finished Goods Inventory.
+Orders are then handed over for dispatch.
 
-Repair
+16.17 Stock Transfer
 
-Product is moved to Repair Inventory.
+Warehouse supports:
 
-Scrap
+Branch Transfer
+Warehouse Transfer
+Emergency Transfer
+Production Transfer
 
-Product is moved to Scrap/Damaged Inventory.
+Every transfer creates corresponding inventory transactions.
 
-Reject
+16.18 Cycle Count
 
-Return request is rejected.
+Warehouse performs periodic inventory verification.
 
-16.11 Inventory Adjustment
+Cycle Count Types:
 
-Approved returns automatically update inventory.
+Daily
+Weekly
+Monthly
+Quarterly
 
-Possible inventory movements:
+Inventory differences require approval before adjustment.
 
-Finished Goods Stock
-Returned Stock
+16.19 Physical Stock Audit
+
+The ERP supports full warehouse audits.
+
+Audit verifies:
+
+Physical Quantity
+System Quantity
+Variance
+Damage
+Missing Items
+
+Approved variances update inventory records.
+
+16.20 Warehouse Analytics
+
+The ERP provides warehouse KPIs:
+
+Warehouse Capacity Utilization
+Storage Occupancy
+Picking Efficiency
+Dispatch Time
+Stock Accuracy
+Inventory Turnover
+Bin Utilization
+Stock Aging
 Damaged Stock
-Repair Stock
-Scrap Stock
+Return Stock
+16.21 Business Rules
 
-Every adjustment generates an Inventory Transaction.
+The Warehouse Management Domain follows these business rules:
 
-16.12 Replacement Order
-
-If the customer requests a replacement:
-
-Approved Return
-
-↓
-
-Replacement Sales Order
-
-↓
-
-Inventory Check
-
-↓
-
-Stock Reservation
-
-↓
-
-Warehouse
-
-↓
-
-Dispatch
-
-Replacement Orders follow the normal Sales workflow.
-
-16.13 Refund Processing
-
-If the customer requests a refund:
-
-Finance processes:
-
-Refund Amount
-Refund Method
-Transaction Reference
-Refund Date
-Refund Status
-
-Supported Methods:
-
-UPI
-Bank Transfer
-Credit Card
-Debit Card
-Wallet
-Original Payment Method
-16.14 Credit Note
-
-For approved returns, the ERP generates a Credit Note.
-
-Credit Note includes:
-
-Credit Note Number
-Invoice Reference
-Customer
-Return Amount
-GST Adjustment
-
-Credit Notes update financial records.
-
-16.15 Financial Adjustment
-
-Finance automatically updates:
-
-Customer Ledger
-Accounts Receivable
-GST Adjustment
-Refund Register
-Credit Note Register
-16.16 Return Analytics
-
-Dashboard KPIs include:
-
-Total Returns
-Return Rate
-Refund Amount
-Replacement Orders
-Damage Percentage
-Manufacturing Defect %
-Courier Damage %
-Return Cost
-Net Return Loss
-Return Trend
-16.17 Business Rules
-
-The Return & Reverse Logistics Domain follows these business rules:
-
-Returns are allowed only against completed Sales Orders.
-Return requests must be submitted within the configured return window.
-Every return request requires a valid reason.
-Approved returns require warehouse inspection.
-Inventory is updated only after successful inspection.
-Replacement Orders follow the standard Sales workflow.
-Refunds are processed only after final approval.
-Every refund generates a financial transaction.
-Every approved return generates inventory and audit records.
-Every return remains fully traceable for compliance.
-16.18 Return Relationship Diagram
-Customer
+Every Warehouse belongs to a Branch.
+Every Warehouse contains one or more Zones.
+Every Zone contains multiple Racks.
+Every Rack contains multiple Shelves.
+Every Shelf contains multiple Bins.
+Every inventory item must have a valid Bin Location.
+Goods Receipt must be completed before Put-away.
+Inventory movements must always record source and destination locations.
+Picking is allowed only after Stock Reservation.
+Packing is allowed only after Picking.
+Dispatch is allowed only after Packing.
+Every warehouse transaction generates an Inventory Ledger entry.
+All warehouse operations must be fully auditable.
+16.22 Warehouse Relationship Diagram
+Company
       │
       ▼
-Return Request
-      │
-      ▼
-Sales Review
+Branch
       │
       ▼
 Warehouse
       │
       ▼
-Quality Inspection
+Zone
       │
       ▼
-Decision
+Rack
       │
- ┌────┴─────────────┐
- ▼                  ▼
-Inventory      Finance
- │                  │
- ▼                  ▼
-Replacement      Refund
- │                  │
- └──────┬───────────┘
-        ▼
-Customer
-16.19 Dependencies
+      ▼
+Shelf
+      │
+      ▼
+Bin
+      │
+      ▼
+Inventory
+      │
+      ├── Goods Receipt
+      ├── Put-away
+      ├── Stock Transfer
+      ├── Material Issue
+      ├── Picking
+      ├── Packing
+      ├── Dispatch
+      ├── Cycle Count
+      └── Physical Audit
+16.23 Dependencies
 
-The Return & Reverse Logistics Domain integrates with:
+The Warehouse Management Domain integrates with:
 
-Customer Domain
-Sales & Order Management Domain
+Organization Domain
 Product Domain
 Product Variant & SKU Domain
-Inventory & Warehouse Management Domain
-Finance & Accounting Domain
-Notification Domain
-Reports & Analytics
+Inventory Management Domain
+Purchase Domain
+Production Planning & Manufacturing Domain
+Sales & Order Management Domain
+Finance Domain
+Return Management Domain
+Reports
+Dashboard
+Notifications
 Audit Logs
 Chapter Summary
 
-The Return & Reverse Logistics Domain manages the complete post-sales return lifecycle within the DS Footwear ERP SaaS platform. It handles return requests, approvals, warehouse receipt, quality inspection, inventory adjustments, replacements, refunds, and financial reconciliation. By integrating with Sales, Inventory, Warehouse, and Finance, it provides complete traceability, accurate stock management, customer satisfaction, and detailed return analytics, making it suitable for enterprise-scale footwear manufacturing and e-commerce operations.
+The Warehouse Management Domain manages the complete physical movement and storage of inventory across warehouses. It provides structured storage through Zones, Racks, Shelves, and Bins, while supporting Goods Receipt, Put-away, Internal Transfers, Material Issue, Picking, Packing, Dispatch, Cycle Counting, and Physical Audits. By integrating with Inventory, Purchase, Production, Sales, and Finance, it ensures accurate inventory control, full traceability, and efficient warehouse operations for an enterprise-grade ERP system.

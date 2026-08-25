@@ -1,374 +1,254 @@
 Chapter 13
-Sales & Order Management Domain
+Fixed Asset Domain
 13.1 Introduction
 
-The Sales & Order Management Domain manages the complete order-to-cash (O2C) lifecycle within the DS Footwear ERP SaaS platform.
+The Fixed Asset Domain manages the complete lifecycle of assets the organization owns and uses internally — machinery, computers, furniture, vehicles, and equipment — as distinct from Inventory, which tracks quantities of things the organization sells or consumes.
 
-It is responsible for receiving customer orders from multiple sales channels, validating orders, checking inventory availability, reserving stock, coordinating warehouse operations, dispatching products, generating invoices, processing customer payments, and updating financial records.
-
-This domain integrates tightly with Inventory, Warehouse, Production, Finance, Customer Management, Reports, Notifications, and Analytics to ensure accurate order fulfillment and complete business traceability.
+A Fixed Asset is purchased through the same Purchase Domain (Chapter 12) as any other Item, using an Item flagged under Item Category "Fixed Assets" (Chapter 8). Once received via GRN, it does not become quantity-based stock — it becomes a single, individually-identified asset with its own register entry, depreciation schedule, location, custodian, maintenance history, and eventual disposal record.
 
 13.2 Purpose
 
-The Sales & Order Management Domain is responsible for:
+The Fixed Asset Domain is responsible for:
 
-Managing Sales Channels
-Receiving Customer Orders
-Managing Sales Review
-Validating Orders
-Creating Sales Orders
-Checking Inventory Availability
-Reserving Stock
-Triggering Production (if required)
-Managing Warehouse Picking
-Managing Packing
-Managing Dispatch
-Generating Invoices
-Processing Payments
-Updating Finance
-Tracking Deliveries
-Managing Sales Analytics
-13.3 Order-to-Cash Workflow
-Website / Marketplace / POS / Manual Order
-                │
-                ▼
-Order Import
-                │
-                ▼
-Sales Review
-                │
-                ▼
-Customer Validation
-                │
-                ▼
-Sales Order (SO)
-                │
-                ▼
-Inventory Availability Check
-                │
-        ┌───────┴────────┐
-        │                │
-        ▼                ▼
-Stock Available     Production Required
-        │                │
-        │                ▼
-        │        Production Planning
-        │                │
-        └────────┬───────┘
-                 ▼
-        Stock Reservation
-                 │
-                 ▼
-Warehouse Pick List
-                 │
-                 ▼
-Picking
-                 │
-                 ▼
-Packing
-                 │
-                 ▼
-Dispatch
-                 │
-                 ▼
-Invoice
-                 │
-                 ▼
-Accounts Receivable
-                 │
-                 ▼
-Customer Payment
-                 │
-                 ▼
-Sales Completed
-13.4 Sales Channels
+Maintaining the Fixed Asset Register — one record per physical asset.
+Tracking asset Location and Custodian at all times.
+Computing Depreciation on a defined schedule.
+Recording Maintenance history against each asset.
+Managing asset Disposal (sale, write-off, scrap).
+Ensuring Fixed Assets are never recorded as Inventory quantities.
+Feeding Finance & Accounting with asset value, depreciation, and disposal entries.
 
-Orders may originate from multiple sources:
+13.3 Fixed Asset Domain Structure
 
-Company Website
-Mobile Application
-Amazon
-Flipkart
-Meesho
-Myntra
-Ajio
-Retail POS
-Wholesale Dealers
-Sales Representatives
-Manual Orders
+Purchase (Item Category: Fixed Assets)
+      │
+      ▼
+GRN
+      │
+      ▼
+Fixed Asset Register
+      │
+      ├── Depreciation
+      ├── Location
+      ├── Custodian
+      ├── Maintenance
+      └── Disposal
 
-All channels are normalized into a single Sales Order workflow.
+13.4 Fixed Asset Acquisition
 
-13.5 Order Import
+A Fixed Asset enters the ERP the same way any purchased Item does:
 
-Incoming orders are automatically imported into the ERP.
+Purchase Request
+      │
+      ▼
+Purchase Order (Item Category: Fixed Assets)
+      │
+      ▼
+GRN
+      │
+      ▼
+Fixed Asset Register Entry Created
 
-Captured information includes:
+Unlike Raw Material, Packaging, or Consumables, a GRN line item flagged as a Fixed Asset does not increment Inventory quantity — it creates one Fixed Asset Register record per unit received (a GRN for "3 Laptops" creates 3 individual asset records, not one stock row with quantity 3).
 
-Order Number
-Customer
-Sales Channel
-Product Variant
-Quantity
-Delivery Address
-Payment Method
-Order Date
-13.6 Sales Review
+13.5 Fixed Asset Register
 
-Sales executives review every order before confirmation.
+The Fixed Asset Register stores one row per physical asset.
 
-Review includes:
-
-Customer Verification
-Duplicate Order Check
-Fraud Detection (Future)
-Address Validation
-Payment Verification (if prepaid)
-Pricing Validation
-
-Only approved orders proceed further.
-
-13.7 Customer Validation
-
-The ERP validates:
-
-Customer Status
-Credit Limit (B2B)
-Outstanding Amount
-Delivery Location
-GST Details (B2B)
-
-Invalid customers require manual approval.
-
-13.8 Sales Order (SO)
-
-The Sales Order is the official sales document.
-
-Each Sales Order contains:
-
-SO Number
-Customer
-Product Variant
-Quantity
-Warehouse
-Sales Executive
-Taxes
-Discounts
-Shipping Charges
-Expected Delivery Date
+Asset Information
+Basic Information
+Asset ID
+Asset Tag / Serial Number
+Asset Name
+Item Reference (Chapter 8 Item Master)
+Item Category (Machinery / Computer / Furniture / Vehicle / Equipment)
+Acquisition Information
+Purchase Order Reference
+GRN Reference
+Vendor
+Purchase Date
+Purchase Cost
+Warranty Expiry
+Assignment
+Current Location (Branch / Warehouse / Department)
+Current Custodian (Employee)
+Assignment Date
+Financial
+Depreciation Method (Straight Line / Written Down Value)
+Useful Life (Years)
+Salvage Value
+Accumulated Depreciation
+Net Book Value
 Status
-Sales Order Status
-Draft
-Pending Review
-Approved
-Stock Reserved
-Picking
-Packing
-Dispatched
-Delivered
-Completed
-Cancelled
-13.9 Inventory Availability Check
+In Use
+Under Maintenance
+Idle
+Disposed
 
-The ERP checks inventory against the Product Variant (SKU).
+13.6 Depreciation
 
-Possible outcomes:
+Each Fixed Asset depreciates over its useful life according to its assigned Depreciation Method.
 
-Available
-Partial Availability
-Out of Stock
+Depreciation Methods
 
-Inventory is checked before reservation.
+Straight Line — equal depreciation expense every period.
+Written Down Value (Reducing Balance) — depreciation computed on the asset's current Net Book Value each period.
 
-13.10 Production Trigger
+Depreciation Flow
 
-If inventory is insufficient:
-
-Sales Order
-
-↓
-
-Inventory Check
-
-↓
-
-Stock Not Available
-
-↓
-
-Production Planning
-
-↓
-
-Production Order
-
-Production is automatically initiated for manufactured products.
-
-13.11 Stock Reservation
-
-Approved Sales Orders reserve inventory.
-
-Reservation:
-
-Reduces Available Stock
-Increases Reserved Stock
-
-Reserved inventory cannot be allocated to another order.
-
-13.12 Warehouse Operations
-
-Warehouse receives an automatic Pick List.
-
-Warehouse activities include:
-
-Picking
-Verification
-Packing
-Labelling
-Handover for Dispatch
-13.13 Dispatch
-
-Dispatch records:
-
-Dispatch Number
-Courier
-Vehicle
-Tracking Number
-Dispatch Date
-Expected Delivery
-
-Inventory is reduced only at dispatch.
-
-13.14 Invoice Generation
-
-After dispatch, the ERP generates:
-
-Tax Invoice
-E-Invoice (Future)
-Packing Slip
-Shipping Label
-
-Invoices are immutable after posting.
-
-13.15 Accounts Receivable
-
-Finance automatically creates Accounts Receivable.
-
-It records:
-
-Invoice Amount
-Tax
-Outstanding Amount
-Due Date
-Payment Status
-13.16 Customer Payment
-
-Supported payment methods:
-
-UPI
-Credit Card
-Debit Card
-Net Banking
-COD
-Bank Transfer
-
-Payment Status:
-
-Pending
-Paid
-Partial
-Failed
-Refunded
-13.17 Sales Analytics
-
-The ERP provides:
-
-Total Sales
-Orders
-Revenue
-Average Order Value
-Product Performance
-Customer Performance
-Channel Performance
-Cancellation Rate
-Return Rate
-Dispatch Time
-13.18 Business Rules
-
-The Sales & Order Management Domain follows these business rules:
-
-Every Sales Order must reference a Customer.
-Every Sales Order must contain at least one Product Variant (SKU).
-Sales Orders are created only after successful Sales Review.
-Inventory availability must be checked before stock reservation.
-Stock Reservation reduces Available Quantity and increases Reserved Quantity.
-If inventory is insufficient, the ERP automatically triggers Production Planning for manufactured products.
-Warehouse operations begin only after stock reservation.
-Inventory is deducted only at Dispatch.
-Invoices are generated only after successful Dispatch.
-Finance automatically creates an Accounts Receivable entry after invoice posting.
-Completed Sales Orders cannot be modified or deleted.
-Every sales transaction is fully auditable.
-13.19 Sales Relationship Diagram
-Sales Channel
+Fixed Asset Register
       │
       ▼
-Customer Order
+Depreciation Schedule (per period)
       │
       ▼
-Sales Review
+Accumulated Depreciation
       │
       ▼
-Sales Order
+Net Book Value
       │
       ▼
-Inventory Check
-      │
-      ├── Available
-      │
-      └── Production Required
-                │
-                ▼
-          Production Planning
-                │
-                ▼
-          Finished Goods
-                │
-                ▼
-         Stock Reservation
-                │
-                ▼
-         Warehouse Picking
-                │
-                ▼
-             Packing
-                │
-                ▼
-            Dispatch
-                │
-                ▼
-             Invoice
-                │
-                ▼
-      Accounts Receivable
-                │
-                ▼
-        Customer Payment
-13.20 Dependencies
+Finance & Accounting (Chapter 17) Ledger Entry
 
-The Sales & Order Management Domain integrates with:
+Depreciation is computed against the Fixed Asset Register only — it never touches Inventory, since a Fixed Asset was never Inventory to begin with.
 
-Customer Domain
-Product Variant & SKU Domain
-Inventory & Warehouse Management Domain
-Production Planning & Manufacturing Domain
-Finance Domain
-Dispatch & Logistics (Future)
-Return Management Domain
-Reports
-Dashboard
-Notifications
+13.7 Location & Custodian
+
+Every Fixed Asset must have a known Location and, where applicable, a Custodian at all times after receipt.
+
+Examples
+
+Asset: CNC Machine
+Location: Production Floor, Warehouse 1
+Custodian: Production Department (departmental asset)
+
+Asset: Laptop
+Location: Head Office
+Custodian: Employee (individually assigned)
+
+Asset: Delivery Vehicle
+Location: Dispatch Bay
+Custodian: Logistics Department
+
+Reassigning a Fixed Asset (transfer to a new employee, branch, or warehouse) updates the Location/Custodian and is recorded as an Asset Assignment history entry — the Register always reflects current assignment while preserving prior assignment history.
+
+13.8 Maintenance
+
+Fixed Assets may undergo scheduled or unscheduled maintenance.
+
+Maintenance Log Information
+
+Asset Reference
+Maintenance Type (Scheduled / Breakdown)
+Maintenance Date
+Vendor / Service Provider
+Cost
+Downtime (if applicable)
+Next Scheduled Maintenance Date
+Remarks
+
+Maintenance cost posts to Finance as an expense referencing the asset; it does not affect the asset's depreciation schedule unless it constitutes a capital improvement (Future scope).
+
+13.9 Disposal
+
+When a Fixed Asset reaches end of life, is sold, or is written off, its lifecycle is closed via Disposal.
+
+Disposal Information
+
+Asset Reference
+Disposal Type (Sale / Write-off / Scrap)
+Disposal Date
+Disposal Value (if sold)
+Net Book Value at Disposal
+Gain / Loss on Disposal
+Approved By
+
+Disposal Flow
+
+Fixed Asset Register (Status: In Use / Idle)
+      │
+      ▼
+Disposal Request
+      │
+      ▼
+Approval
+      │
+      ▼
+Disposal Recorded (Status: Disposed)
+      │
+      ▼
+Finance & Accounting — Gain/Loss Entry
+
+Once disposed, an asset's Status is permanently set to Disposed; it is never deleted, preserving full audit history.
+
+13.10 Fixed Asset vs Inventory — the critical distinction
+
+Inventory (Chapter 11) tracks fungible quantity:
+
+100 cartons → Inventory
+500 kg EVA → Raw Material Inventory
+
+Fixed Asset Register (this chapter) tracks individually-identified, non-fungible assets:
+
+1 CNC Machine → Fixed Asset Register
+1 Laptop → Fixed Asset Register
+1 Vehicle → Fixed Asset Register
+
+A Fixed Asset is never aggregated into a quantity figure the way stock is — even if the company owns five identical laptops, each has its own Asset Register row, its own depreciation schedule, and its own custodian.
+
+13.11 Business Rules
+
+The Fixed Asset Domain follows these business rules:
+
+A Fixed Asset is never recorded in Item/Material Inventory (Chapter 8) or Inventory & Warehouse Management (Chapter 11) — it lives only in the Fixed Asset Register.
+Each Fixed Asset is tracked individually by asset tag/serial number, not by aggregate quantity.
+A GRN line item flagged Item Category "Fixed Assets" creates one Fixed Asset Register row per unit received, never an Inventory stock entry.
+Every Fixed Asset must have a Custodian and/or Location at all times after receipt.
+Depreciation is computed against the Fixed Asset Register and posts to Finance & Accounting — never against Inventory.
+Maintenance history is preserved permanently against each asset.
+Disposal closes an asset's lifecycle and posts a corresponding Finance entry (Gain/Loss); the asset record itself is never deleted.
+Asset reassignment (Location/Custodian change) is preserved as history, not overwritten.
+Depreciation is booked one full financial year at a time (1 April - 31 March), never prorated by the day — see 13.6.1.
+
+13.6.1 Depreciation Timing — Financial-Year Block Convention
+
+Net Book Value is always derived on demand, never stored — but it is derived using the same convention a CA uses when filing (Income Tax Act s.32, WDV block-of-assets), not a continuous day-by-day accrual:
+
+A financial year runs 1 April to 31 March. An asset belongs to whichever FY its Purchase Date falls in, even if that is the FY's very last day.
+A financial year's depreciation is booked only once that FY has closed (i.e. only once the current date has reached the following 1 April) — a financial year still in progress contributes zero depreciation, however many days have already elapsed within it.
+For the financial year of purchase: if the asset was in use for 180 days or more within that FY, it earns that FY's full depreciation rate; if used for fewer than 180 days, it earns half the rate.
+Every subsequent financial year (once closed) earns the full rate, applied to the Straight Line annual amount or the Written Down Value opening balance for that year, until Net Book Value reaches Salvage Value.
+
+Example: an asset purchased on 31 March (the last day of a financial year) shows zero depreciation on 31 March itself, then shows that financial year's half-rate charge the moment the next financial year begins (1 April) — not because a day passed, but because that financial year's books just closed. This is a deliberate correction from an earlier, incorrect continuous-daily-accrual implementation; the FY-block convention above is the one currently implemented and must be preserved in any future change to this calculation.
+
+13.12 Fixed Asset Relationship Diagram
+
+Purchase (Item Category: Fixed Assets)
+      │
+      ▼
+GRN
+      │
+      ▼
+Fixed Asset Register
+      │
+ ┌────┼────────────┬────────────┬────────────┐
+ ▼    ▼            ▼            ▼            ▼
+Depreciation  Location    Custodian    Maintenance   Disposal
+      │                                                  │
+      ▼                                                  ▼
+Finance & Accounting Ledger ◄────────────────────────────┘
+
+13.13 Dependencies
+
+The Fixed Asset Domain is referenced by the following ERP modules:
+
+Item & Material Master Domain (Chapter 8) — the source Item Category "Fixed Assets."
+Purchase Domain (Chapter 12) — acquisition via Purchase Order and GRN.
+Employee Domain (Chapter 3) — asset assignment/custodian tracking (Employee "Assets" field, Chapter 3).
+Finance & Accounting Domain (Chapter 17) — depreciation, maintenance expense, and disposal gain/loss entries.
+Reporting & Business Intelligence Domain (Chapter 20) — Fixed Asset reports.
 Audit Logs
+
 Chapter Summary
 
-The Sales & Order Management Domain manages the complete Order-to-Cash (O2C) lifecycle of the DS Footwear ERP SaaS platform. It begins with order capture from multiple sales channels and continues through sales validation, inventory verification, stock reservation, production triggering (when required), warehouse execution, dispatch, invoicing, accounts receivable, and customer payment. By integrating Sales with Inventory, Production, Warehouse, and Finance, the ERP ensures accurate order fulfillment, real-time inventory control, financial traceability, and a scalable enterprise-grade sales process comparable to SAP SD, Oracle Order Management, and Microsoft Dynamics 365 Sales.
+The Fixed Asset Domain gives the organization a dedicated, individually-tracked lifecycle for machinery, computers, furniture, vehicles, and equipment — deliberately separated from both the Item & Material Master's inventory-tracked categories and the Product Domain. By routing every Fixed Asset purchase to a Register entry instead of aggregate stock, and by tracking depreciation, location, custodian, maintenance, and disposal against that Register, the ERP ensures Fixed Assets are never miscounted as inventory and remain fully auditable across their entire ownership lifecycle. Depreciation itself follows the Financial-Year block convention (§13.6.1) rather than continuous daily accrual, matching how a CA actually books and files it.
