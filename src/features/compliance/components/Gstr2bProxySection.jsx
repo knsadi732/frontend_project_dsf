@@ -1,5 +1,6 @@
 import { BaseCard, CardHeader, CardBody } from '@/components/ui/BaseCard';
 import { AppTable } from '@/components/ui/AppTable';
+import { BaseBadge } from '@/components/ui/BaseBadge';
 
 function fmt(value) {
   return `₹${Number(value ?? 0).toLocaleString('en-IN')}`;
@@ -15,6 +16,15 @@ const COLUMNS = [
   { key: 'cgst_amount', header: 'CGST', render: (row) => fmt(row.cgst_amount) },
   { key: 'sgst_amount', header: 'SGST', render: (row) => fmt(row.sgst_amount) },
   { key: 'igst_amount', header: 'IGST', render: (row) => fmt(row.igst_amount) },
+  {
+    key: 'itcEligible',
+    header: 'ITC',
+    render: (row) => (
+      <BaseBadge variant={row.itcEligible ? 'success' : 'warning'}>
+        {row.itcEligible ? 'Eligible' : 'Not eligible (B2C)'}
+      </BaseBadge>
+    ),
+  },
 ];
 
 export function Gstr2bProxySection({ report, isLoading }) {

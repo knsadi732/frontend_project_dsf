@@ -20,6 +20,8 @@ const DEFAULT_VALUES = {
   wholesalePrice: '',
   dealerPrice: '',
   costPrice: '',
+  manufacturingRatePerUnit: '',
+  packagingMaterialCostPerUnit: '',
   status: 'active',
 };
 
@@ -88,6 +90,24 @@ export function ProductVariantFormModal({ open, onClose, initialValues, productO
           <AppInput label="Cost price" type="number" step="0.01" error={errors.costPrice?.message} {...register('costPrice')} />
           <AppInput label="Wholesale price" type="number" step="0.01" error={errors.wholesalePrice?.message} {...register('wholesalePrice')} />
           <AppInput label="Dealer price" type="number" step="0.01" error={errors.dealerPrice?.message} {...register('dealerPrice')} />
+        </div>
+        <div className="grid grid-cols-2 gap-4 rounded-lg border border-border p-3">
+          <AppInput
+            label="Manufacturing rate (₹/pair)"
+            type="number"
+            step="0.01"
+            helperText="Piece-rate labour cost for this design — auto-applied to Work Order labour cost on completion"
+            error={errors.manufacturingRatePerUnit?.message}
+            {...register('manufacturingRatePerUnit')}
+          />
+          <AppInput
+            label="Packaging material cost (₹/pair)"
+            type="number"
+            step="0.01"
+            helperText="Box + poly/wrap — auto-applied to Work Order packaging cost on completion"
+            error={errors.packagingMaterialCostPerUnit?.message}
+            {...register('packagingMaterialCostPerUnit')}
+          />
         </div>
         <AppSelect
           label="Status"

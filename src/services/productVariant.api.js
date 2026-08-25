@@ -15,6 +15,8 @@ function fromBackendVariant(variant) {
     wholesalePrice: variant.wholesale_price,
     dealerPrice: variant.dealer_price,
     costPrice: variant.cost_price,
+    manufacturingRatePerUnit: variant.manufacturing_rate_per_unit,
+    packagingMaterialCostPerUnit: variant.packaging_material_cost_per_unit,
   };
 }
 

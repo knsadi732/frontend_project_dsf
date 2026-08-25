@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Calculator } from 'lucide-react';
 import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
 import { useCreateProductVariant } from '@/features/productVariants/mutations/useCreateProductVariant';
 import { useUpdateProductVariant } from '@/features/productVariants/mutations/useUpdateProductVariant';
@@ -10,6 +11,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
+import { PricingCalculatorModal } from '@/features/pricingCalculator';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -20,6 +22,7 @@ export function ProductVariantsPanel() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, variant: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [pricingVariant, setPricingVariant] = useState(null);
 
   const { data, isLoading, isFetching, refetch } = useProductVariantsQuery({ page, pageSize });
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
@@ -58,6 +61,15 @@ export function ProductVariantsPanel() {
       header: '',
       render: (row) => (
         <div className="flex justify-end gap-1">
+          <AppButton
+            variant="ghost"
+            size="sm"
+            title="Pricing Calculator"
+            aria-label="Pricing Calculator"
+            onClick={(e) => { e.stopPropagation(); setPricingVariant(row); }}
+          >
+            <Calculator className="size-4" />
+          </AppButton>
           <Can module={MODULES.PRODUCTS} action={ACTIONS.EDIT}>
             <EditButton label={`Edit ${row.sku}`} onClick={(e) => { e.stopPropagation(); setFormState({ open: true, variant: row }); }} />
           </Can>
@@ -126,6 +138,8 @@ export function ProductVariantsPanel() {
           action cannot be undone.
         </p>
       </AppModal>
+
+      {pricingVariant && <PricingCalculatorModal variant={pricingVariant} onClose={() => setPricingVariant(null)} />}
     </div>
   );
 }

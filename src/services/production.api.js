@@ -61,4 +61,12 @@ export const productionApi = {
   // position vs coarse lifecycle), only valid while stage = 'in_progress'.
   advanceFloorStage: (id, floorStage) =>
     apiClient.patch(`/work-orders/${id}/floor-stage`, { floorStage }).then((res) => fromBackendWorkOrder(res.data.data)),
+  // Read-only current-month overhead/unit — same ratio overheadAllocation.service.js
+  // applies to completed work orders, without writing anything.
+  overheadPerUnit: () =>
+    apiClient.get('/work-orders/overhead-per-unit').then((res) => ({
+      totalOverhead: Number(res.data.data.totalOverhead),
+      totalProduction: Number(res.data.data.totalProduction),
+      overheadPerUnit: Number(res.data.data.overheadPerUnit),
+    })),
 };

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useReturnsQuery } from '@/features/returns/queries/useReturnsQuery';
+import { useReturnsSummaryQuery } from '@/features/returns/queries/useReturnsSummaryQuery';
+import { useReturnsSummaryByProductQuery } from '@/features/returns/queries/useReturnsSummaryByProductQuery';
 import { useCreateReturn } from '@/features/returns/mutations/useCreateReturn';
 import { useUpdateReturn } from '@/features/returns/mutations/useUpdateReturn';
 import { useDeleteReturn } from '@/features/returns/mutations/useDeleteReturn';
@@ -37,25 +39,24 @@ export function ReturnsPage() {
   );
 
   const { data, isLoading } = useReturnsQuery(filters);
+  const { data: summary } = useReturnsSummaryQuery();
+  const { data: byProduct = [] } = useReturnsSummaryByProductQuery();
   const createReturn = useCreateReturn();
   const updateReturn = useUpdateReturn();
   const deleteReturn = useDeleteReturn();
 
   const returnsList = data?.data ?? [];
 
-  const stats = useMemo(() => {
-    const totalReturns = returnsList.length;
-    const resolved = returnsList.filter((item) => item.status === 'resolved').length;
-    const refundAmount = returnsList.reduce(
-      (sum, item) => sum + (item.resolutionType === 'refund' ? Number(item.refundAmount || 0) : 0),
-      0,
-    );
-    const replacementOrders = returnsList.filter((item) => item.resolutionType === 'replacement').length;
-    const scrapped = returnsList.filter((item) => item.decision === 'scrap').length;
-    const returnRate = totalReturns ? Math.round((resolved / totalReturns) * 100) : 0;
-    const damagePct = totalReturns ? Math.round((scrapped / totalReturns) * 100) : 0;
-    return { totalReturns, returnRate, refundAmount, replacementOrders, damagePct };
-  }, [returnsList]);
+  const stats = useMemo(
+    () => ({
+      totalReturns: summary?.totalReturns ?? 0,
+      returnRate: summary?.returnRate ?? 0,
+      refundAmount: summary?.refundAmount ?? 0,
+      replacementOrders: summary?.replacementOrders ?? 0,
+      damagePct: summary?.damagePercent ?? 0,
+    }),
+    [summary],
+  );
 
   const handleSubmit = (values) => {
     const action = formState.returnItem
@@ -113,6 +114,26 @@ export function ReturnsPage() {
         <StatCard label="Replacement orders" value={stats.replacementOrders} />
         <StatCard label="Damage %" value={`${stats.damagePct}%`} />
       </div>
+
+      {byProduct.length > 0 && (
+        <div>
+          <p className="mb-2 text-sm font-medium text-text">Return/Damage rate by product — not one blanket number for the whole business</p>
+          <AppTable
+            columns={[
+              { key: 'productName', header: 'Product' },
+              { key: 'categoryName', header: 'Category', render: (row) => row.categoryName || '—' },
+              { key: 'variantSku', header: 'SKU' },
+              { key: 'totalReturns', header: 'Returns' },
+              { key: 'customerReturnPercent', header: 'CR %', render: (row) => `${row.customerReturnPercent}%` },
+              { key: 'rtoPercent', header: 'RTO %', render: (row) => `${row.rtoPercent}%` },
+              { key: 'damagePercent', header: 'Damage %', render: (row) => `${row.damagePercent}%` },
+              { key: 'scrappedAmount', header: 'Scrapped (₹)', render: (row) => `₹${row.scrappedAmount.toLocaleString('en-IN')}` },
+            ]}
+            data={byProduct}
+            emptyMessage="No product-level return data yet"
+          />
+        </div>
+      )}
 
       <FilterBar>
         <SearchInput value={search} onChange={setSearch} placeholder="Search returns…" className="w-72" />

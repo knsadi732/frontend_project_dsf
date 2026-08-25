@@ -14,5 +14,7 @@ export const productVariantSchema = z.object({
   wholesalePrice: z.coerce.number().nonnegative().optional(),
   dealerPrice: z.coerce.number().nonnegative().optional(),
   costPrice: z.coerce.number().nonnegative().optional(),
+  manufacturingRatePerUnit: z.coerce.number().nonnegative().optional(),
+  packagingMaterialCostPerUnit: z.coerce.number().nonnegative().optional(),
   status: z.enum(['active', 'inactive', 'discontinued']).default('active'),
 });

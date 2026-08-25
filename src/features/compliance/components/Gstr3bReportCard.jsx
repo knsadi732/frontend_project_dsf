@@ -14,7 +14,7 @@ export function Gstr3bReportCard({ report, isLoading }) {
         {isLoading ? (
           <p className="text-sm text-text-muted">Loading…</p>
         ) : (
-          <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-5">
             <div>
               <dt className="text-text-muted">Outward taxable value</dt>
               <dd className="text-lg font-semibold text-text">{fmt(report?.outwardTaxableValue)}</dd>
@@ -26,6 +26,10 @@ export function Gstr3bReportCard({ report, isLoading }) {
             <div>
               <dt className="text-text-muted">ITC claimed</dt>
               <dd className="text-lg font-semibold text-text">{fmt(report?.itcClaimed)}</dd>
+            </div>
+            <div>
+              <dt className="text-text-muted">ITC not eligible (B2C)</dt>
+              <dd className="text-lg font-semibold text-warning">{fmt(report?.itcIneligible)}</dd>
             </div>
             <div>
               <dt className="text-text-muted">Net tax payable</dt>
