@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLayoutStore } from '@/store/layoutStore';
 import { NAV_ITEMS } from '@/layouts/components/navConfig';
 import { cn } from '@/utils/cn';
+import logo from '@/assets/logo.png';
 
 function SidebarContent({ collapsed, onNavigate }) {
   const { can } = useAuth();
@@ -42,7 +43,14 @@ export function Sidebar() {
         )}
       >
         <div className="flex h-14 items-center justify-between border-b border-border px-3">
-          {!sidebarCollapsed && <span className="text-sm font-semibold text-text">DS Footwear</span>}
+          <div className="flex min-w-0 items-center gap-2">
+            {!sidebarCollapsed && (
+              <>
+                <img src={logo} alt="DS Footwear" className="size-8 shrink-0 rounded-md object-cover" />
+                <span className="truncate text-sm font-semibold text-text">DS Footwear</span>
+              </>
+            )}
+          </div>
           <button
             type="button"
             onClick={toggleSidebar}
@@ -60,7 +68,10 @@ export function Sidebar() {
           <div className="absolute inset-0 bg-black/50" onClick={closeMobileSidebar} aria-hidden="true" />
           <aside className="relative flex w-64 flex-col bg-surface shadow-xl">
             <div className="flex h-14 items-center justify-between border-b border-border px-3">
-              <span className="text-sm font-semibold text-text">DS Footwear</span>
+              <div className="flex min-w-0 items-center gap-2">
+                <img src={logo} alt="DS Footwear" className="size-8 shrink-0 rounded-md object-cover" />
+                <span className="truncate text-sm font-semibold text-text">DS Footwear</span>
+              </div>
               <button
                 type="button"
                 onClick={closeMobileSidebar}

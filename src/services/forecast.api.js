@@ -6,4 +6,7 @@ import { apiClient } from '@/services/api/axios';
 export const forecastApi = {
   getSalesForecast: (params = {}) =>
     apiClient.get('/forecast/sales', { params }).then((res) => res.data.data),
+  getChannelForecast: () => apiClient.get('/forecast/channel').then((res) => res.data.data),
+  getSizeForecast: (productId) =>
+    apiClient.get('/forecast/size', { params: { productId } }).then((res) => res.data.data),
 };

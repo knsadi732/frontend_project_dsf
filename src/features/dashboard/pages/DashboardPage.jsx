@@ -1,7 +1,27 @@
 import { useMemo, useState } from 'react';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  RefreshCw,
+  AlertTriangle,
+  Boxes,
+  ClipboardCheck,
+  Users,
+  IndianRupee,
+  Target,
+  Factory,
+  ShoppingCart,
+  Wallet,
+  PackageCheck,
+  PackageSearch,
+  Landmark,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  HandCoins,
+  ScrollText,
+} from 'lucide-react';
 import { useDashboardQuery } from '@/features/dashboard/queries/useDashboardQuery';
 import { useSalesForecastQuery } from '@/features/dashboard/queries/useSalesForecastQuery';
+import { useChannelForecastQuery } from '@/features/dashboard/queries/useChannelForecastQuery';
 import { useRegenerateAnalytics } from '@/features/dashboard/mutations/useRegenerateAnalytics';
 import { useSalesOrdersQuery } from '@/features/sales/queries/useSalesOrdersQuery';
 import { useProductStockQuery } from '@/features/inventory/queries/useProductStockQuery';
@@ -18,6 +38,7 @@ import { useApprovalRequestsQuery } from '@/features/approvalRequests/queries/us
 import { useSettingsQuery } from '@/features/settings/queries/useSettingsQuery';
 import { useUpdateSettings } from '@/features/settings/mutations/useUpdateSettings';
 import { StatCard } from '@/features/dashboard/components/StatCard';
+import { ChartCard } from '@/features/dashboard/components/ChartCard';
 import { DashboardBarChart } from '@/features/dashboard/components/DashboardBarChart';
 import { SalesTrendChart } from '@/features/dashboard/components/SalesTrendChart';
 import { SalesProductPieChart } from '@/features/dashboard/components/SalesProductPieChart';
@@ -58,6 +79,7 @@ const AMBER_RAMP_DARK = ['#fcd34d', '#f59e0b', '#c2410c', '#dc2626'];
 export function DashboardPage() {
   const { data, isLoading, isError } = useDashboardQuery();
   const { can } = useAuth();
+  const queryClient = useQueryClient();
   const regenerate = useRegenerateAnalytics();
   const [selectedProduct, setSelectedProduct] = useState(null);
 
@@ -89,8 +111,10 @@ export function DashboardPage() {
   const { data: machinesDownData } = useMachinesQuery({ status: 'down', pageSize: 50 });
   const { data: settingsData } = useSettingsQuery();
   const { data: forecastData, isLoading: isForecastLoading } = useSalesForecastQuery(canViewForecast);
+  const { data: channelForecastData } = useChannelForecastQuery(canViewForecast);
   const updateSettings = useUpdateSettings();
   const [targetDraft, setTargetDraft] = useState(null);
+  const [salesTargetDraft, setSalesTargetDraft] = useState(null);
 
   const orders = useMemo(() => salesOrdersData?.data ?? [], [salesOrdersData]);
   const salesTrend = useMemo(() => salesTrendByDate(orders), [orders]);
@@ -129,12 +153,14 @@ export function DashboardPage() {
   const otif = useMemo(() => otifRate(orders), [orders]);
   const dailyOutput = useMemo(() => dailyProductionOutput(workOrders), [workOrders]);
   const dailyTarget = settingsData?.dailyProductionTarget ?? null;
+  const monthlySalesTarget = settingsData?.monthlySalesTarget ?? null;
   const lifecycleProducts = useMemo(
     () => lifecycleEligibleProducts(productsData?.data ?? [], orders),
     [productsData, orders],
   );
   const machinesDown = machinesDownData?.data ?? [];
   const targetInputValue = targetDraft ?? (dailyTarget != null ? String(dailyTarget) : '');
+  const salesTargetInputValue = salesTargetDraft ?? (monthlySalesTarget != null ? String(monthlySalesTarget) : '');
 
   if (isLoading) return <BaseLoader label="Loading dashboard…" />;
   if (isError || !data) {
@@ -179,16 +205,25 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Work In Progress (units)" value={wip.toLocaleString('en-IN')} />
-        <StatCard label="Pending Approvals" value={String(pendingApprovalsCount)} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+        <StatCard label="Work In Progress (units)" value={wip.toLocaleString('en-IN')} icon={Boxes} tone="primary" />
+        <StatCard label="Pending Approvals" value={String(pendingApprovalsCount)} icon={ClipboardCheck} tone="warning" />
         <StatCard
           label="Attendance Today"
           value={activeUserCount > 0 ? `${attendanceTodayCount} / ${activeUserCount}` : String(attendanceTodayCount)}
+          icon={Users}
+          tone="info"
         />
-        {cpp > 0 && <StatCard label="Avg Cost Per Pair" value={`₹${cpp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`} />}
-        {otif != null && <StatCard label="OTIF Rate" value={`${otif}%`} />}
-        <StatCard label="Daily Production Output" value={dailyOutput.toLocaleString('en-IN')} />
+        {cpp > 0 && (
+          <StatCard
+            label="Avg Cost Per Pair"
+            value={`₹${cpp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
+            icon={IndianRupee}
+            tone="success"
+          />
+        )}
+        {otif != null && <StatCard label="OTIF Rate" value={`${otif}%`} icon={Target} tone="info" />}
+        <StatCard label="Daily Production Output" value={dailyOutput.toLocaleString('en-IN')} icon={Factory} tone="primary" />
       </div>
 
       <BaseCard className="p-4">
@@ -235,12 +270,12 @@ export function DashboardPage() {
         )}
       </BaseCard>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
         {canViewSales && (
           salesSummary?.data ? (
             <>
-              <StatCard label="Sales Orders" value={String(salesSummary.data.order_count ?? 0)} />
-              <StatCard label="Total Sales" value={`₹${(salesSummary.data.total_sales ?? 0).toLocaleString('en-IN')}`} />
+              <StatCard label="Sales Orders" value={String(salesSummary.data.order_count ?? 0)} icon={ShoppingCart} tone="primary" />
+              <StatCard label="Total Sales" value={`₹${(salesSummary.data.total_sales ?? 0).toLocaleString('en-IN')}`} icon={Wallet} tone="success" />
             </>
           ) : (
             <BaseCard className="p-4">
@@ -252,8 +287,8 @@ export function DashboardPage() {
         {canViewInventory && (
           inventoryStatus?.data ? (
             <>
-              <StatCard label="Inventory On Hand" value={String(inventoryStatus.data.total_on_hand ?? 0)} />
-              <StatCard label="Inventory Reserved" value={String(inventoryStatus.data.total_reserved ?? 0)} />
+              <StatCard label="Inventory On Hand" value={String(inventoryStatus.data.total_on_hand ?? 0)} icon={PackageCheck} tone="info" />
+              <StatCard label="Inventory Reserved" value={String(inventoryStatus.data.total_reserved ?? 0)} icon={PackageSearch} tone="warning" />
             </>
           ) : (
             <BaseCard className="p-4">
@@ -266,19 +301,24 @@ export function DashboardPage() {
           hasFinanceData ? (
             <>
               {ledgerBalance != null && (
-                <StatCard label="Ledger Balance (all-time)" value={`₹${Math.abs(ledgerBalance).toLocaleString('en-IN')} ${ledgerBalance >= 0 ? 'Cr' : 'Dr'}`} />
+                <StatCard
+                  label="Ledger Balance (all-time)"
+                  value={`₹${Math.abs(ledgerBalance).toLocaleString('en-IN')} ${ledgerBalance >= 0 ? 'Cr' : 'Dr'}`}
+                  icon={Landmark}
+                  tone={ledgerBalance >= 0 ? 'success' : 'danger'}
+                />
               )}
               {ledgerMonth && (
                 <>
-                  <StatCard label="Credit This Month" value={`₹${ledgerMonth.credit.toLocaleString('en-IN')}`} />
-                  <StatCard label="Debit This Month" value={`₹${ledgerMonth.debit.toLocaleString('en-IN')}`} />
+                  <StatCard label="Credit This Month" value={`₹${ledgerMonth.credit.toLocaleString('en-IN')}`} icon={ArrowDownToLine} tone="success" />
+                  <StatCard label="Debit This Month" value={`₹${ledgerMonth.debit.toLocaleString('en-IN')}`} icon={ArrowUpFromLine} tone="danger" />
                 </>
               )}
               {collectionsTotal != null && (
-                <StatCard label="Collections (Receivables)" value={`₹${collectionsTotal.toLocaleString('en-IN')}`} />
+                <StatCard label="Collections (Receivables)" value={`₹${collectionsTotal.toLocaleString('en-IN')}`} icon={HandCoins} tone="info" />
               )}
               {outstandingDebt != null && (
-                <StatCard label="Outstanding Debt (Loans)" value={`₹${outstandingDebt.toLocaleString('en-IN')}`} />
+                <StatCard label="Outstanding Debt (Loans)" value={`₹${outstandingDebt.toLocaleString('en-IN')}`} icon={ScrollText} tone="warning" />
               )}
             </>
           ) : (
@@ -289,7 +329,7 @@ export function DashboardPage() {
         )}
 
         {noWidgetsVisible && (
-          <BaseCard className="p-4 sm:col-span-2 xl:col-span-3">
+          <BaseCard className="p-4 col-span-full">
             <p className="text-sm text-text-muted">No dashboard widgets available for your role.</p>
           </BaseCard>
         )}
@@ -297,8 +337,7 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {canViewInventory && inventoryStatus?.data && (
-          <BaseCard className="p-3">
-            <h2 className="mb-1 text-sm font-medium text-text">Inventory split</h2>
+          <ChartCard title="Inventory split" tone="success">
             {/* green/amber — validated pair (dataviz skill), same hex both
                 modes since the app's lightened dark shades fail the
                 dark-surface lightness band as an adjacent chart pair */}
@@ -309,12 +348,11 @@ export function DashboardPage() {
                 { name: 'Reserved', value: inventoryStatus.data.total_reserved ?? 0, light: '#d97706', dark: '#d97706' },
               ]}
             />
-          </BaseCard>
+          </ChartCard>
         )}
 
         {canViewFinance && ledgerMonth && (
-          <BaseCard className="p-3">
-            <h2 className="mb-1 text-sm font-medium text-text">Credit vs debit (this month)</h2>
+          <ChartCard title="Credit vs debit (this month)" tone="info">
             {/* blue/red, not green/red — validated pair; red/green fails CVD
                 separation outright (deutan ΔE 5.0, below the hard floor) */}
             <DashboardBarChart
@@ -324,40 +362,35 @@ export function DashboardPage() {
                 { name: 'Debit', value: ledgerMonth.debit ?? 0, light: '#e34948', dark: '#e66767' },
               ]}
             />
-          </BaseCard>
+          </ChartCard>
         )}
 
         {canViewSales && (
-          <BaseCard className="p-3">
-            <h2 className="mb-1 text-sm font-medium text-text">Sales trend</h2>
+          <ChartCard title="Sales trend" tone="primary">
             <SalesTrendChart data={salesTrend} height={130} />
-          </BaseCard>
+          </ChartCard>
         )}
 
         {canViewSales && (
-          <BaseCard className="p-3">
-            <h2 className="mb-1 text-sm font-medium text-text">Product mix — click a slice</h2>
+          <ChartCard title="Product mix — click a slice" tone="primary">
             <SalesProductPieChart data={salesMix} onSliceClick={setSelectedProduct} height={170} />
-          </BaseCard>
+          </ChartCard>
         )}
 
         {canViewSales && canViewInventory && (
-          <BaseCard className="p-3">
-            <h2 className="mb-1 text-sm font-medium text-text">Sales vs inventory (units)</h2>
+          <ChartCard title="Sales vs inventory (units)" tone="info">
             <SalesVsInventoryChart data={soldVsStock} height={170} />
-          </BaseCard>
+          </ChartCard>
         )}
 
         {canViewSales && (
-          <BaseCard className="p-3">
-            <h2 className="mb-1 text-sm font-medium text-text">Profit / loss per unit</h2>
+          <ChartCard title="Profit / loss per unit" tone="success">
             <MarginChart data={margins} height={170} />
-          </BaseCard>
+          </ChartCard>
         )}
 
         {canViewFinance && (
-          <BaseCard className="p-3">
-            <h2 className="mb-1 text-sm font-medium text-text">Receivables aging</h2>
+          <ChartCard title="Receivables aging" tone="warning">
             {/* single-hue sequential ramp (amber) — magnitude-by-age-bucket,
                 not identity, so a categorical palette would be wrong here */}
             <DashboardBarChart
@@ -368,44 +401,94 @@ export function DashboardPage() {
                 dark: AMBER_RAMP_DARK[i],
               }))}
             />
-          </BaseCard>
+          </ChartCard>
         )}
       </div>
 
       {canViewForecast && (
-        <BaseCard className="p-4">
-          <h2 className="mb-1 text-sm font-medium text-text">Sales forecast</h2>
-          <p className="mb-2 text-xs text-text-muted">
-            Owner/Super Admin only. {forecastData?.disclaimer ?? 'Linear trend projection from recent monthly sales — not a seasonal or ML forecast.'}
-          </p>
+        <BaseCard className="p-4 transition-shadow duration-200 hover:shadow-md">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-sm font-medium text-text">
+                <span className="size-1.5 shrink-0 rounded-full bg-info" />
+                Sales forecast
+              </h2>
+              <p className="mt-1 max-w-2xl text-xs text-text-muted">
+                Owner/Super Admin only. {forecastData?.disclaimer ?? 'Linear trend projection from recent monthly sales — not a seasonal or ML forecast.'}
+              </p>
+            </div>
+            {forecastData?.basis !== 'actual_data' && (
+              <div className="flex items-end gap-2">
+                <AppInput
+                  label="Monthly sales target (₹)"
+                  type="number"
+                  value={salesTargetInputValue}
+                  onChange={(e) => setSalesTargetDraft(e.target.value)}
+                />
+                <AppButton
+                  variant="secondary"
+                  loading={updateSettings.isPending}
+                  disabled={salesTargetDraft === null || salesTargetDraft === ''}
+                  onClick={() => {
+                    updateSettings.mutate(
+                      { monthlySalesTarget: Number(salesTargetDraft) },
+                      {
+                        onSuccess: () => {
+                          setSalesTargetDraft(null);
+                          queryClient.invalidateQueries({ queryKey: ['forecast'] });
+                        },
+                      },
+                    );
+                  }}
+                >
+                  Save
+                </AppButton>
+              </div>
+            )}
+          </div>
+
           {isForecastLoading ? (
             <p className="py-10 text-center text-sm text-text-muted">Loading forecast…</p>
           ) : (
             <SalesForecastChart history={forecastData?.history} forecast={forecastData?.forecast} height={220} />
           )}
+
+          {channelForecastData?.channels?.length > 0 && (
+            <div className="mt-4 border-t border-border pt-3">
+              <h3 className="mb-1 text-xs font-medium uppercase text-text-muted">
+                Channel mix {channelForecastData.basis === 'actual_data' ? '(DS Footwear actuals)' : '(market assumption)'}
+              </h3>
+              <div className="flex flex-wrap gap-4">
+                {channelForecastData.channels.map((c) => (
+                  <div key={c.channelId} className="text-sm">
+                    <span className="font-medium text-text">{c.channelName}</span>{' '}
+                    <span className="text-text-muted">{c.sharePercent}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </BaseCard>
       )}
 
       {canViewSales && (
-        <BaseCard className="p-4">
-          <h2 className="mb-1 text-sm font-medium text-text">Break-even analysis</h2>
-          <p className="mb-2 text-xs text-text-muted">
-            Fixed cost (salary + machine + overhead) vs. Total Cost vs. Revenue, by quantity — where Total Cost and
-            Revenue cross is the no-loss-no-profit point for the selected SKU.
-          </p>
+        <ChartCard
+          title="Break-even analysis"
+          tone="warning"
+          subtitle="Fixed cost (salary + machine + overhead) vs. Total Cost vs. Revenue, by quantity — where Total Cost and Revenue cross is the no-loss-no-profit point for the selected SKU."
+        >
           <BreakEvenChart variants={breakEvenVariants} workOrders={workOrders} variantsById={variantsById} height={220} />
-        </BaseCard>
+        </ChartCard>
       )}
 
       {canViewSales && (
-        <BaseCard className="p-4">
-          <h2 className="mb-1 text-sm font-medium text-text">Product life cycle</h2>
-          <p className="mb-2 text-xs text-text-muted">
-            Monthly units sold, staged into Introduction / Growth / Maturity / Decline — inferred from the product's
-            own sales trend relative to its peak month.
-          </p>
+        <ChartCard
+          title="Product life cycle"
+          tone="primary"
+          subtitle="Monthly units sold, staged into Introduction / Growth / Maturity / Decline — inferred from the product's own sales trend relative to its peak month."
+        >
           <ProductLifecycleChart products={lifecycleProducts} orders={orders} height={220} />
-        </BaseCard>
+        </ChartCard>
       )}
 
       <ProductSalesTrendModal

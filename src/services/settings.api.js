@@ -8,6 +8,8 @@ function fromBackendSettings(settings) {
     ...settings,
     dailyProductionTarget:
       settings.daily_production_target != null ? Number(settings.daily_production_target) : null,
+    monthlySalesTarget:
+      settings.monthly_sales_target != null ? Number(settings.monthly_sales_target) : null,
   };
 }
 
