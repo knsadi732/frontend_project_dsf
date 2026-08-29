@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
 import { useDashboardQuery } from '@/features/dashboard/queries/useDashboardQuery';
+import { useSalesForecastQuery } from '@/features/dashboard/queries/useSalesForecastQuery';
 import { useRegenerateAnalytics } from '@/features/dashboard/mutations/useRegenerateAnalytics';
 import { useSalesOrdersQuery } from '@/features/sales/queries/useSalesOrdersQuery';
 import { useProductStockQuery } from '@/features/inventory/queries/useProductStockQuery';
@@ -25,6 +26,7 @@ import { MarginChart } from '@/features/dashboard/components/MarginChart';
 import { BreakEvenChart } from '@/features/dashboard/components/BreakEvenChart';
 import { ProductLifecycleChart } from '@/features/dashboard/components/ProductLifecycleChart';
 import { ProductSalesTrendModal } from '@/features/dashboard/components/ProductSalesTrendModal';
+import { SalesForecastChart } from '@/features/dashboard/components/SalesForecastChart';
 import { salesTrendByDate, productMix, salesVsInventory } from '@/features/dashboard/utils/salesChartData';
 import { marginByVariant, breakEvenEligibleVariants } from '@/features/production/utils/unitCost';
 import {
@@ -63,6 +65,10 @@ export function DashboardPage() {
   const canViewInventory = can(MODULES.INVENTORY, ACTIONS.VIEW);
   const canViewFinance = can(MODULES.FINANCE, ACTIONS.VIEW);
   const canRegenerate = can(MODULES.DASHBOARD, ACTIONS.CREATE);
+  // Owner/Super Admin only — no other role gets a FORECASTING entry, so
+  // hasPermission() defaults them to denied; Owner/SuperAdmin bypass the
+  // matrix entirely (FULL_ACCESS_ROLES).
+  const canViewForecast = can(MODULES.FORECASTING, ACTIONS.VIEW);
 
   // Called unconditionally (Rules of Hooks) regardless of canViewSales/
   // canViewInventory — cheap read-only fetches, only their *results* are
@@ -82,6 +88,7 @@ export function DashboardPage() {
   const { data: usersData } = useUsersQuery({ pageSize: 500 });
   const { data: machinesDownData } = useMachinesQuery({ status: 'down', pageSize: 50 });
   const { data: settingsData } = useSettingsQuery();
+  const { data: forecastData, isLoading: isForecastLoading } = useSalesForecastQuery(canViewForecast);
   const updateSettings = useUpdateSettings();
   const [targetDraft, setTargetDraft] = useState(null);
 
@@ -364,6 +371,20 @@ export function DashboardPage() {
           </BaseCard>
         )}
       </div>
+
+      {canViewForecast && (
+        <BaseCard className="p-4">
+          <h2 className="mb-1 text-sm font-medium text-text">Sales forecast</h2>
+          <p className="mb-2 text-xs text-text-muted">
+            Owner/Super Admin only. {forecastData?.disclaimer ?? 'Linear trend projection from recent monthly sales — not a seasonal or ML forecast.'}
+          </p>
+          {isForecastLoading ? (
+            <p className="py-10 text-center text-sm text-text-muted">Loading forecast…</p>
+          ) : (
+            <SalesForecastChart history={forecastData?.history} forecast={forecastData?.forecast} height={220} />
+          )}
+        </BaseCard>
+      )}
 
       {canViewSales && (
         <BaseCard className="p-4">

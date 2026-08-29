@@ -46,6 +46,7 @@ export const MODULES = {
   ATTENDANCE: 'attendance',
   ITEM_MASTER: 'itemMaster',
   FIXED_ASSETS: 'fixedAssets',
+  FORECASTING: 'forecasting',
 };
 
 /**
