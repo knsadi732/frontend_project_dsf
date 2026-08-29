@@ -15,8 +15,10 @@ function toBackendPayload(payload) {
     freightAmount: payload.freightAmount || 0,
     discountAmount: payload.discountAmount || 0,
     ...(payload.remarks && { remarks: payload.remarks }),
+    // Exactly one of productVariantId / itemId per line — mirrors whatever
+    // the RFQ's own material line (from its source PR) actually is.
     items: (payload.items ?? []).map((item) => ({
-      productVariantId: item.productVariantId,
+      ...(item.itemId ? { itemId: item.itemId } : { productVariantId: item.productVariantId }),
       unitPrice: item.unitPrice,
       gstPercentage: item.gstPercentage || 0,
     })),

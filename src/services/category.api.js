@@ -15,10 +15,18 @@ function fromBackendCategory(category) {
   };
 }
 
+// parentId is an optional GUID column (top-level categories have none) —
+// the backend's Joi validator accepts null but not '' (empty string isn't a
+// valid GUID), so a cleared/never-chosen parent select (which yields '')
+// must be normalized to null before it leaves the browser.
+function toBackendPayload(payload) {
+  return { ...payload, parentId: payload.parentId || null };
+}
+
 export const categoryApi = {
   ...baseApi,
   list: (params) => baseApi.list(params).then(({ data, total }) => ({ data: data.map(fromBackendCategory), total })),
   get: (id) => baseApi.get(id).then(fromBackendCategory),
-  create: (payload) => baseApi.create(payload).then(fromBackendCategory),
-  update: (id, payload) => baseApi.update(id, payload).then(fromBackendCategory),
+  create: (payload) => baseApi.create(toBackendPayload(payload)).then(fromBackendCategory),
+  update: (id, payload) => baseApi.update(id, toBackendPayload(payload)).then(fromBackendCategory),
 };

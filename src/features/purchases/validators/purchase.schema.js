@@ -17,11 +17,19 @@ export const PURCHASE_ORDER_STATUS_PIPELINE = [
 ];
 export const PURCHASE_ORDER_CANCELLED = 'cancelled';
 
-export const purchaseItemSchema = z.object({
-  productVariantId: z.string().min(1, 'Product variant is required'),
-  quantity: z.coerce.number().int().positive('Quantity must be greater than 0'),
-  unitCost: z.coerce.number().min(0, 'Unit cost cannot be negative'),
-});
+// Exactly one of productVariantId (sellable Product) / itemId (Item &
+// Material Master) — mirrors the backend's xor validation.
+export const purchaseItemSchema = z
+  .object({
+    productVariantId: z.string().optional(),
+    itemId: z.string().optional(),
+    quantity: z.coerce.number().int().positive('Quantity must be greater than 0'),
+    unitCost: z.coerce.number().min(0, 'Unit cost cannot be negative'),
+  })
+  .refine((item) => Boolean(item.productVariantId) !== Boolean(item.itemId), {
+    message: 'Missing a product variant or item reference',
+    path: ['productVariantId'],
+  });
 
 // Real backend body (purchaseOrder.validator.js): a PO can only be created
 // against an approved Purchase Request — `purchaseRequestId` is required,

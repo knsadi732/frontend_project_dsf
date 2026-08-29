@@ -203,7 +203,7 @@ Raw Material consumed in Production reduces Raw Material Inventory and is refere
 
 The Item & Material Master Domain is referenced by the following ERP modules:
 
-Purchase Domain (Chapter 12) — Purchase Order line items reference Items, not Products, whenever the thing being bought is not a sellable finished good.
+Purchase Domain (Chapter 12) — Purchase Request, RFQ, Vendor Quotation, Purchase Order, and GRN line items each reference EXACTLY ONE of an Item (this domain) or a Product Variant (Chapter 7/10), enforced by a database constraint — never both. An Item ordered this way is received into this domain's own Item Stock (8.7), not into Product/Variant Inventory (Chapter 11), even though it travelled through the same vendor-selection/PO/GRN pipeline a Product does.
 Inventory & Warehouse Management Domain (Chapter 11) — Raw Material, Packaging, Consumables, and Spare Parts inventory.
 Production Planning & Manufacturing Domain (Chapter 14) — Raw Material consumption via BOM.
 Fixed Asset Domain (Chapter 13) — Fixed Asset acquisition originates from an Item flagged as Item Category "Fixed Assets."

@@ -58,9 +58,15 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, onCa
 
   const { data: company } = useCompanyQuery();
 
-  const variantLabel = (variantId) => {
-    const variant = variantsById[variantId];
-    if (!variant) return variantId;
+  // A line references EXACTLY ONE of productVariantId (sellable Product) /
+  // itemId (Item & Material Master) — the item ones carry their own
+  // itemCode/itemName straight off the line (see purchase.api.js), no
+  // separate items lookup needed here since this form never lets the user
+  // pick a NEW item, only displays what the source PR/quotation already has.
+  const lineLabel = (item) => {
+    if (item.itemId) return `${item.itemCode ?? item.itemId} — ${item.itemName ?? 'Item'}`;
+    const variant = variantsById[item.productVariantId];
+    if (!variant) return item.productVariantId;
     const productName = productsById[variant.productId]?.name ?? 'Unknown product';
     const attrs = [variant.size, variant.color].filter(Boolean).join('/');
     return `${variant.sku} — ${productName}${attrs ? ` (${attrs})` : ''}`;
@@ -236,7 +242,7 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, onCa
           <div className="flex flex-col gap-2">
             {(items ?? []).map((item, index) => (
               <div key={index} className="grid grid-cols-[1fr_5rem_7rem_7rem] items-start gap-2">
-                <div className="flex h-9 items-center text-sm text-text">{variantLabel(item.productVariantId)}</div>
+                <div className="flex h-9 items-center text-sm text-text">{lineLabel(item)}</div>
                 <div className="flex h-9 items-center text-sm text-text-muted">{item.quantity}</div>
                 <AppInput
                   type="number"

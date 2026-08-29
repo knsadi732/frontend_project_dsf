@@ -15,8 +15,11 @@ function toBackendPayload(payload) {
     ...(payload.priority && { priority: payload.priority }),
     ...(payload.requiredDate && { requiredDate: payload.requiredDate }),
     ...(payload.remarks && { remarks: payload.remarks }),
+    // Exactly one of productVariantId (sellable Product) / itemId (Item &
+    // Material Master — raw material, packaging, consumable, spare, tool,
+    // service) per line, per the backend's xor validation.
     items: (payload.items ?? []).map((item) => ({
-      productVariantId: item.productVariantId,
+      ...(item.itemId ? { itemId: item.itemId } : { productVariantId: item.productVariantId }),
       quantity: item.quantity,
       ...(item.remarks && { remarks: item.remarks }),
     })),
@@ -41,8 +44,14 @@ function fromBackendPurchaseRequest(request, submitted = {}) {
       submitted.items ??
       (request.items ?? []).map((item) => ({
         productVariantId: item.productVariantId ?? item.product_variant_id,
+        itemId: item.itemId ?? item.item_id,
         quantity: item.quantity,
         remarks: item.remarks,
+        // Display fields — whichever side (Product Variant vs Item Master) the line references.
+        sku: item.sku,
+        productName: item.productName ?? item.product_name,
+        itemCode: item.itemCode ?? item.item_code,
+        itemName: item.itemName ?? item.item_name,
       })),
   };
 }

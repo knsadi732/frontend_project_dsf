@@ -16,9 +16,13 @@ import { CreateButton } from '@/components/ui/ActionButtons';
 // should actually be based on (plan.md 11.20 "Vendor selection must be based
 // on quotation comparison"), not just the per-unit price.
 function landedCost(quotation, materialItems) {
-  const quantityByVariant = Object.fromEntries((materialItems ?? []).map((item) => [item.productVariantId, Number(item.quantity) || 0]));
+  // Each material line is either a Product Variant or an Item Master row —
+  // key the quantity lookup by whichever id it actually has.
+  const quantityByLine = Object.fromEntries(
+    (materialItems ?? []).map((item) => [item.productVariantId ?? item.itemId, Number(item.quantity) || 0]),
+  );
   const itemsTotal = (quotation.items ?? []).reduce((sum, item) => {
-    const qty = quantityByVariant[item.productVariantId] ?? 0;
+    const qty = quantityByLine[item.productVariantId ?? item.itemId] ?? 0;
     const gstFactor = 1 + (Number(item.gstPercentage) || 0) / 100;
     return sum + qty * Number(item.unitPrice) * gstFactor;
   }, 0);

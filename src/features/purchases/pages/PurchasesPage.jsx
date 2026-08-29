@@ -57,6 +57,15 @@ function downloadPurchasePdf(row, productsById, variantsById, company, vendorsBy
       vendor: vendorsById[full.vendorId],
       warehouse: warehousesById[full.warehouseId],
       items: (full.items ?? []).map((item) => {
+        if (item.itemId) {
+          return {
+            label: `${item.itemCode ?? item.itemId} — ${item.itemName ?? 'Item'}`,
+            quantity: item.quantity,
+            unitCost: item.unitCost,
+            hsnCode: undefined,
+            uom: item.itemUom,
+          };
+        }
         const variant = variantsById[item.productVariantId];
         const product = productsById[variant?.productId];
         return {
@@ -241,8 +250,18 @@ export function PurchasesPage() {
   const handleCreatePoFromQuotation = (rfq, quotation) => {
     setActiveTab('purchases');
     const items = rfq.materialItems.map((material) => {
-      const quoted = quotation.items.find((item) => item.productVariantId === material.productVariantId);
-      return { productVariantId: material.productVariantId, quantity: material.quantity, unitCost: quoted?.unitPrice ?? '' };
+      // A material line is either a Product Variant or an Item Master row —
+      // match the quotation's corresponding line by whichever it is.
+      const quoted = material.itemId
+        ? quotation.items.find((item) => item.itemId === material.itemId)
+        : quotation.items.find((item) => item.productVariantId === material.productVariantId);
+      return {
+        ...(material.itemId
+          ? { itemId: material.itemId, itemCode: material.itemCode, itemName: material.itemName }
+          : { productVariantId: material.productVariantId }),
+        quantity: material.quantity,
+        unitCost: quoted?.unitPrice ?? '',
+      };
     });
     setFormState({
       open: true,

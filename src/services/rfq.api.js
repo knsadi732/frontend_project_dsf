@@ -41,6 +41,11 @@ function fromBackendMaterialItem(row) {
     size: row.size,
     color: row.color,
     productName: row.product_name,
+    // Item Master side (mutually exclusive with the product fields above).
+    itemId: row.item_id ?? row.itemId,
+    itemCode: row.item_code,
+    itemName: row.item_name,
+    itemUom: row.item_uom,
     quantity: row.quantity,
     remarks: row.remarks,
   };
@@ -67,6 +72,9 @@ function fromBackendQuotation(row) {
       size: item.size,
       color: item.color,
       productName: item.product_name,
+      itemId: item.item_id,
+      itemCode: item.item_code,
+      itemName: item.item_name,
       unitPrice: Number(item.unit_price ?? 0),
       gstPercentage: Number(item.gst_percentage ?? 0),
     })),

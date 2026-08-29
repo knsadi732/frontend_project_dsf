@@ -24,8 +24,10 @@ function toBackendPayload(payload) {
     ...(payload.taxAmount !== undefined && payload.taxAmount !== '' && { taxAmount: payload.taxAmount }),
     ...(payload.paymentTerms && { paymentTerms: payload.paymentTerms }),
     ...(payload.expectedDeliveryDate && { expectedDeliveryDate: payload.expectedDeliveryDate }),
+    // Exactly one of productVariantId / itemId per line — see Chapter 8/12
+    // (Item & Material Master rows can now be ordered through Purchase too).
     items: (payload.items ?? []).map((item) => ({
-      productVariantId: item.productVariantId,
+      ...(item.itemId ? { itemId: item.itemId } : { productVariantId: item.productVariantId }),
       quantity: item.quantity,
       unitCost: item.unitCost,
     })),
@@ -57,6 +59,7 @@ function fromBackendPurchaseOrder(order, submitted = {}) {
       (order.items ?? []).map((item) => ({
         id: item.id,
         productVariantId: item.productVariantId ?? item.product_variant_id,
+        itemId: item.itemId ?? item.item_id,
         quantity: item.quantity,
         unitCost: item.unitCost ?? item.unit_cost,
         // Backend joins these from products/product_variants at read time,
@@ -69,6 +72,10 @@ function fromBackendPurchaseOrder(order, submitted = {}) {
         color: item.color,
         hsnCode: item.hsnCode ?? item.hsn_code,
         uom: item.uom,
+        // Item Master side (mutually exclusive with the product fields above).
+        itemCode: item.itemCode ?? item.item_code,
+        itemName: item.itemName ?? item.item_name,
+        itemUom: item.itemUom ?? item.item_uom,
       })),
   };
 }

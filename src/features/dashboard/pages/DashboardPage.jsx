@@ -182,13 +182,53 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-text">Dashboard</h1>
-          <p className="text-sm text-text-muted">Overview of today's operations.</p>
+      <div className="relative isolate flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-xl bg-[#0c1622] p-5 sm:p-6">
+        {/* two blades cut at the same angles as the logo's D-stroke and
+            S-sweep — the panel's shape is traced from the mark itself,
+            not a generic diagonal */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: 'linear-gradient(115deg, #1a3a5e 0%, #2a78d6 46%, #4f97e8 60%, #2a78d6 74%, #1a3a5e 100%)',
+            clipPath: 'polygon(0 0, 58% 0, 40% 100%, 0% 100%)',
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-90"
+          style={{
+            background: 'linear-gradient(115deg, #4b5563 0%, #9ca3af 50%, #6b7280 100%)',
+            clipPath: 'polygon(46% 0, 66% 0, 48% 100%, 28% 100%)',
+          }}
+        />
+        {/* bevel edge — a thin bright sliver along each blade's leading
+            cut, same construction as the logo's raised-letter highlight */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: 'rgba(255,255,255,0.55)',
+            clipPath: 'polygon(58% 0, 59.4% 0, 41.4% 100%, 40% 100%)',
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: 'rgba(255,255,255,0.55)',
+            clipPath: 'polygon(66% 0, 67.4% 0, 49.4% 100%, 48% 100%)',
+          }}
+        />
+
+        <div className="relative">
+          <h1 className="text-xl font-semibold tracking-tight text-white">Dashboard</h1>
+          <p className="text-sm text-white/70">Overview of today's operations — DS Footwear.</p>
         </div>
+
         {canRegenerate && (
-          <AppButton variant="secondary" loading={regenerate.isPending} onClick={() => regenerate.mutate()}>
+          <AppButton
+            variant="secondary"
+            loading={regenerate.isPending}
+            onClick={() => regenerate.mutate()}
+            className="relative border-white/25 bg-white/10 text-white hover:bg-white/20"
+          >
             <RefreshCw className="size-4" />
             Regenerate snapshot
           </AppButton>
@@ -205,28 +245,32 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
-        <StatCard label="Work In Progress (units)" value={wip.toLocaleString('en-IN')} icon={Boxes} tone="primary" />
-        <StatCard label="Pending Approvals" value={String(pendingApprovalsCount)} icon={ClipboardCheck} tone="warning" />
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
+        <StatCard label="Work In Progress (units)" value={wip.toLocaleString('en-IN')} icon={Boxes} tone="navy" />
+        <StatCard label="Pending Approvals" value={String(pendingApprovalsCount)} icon={ClipboardCheck} tone="sky" />
         <StatCard
           label="Attendance Today"
           value={activeUserCount > 0 ? `${attendanceTodayCount} / ${activeUserCount}` : String(attendanceTodayCount)}
           icon={Users}
-          tone="info"
+          tone="steel"
         />
         {cpp > 0 && (
           <StatCard
             label="Avg Cost Per Pair"
             value={`₹${cpp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
             icon={IndianRupee}
-            tone="success"
+            tone="blue"
           />
         )}
-        {otif != null && <StatCard label="OTIF Rate" value={`${otif}%`} icon={Target} tone="info" />}
-        <StatCard label="Daily Production Output" value={dailyOutput.toLocaleString('en-IN')} icon={Factory} tone="primary" />
+        {otif != null && <StatCard label="OTIF Rate" value={`${otif}%`} icon={Target} tone="steel" />}
+        <StatCard label="Daily Production Output" value={dailyOutput.toLocaleString('en-IN')} icon={Factory} tone="navy" />
       </div>
 
-      <BaseCard className="p-4">
+      <BaseCard className="group relative overflow-hidden p-4 transition-shadow duration-200 hover:shadow-md">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#2a78d6] via-[#5b8fc7] to-[#9ca3af]"
+          aria-hidden="true"
+        />
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-sm font-medium text-text">Daily production target</h2>
@@ -270,12 +314,12 @@ export function DashboardPage() {
         )}
       </BaseCard>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
         {canViewSales && (
           salesSummary?.data ? (
             <>
-              <StatCard label="Sales Orders" value={String(salesSummary.data.order_count ?? 0)} icon={ShoppingCart} tone="primary" />
-              <StatCard label="Total Sales" value={`₹${(salesSummary.data.total_sales ?? 0).toLocaleString('en-IN')}`} icon={Wallet} tone="success" />
+              <StatCard label="Sales Orders" value={String(salesSummary.data.order_count ?? 0)} icon={ShoppingCart} tone="navy" />
+              <StatCard label="Total Sales" value={`₹${(salesSummary.data.total_sales ?? 0).toLocaleString('en-IN')}`} icon={Wallet} tone="blue" />
             </>
           ) : (
             <BaseCard className="p-4">
@@ -287,8 +331,8 @@ export function DashboardPage() {
         {canViewInventory && (
           inventoryStatus?.data ? (
             <>
-              <StatCard label="Inventory On Hand" value={String(inventoryStatus.data.total_on_hand ?? 0)} icon={PackageCheck} tone="info" />
-              <StatCard label="Inventory Reserved" value={String(inventoryStatus.data.total_reserved ?? 0)} icon={PackageSearch} tone="warning" />
+              <StatCard label="Inventory On Hand" value={String(inventoryStatus.data.total_on_hand ?? 0)} icon={PackageCheck} tone="steel" />
+              <StatCard label="Inventory Reserved" value={String(inventoryStatus.data.total_reserved ?? 0)} icon={PackageSearch} tone="sky" />
             </>
           ) : (
             <BaseCard className="p-4">
@@ -305,20 +349,20 @@ export function DashboardPage() {
                   label="Ledger Balance (all-time)"
                   value={`₹${Math.abs(ledgerBalance).toLocaleString('en-IN')} ${ledgerBalance >= 0 ? 'Cr' : 'Dr'}`}
                   icon={Landmark}
-                  tone={ledgerBalance >= 0 ? 'success' : 'danger'}
+                  tone={ledgerBalance >= 0 ? 'blue' : 'charcoal'}
                 />
               )}
               {ledgerMonth && (
                 <>
-                  <StatCard label="Credit This Month" value={`₹${ledgerMonth.credit.toLocaleString('en-IN')}`} icon={ArrowDownToLine} tone="success" />
-                  <StatCard label="Debit This Month" value={`₹${ledgerMonth.debit.toLocaleString('en-IN')}`} icon={ArrowUpFromLine} tone="danger" />
+                  <StatCard label="Credit This Month" value={`₹${ledgerMonth.credit.toLocaleString('en-IN')}`} icon={ArrowDownToLine} tone="blue" />
+                  <StatCard label="Debit This Month" value={`₹${ledgerMonth.debit.toLocaleString('en-IN')}`} icon={ArrowUpFromLine} tone="charcoal" />
                 </>
               )}
               {collectionsTotal != null && (
-                <StatCard label="Collections (Receivables)" value={`₹${collectionsTotal.toLocaleString('en-IN')}`} icon={HandCoins} tone="info" />
+                <StatCard label="Collections (Receivables)" value={`₹${collectionsTotal.toLocaleString('en-IN')}`} icon={HandCoins} tone="steel" />
               )}
               {outstandingDebt != null && (
-                <StatCard label="Outstanding Debt (Loans)" value={`₹${outstandingDebt.toLocaleString('en-IN')}`} icon={ScrollText} tone="warning" />
+                <StatCard label="Outstanding Debt (Loans)" value={`₹${outstandingDebt.toLocaleString('en-IN')}`} icon={ScrollText} tone="sky" />
               )}
             </>
           ) : (
@@ -337,7 +381,7 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {canViewInventory && inventoryStatus?.data && (
-          <ChartCard title="Inventory split" tone="success">
+          <ChartCard title="Inventory split" tone="blue">
             {/* green/amber — validated pair (dataviz skill), same hex both
                 modes since the app's lightened dark shades fail the
                 dark-surface lightness band as an adjacent chart pair */}
@@ -352,7 +396,7 @@ export function DashboardPage() {
         )}
 
         {canViewFinance && ledgerMonth && (
-          <ChartCard title="Credit vs debit (this month)" tone="info">
+          <ChartCard title="Credit vs debit (this month)" tone="steel">
             {/* blue/red, not green/red — validated pair; red/green fails CVD
                 separation outright (deutan ΔE 5.0, below the hard floor) */}
             <DashboardBarChart
@@ -366,31 +410,31 @@ export function DashboardPage() {
         )}
 
         {canViewSales && (
-          <ChartCard title="Sales trend" tone="primary">
+          <ChartCard title="Sales trend" tone="navy">
             <SalesTrendChart data={salesTrend} height={130} />
           </ChartCard>
         )}
 
         {canViewSales && (
-          <ChartCard title="Product mix — click a slice" tone="primary">
+          <ChartCard title="Product mix — click a slice" tone="navy">
             <SalesProductPieChart data={salesMix} onSliceClick={setSelectedProduct} height={170} />
           </ChartCard>
         )}
 
         {canViewSales && canViewInventory && (
-          <ChartCard title="Sales vs inventory (units)" tone="info">
+          <ChartCard title="Sales vs inventory (units)" tone="steel">
             <SalesVsInventoryChart data={soldVsStock} height={170} />
           </ChartCard>
         )}
 
         {canViewSales && (
-          <ChartCard title="Profit / loss per unit" tone="success">
+          <ChartCard title="Profit / loss per unit" tone="blue">
             <MarginChart data={margins} height={170} />
           </ChartCard>
         )}
 
         {canViewFinance && (
-          <ChartCard title="Receivables aging" tone="warning">
+          <ChartCard title="Receivables aging" tone="sky">
             {/* single-hue sequential ramp (amber) — magnitude-by-age-bucket,
                 not identity, so a categorical palette would be wrong here */}
             <DashboardBarChart
@@ -406,7 +450,11 @@ export function DashboardPage() {
       </div>
 
       {canViewForecast && (
-        <BaseCard className="p-4 transition-shadow duration-200 hover:shadow-md">
+        <BaseCard className="group relative overflow-hidden p-4 transition-shadow duration-200 hover:shadow-md">
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#2a78d6] via-[#5b8fc7] to-[#9ca3af]"
+            aria-hidden="true"
+          />
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="flex items-center gap-2 text-sm font-medium text-text">
@@ -474,7 +522,7 @@ export function DashboardPage() {
       {canViewSales && (
         <ChartCard
           title="Break-even analysis"
-          tone="warning"
+          tone="sky"
           subtitle="Fixed cost (salary + machine + overhead) vs. Total Cost vs. Revenue, by quantity — where Total Cost and Revenue cross is the no-loss-no-profit point for the selected SKU."
         >
           <BreakEvenChart variants={breakEvenVariants} workOrders={workOrders} variantsById={variantsById} height={220} />
@@ -484,7 +532,7 @@ export function DashboardPage() {
       {canViewSales && (
         <ChartCard
           title="Product life cycle"
-          tone="primary"
+          tone="navy"
           subtitle="Monthly units sold, staged into Introduction / Growth / Maturity / Decline — inferred from the product's own sales trend relative to its peak month."
         >
           <ProductLifecycleChart products={lifecycleProducts} orders={orders} height={220} />

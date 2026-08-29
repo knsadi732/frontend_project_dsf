@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLayoutStore } from '@/store/layoutStore';
 import { NAV_ITEMS } from '@/layouts/components/navConfig';
 import { cn } from '@/utils/cn';
-import logo from '@/assets/logo.png';
+import { DsLogoMark } from '@/components/ui/DsLogoMark';
 
 function SidebarContent({ collapsed, onNavigate }) {
   const { can } = useAuth();
@@ -46,7 +46,7 @@ export function Sidebar() {
           <div className="flex min-w-0 items-center gap-2">
             {!sidebarCollapsed && (
               <>
-                <img src={logo} alt="DS Footwear" className="size-8 shrink-0 rounded-md object-cover" />
+                <DsLogoMark size={22} />
                 <span className="truncate text-sm font-semibold text-text">DS Footwear</span>
               </>
             )}
@@ -69,7 +69,7 @@ export function Sidebar() {
           <aside className="relative flex w-64 flex-col bg-surface shadow-xl">
             <div className="flex h-14 items-center justify-between border-b border-border px-3">
               <div className="flex min-w-0 items-center gap-2">
-                <img src={logo} alt="DS Footwear" className="size-8 shrink-0 rounded-md object-cover" />
+                <DsLogoMark size={22} />
                 <span className="truncate text-sm font-semibold text-text">DS Footwear</span>
               </div>
               <button

@@ -374,6 +374,18 @@ Inventory is updated only after GRN approval.
 Every inventory update creates a Stock Ledger entry.
 Vendor invoices must reference an approved Purchase Order and GRN.
 Procurement transactions cannot be deleted after completion; they remain permanently auditable.
+Every line item (Purchase Request, RFQ material list, Vendor Quotation, Purchase Order, GRN) references exactly one of a Product Variant (Chapter 10) or an Item & Material Master Item (Chapter 8) — never both, never neither — so a raw material/packaging/consumable/spare/tool/service Item goes through the identical vendor-selection → RFQ → quotation → PO → GRN pipeline a sellable Product does, rather than being limited to Item Master's own standalone manual stock-receipt.
+An Item line's stock is credited to Item Stock (Chapter 8) at the same "Partially Received" PO step that credits Product Variant Inventory (Chapter 11) for a Product line — the two never share a stock table.
+
+12.20.1 Item & Material Master Lines in Procurement
+
+Every downstream table in this chapter's pipeline — `purchase_request_items`, `vendor_quotation_items`, `purchase_order_items`, `grn_items` — carries both a `productVariantId` and an `itemId` column, constrained so exactly one is ever set per row. This lets the Purchase & Procurement Domain serve BOTH masters uniformly:
+
+A Product Variant line (Chapter 10) receives into Product/Variant Inventory (Chapter 11) — the existing, original behavior.
+An Item line (Chapter 8) receives into Item Stock instead, via the same Purchase Order "Partially Received" transition — no separate approval step, no separate GRN concept, no duplicate Finance posting (the Item's cost still flows through the same Vendor Bill the Purchase Order itself generates).
+
+This closes a design gap: Chapter 8 always intended Items to be orderable through real purchasing, but until this was implemented, only a Product Variant duplicate of a raw material could actually be selected anywhere in this pipeline — an Item Master entry (e.g. Leather, EVA) had no path into a Purchase Request at all.
+
 12.21 Procurement Relationship Diagram
 Department
       │
@@ -444,4 +456,4 @@ Notifications
 Audit Logs
 Chapter Summary
 
-The Purchase & Procurement Domain manages the complete lifecycle of organizational procurement, from internal purchase requests through quotation management, vendor selection, purchase order creation, goods receipt, quality inspection, inventory updates, stock ledger posting, vendor invoice verification, and payment processing. By separating each stage into independent yet integrated business processes, the DS Footwear ERP ensures a controlled, auditable, and scalable procurement system aligned with enterprise standards used in SAP, Oracle ERP, Microsoft Dynamics 365, and other modern manufacturing ERP solutions.
+The Purchase & Procurement Domain manages the complete lifecycle of organizational procurement, from internal purchase requests through quotation management, vendor selection, purchase order creation, goods receipt, quality inspection, inventory updates, stock ledger posting, vendor invoice verification, and payment processing. By separating each stage into independent yet integrated business processes, the DS Footwear ERP ensures a controlled, auditable, and scalable procurement system aligned with enterprise standards used in SAP, Oracle ERP, Microsoft Dynamics 365, and other modern manufacturing ERP solutions. That same pipeline now serves the Item & Material Master Domain (Chapter 8) as uniformly as it serves sellable Products (§12.20.1) — a raw material is never limited to a duplicate Product just to be purchasable.
