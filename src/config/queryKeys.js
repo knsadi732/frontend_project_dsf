@@ -73,6 +73,7 @@ export const queryKeys = {
   documents: resourceKeys('documents'),
   itemCategories: resourceKeys('itemCategories'),
   items: resourceKeys('items'),
+  itemVariants: resourceKeys('itemVariants'),
   itemStock: resourceKeys('itemStock'),
   itemStockMovements: resourceKeys('itemStockMovements'),
   fixedAssets: resourceKeys('fixedAssets'),

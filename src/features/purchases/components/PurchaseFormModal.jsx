@@ -59,12 +59,12 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, onCa
   const { data: company } = useCompanyQuery();
 
   // A line references EXACTLY ONE of productVariantId (sellable Product) /
-  // itemId (Item & Material Master) — the item ones carry their own
-  // itemCode/itemName straight off the line (see purchase.api.js), no
-  // separate items lookup needed here since this form never lets the user
+  // itemVariantId (Item & Material Master variant) — the item ones carry
+  // their own itemCode/itemName straight off the line (see purchase.api.js),
+  // no separate items lookup needed here since this form never lets the user
   // pick a NEW item, only displays what the source PR/quotation already has.
   const lineLabel = (item) => {
-    if (item.itemId) return `${item.itemCode ?? item.itemId} — ${item.itemName ?? 'Item'}`;
+    if (item.itemVariantId) return `${item.itemCode ?? item.itemVariantId} — ${item.itemName ?? 'Item'}`;
     const variant = variantsById[item.productVariantId];
     if (!variant) return item.productVariantId;
     const productName = productsById[variant.productId]?.name ?? 'Unknown product';

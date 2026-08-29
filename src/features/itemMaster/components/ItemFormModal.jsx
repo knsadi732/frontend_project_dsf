@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
+import { itemApi } from '@/features/itemMaster/api';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -54,8 +55,17 @@ export function ItemFormModal({ open, onClose, initialValues, categoryOptions, o
 
   const { fields, append, remove } = useFieldArray({ control, name: 'specRows' });
 
+  // Display-only preview — GET /items/generate-code only previews the next
+  // item code, it doesn't reserve it; the real code is assigned server-side
+  // on save (or the typed-over value is used instead).
+  const [codePreview, setCodePreview] = useState('');
+
   useEffect(() => {
     if (open) {
+      if (!initialValues?.id) {
+        setCodePreview('');
+        itemApi.generateCode().then(setCodePreview);
+      }
       reset(
         initialValues
           ? {
@@ -98,7 +108,12 @@ export function ItemFormModal({ open, onClose, initialValues, categoryOptions, o
       <form id="item-form" onSubmit={handleSubmit(handleFormSubmit)} className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto pr-1" noValidate>
         <div className="grid grid-cols-2 gap-4">
           <AppInput label="Item name" required error={errors.itemName?.message} {...register('itemName', { required: 'Item name is required' })} />
-          <AppInput label="Item code" placeholder="Auto-generated if left blank" {...register('itemCode')} />
+          <AppInput
+            label="Item code"
+            placeholder={initialValues ? undefined : codePreview || 'Generating…'}
+            helperText={!initialValues ? `Leave blank to use ${codePreview || '…'}, or type your own` : undefined}
+            {...register('itemCode')}
+          />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <AppSelect

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useItemsQuery } from '@/features/itemMaster/queries/useItemsQuery';
+import { useItemVariantsQuery } from '@/features/itemMaster/queries/useItemVariantsQuery';
 import { useItemStockMovementsQuery } from '@/features/itemMaster/queries/useItemStockMovementsQuery';
 import { AppTable } from '@/components/ui/AppTable';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -15,15 +15,18 @@ const MOVEMENT_TYPE_VARIANT = { receipt: 'success', consumption: 'warning', adju
 export function ItemStockMovementsPanel() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [itemId, setItemId] = useState('');
+  const [itemVariantId, setItemVariantId] = useState('');
 
-  const { data: itemsData } = useItemsQuery({ pageSize: 500 });
-  const itemOptions = (itemsData?.data ?? []).map((item) => ({ value: item.id, label: `${item.itemCode} — ${item.itemName}` }));
+  const { data: itemVariantsData } = useItemVariantsQuery({ pageSize: 500 });
+  const itemVariantOptions = (itemVariantsData?.data ?? []).map((variant) => {
+    const attrs = [variant.size, variant.color].filter(Boolean).join('/');
+    return { value: variant.id, label: `${variant.sku} — ${variant.itemName}${attrs ? ` (${attrs})` : ''}` };
+  });
 
   const { data, isLoading, isFetching, refetch } = useItemStockMovementsQuery({
     page,
     pageSize,
-    itemId: itemId || undefined,
+    itemVariantId: itemVariantId || undefined,
   });
   const movements = data?.data ?? [];
 
@@ -47,9 +50,9 @@ export function ItemStockMovementsPanel() {
 
       <FilterBar>
         <AppSelect
-          value={itemId}
-          onChange={(event) => { setItemId(event.target.value); setPage(1); }}
-          options={itemOptions}
+          value={itemVariantId}
+          onChange={(event) => { setItemVariantId(event.target.value); setPage(1); }}
+          options={itemVariantOptions}
           placeholder="All items"
           className="w-64"
           aria-label="Filter by item"

@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { STOCK_KIND_OPTIONS } from '@/features/itemMaster/constants';
+import { itemCategoryApi } from '@/features/itemMaster/api';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -16,6 +17,11 @@ export function ItemCategoryFormModal({ open, onClose, initialValues, parentOpti
     formState: { errors },
   } = useForm({ defaultValues: DEFAULT_VALUES });
 
+  // Display-only preview — GET /items/categories/generate-code only previews
+  // the next category code, it doesn't reserve it, so typing over it (or
+  // leaving it blank) is fine; the real code is assigned server-side on save.
+  const [codePreview, setCodePreview] = useState('');
+
   useEffect(() => {
     if (open) {
       reset(
@@ -29,6 +35,10 @@ export function ItemCategoryFormModal({ open, onClose, initialValues, parentOpti
             }
           : DEFAULT_VALUES,
       );
+      if (!initialValues?.id) {
+        setCodePreview('');
+        itemCategoryApi.generateCode().then(setCodePreview);
+      }
     }
   }, [open, initialValues, reset]);
 
@@ -47,7 +57,12 @@ export function ItemCategoryFormModal({ open, onClose, initialValues, parentOpti
       <form id="item-category-form" onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
         <div className="grid grid-cols-2 gap-4">
           <AppInput label="Name" required error={errors.categoryName?.message} {...register('categoryName', { required: 'Name is required' })} />
-          <AppInput label="Category code" placeholder="Auto-generated if left blank" {...register('categoryCode')} />
+          <AppInput
+            label="Category code"
+            placeholder={initialValues ? undefined : codePreview || 'Generating…'}
+            helperText={!initialValues ? `Leave blank to use ${codePreview || '…'}, or type your own` : undefined}
+            {...register('categoryCode')}
+          />
         </div>
         <AppSelect
           label="Parent category"

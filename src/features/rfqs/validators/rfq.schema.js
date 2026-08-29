@@ -19,13 +19,13 @@ export const vendorQuotationSchema = z.object({
   freightAmount: z.coerce.number().min(0).optional().or(z.literal('')),
   discountAmount: z.coerce.number().min(0).optional().or(z.literal('')),
   remarks: z.string().optional(),
-  // Exactly one of productVariantId / itemId — seeded from the RFQ's own
-  // material list (VendorQuotationFormModal#emptyItemsFor), never user-picked.
+  // Exactly one of productVariantId / itemVariantId — seeded from the RFQ's
+  // own material list (VendorQuotationFormModal#emptyItemsFor), never user-picked.
   items: z
     .array(
       z.object({
         productVariantId: z.string().optional(),
-        itemId: z.string().optional(),
+        itemVariantId: z.string().optional(),
         unitPrice: z.coerce.number().min(0, 'Unit price is required'),
         gstPercentage: z.coerce.number().min(0).max(100).optional().or(z.literal('')),
       }),

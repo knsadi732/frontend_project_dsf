@@ -11,7 +11,7 @@ import { AppButton } from '@/components/ui/AppButton';
 // carry through whichever one the RFQ's source PR line actually has.
 function emptyItemsFor(materialItems) {
   return (materialItems ?? []).map((item) => ({
-    ...(item.itemId ? { itemId: item.itemId } : { productVariantId: item.productVariantId }),
+    ...(item.itemVariantId ? { itemVariantId: item.itemVariantId } : { productVariantId: item.productVariantId }),
     unitPrice: '',
     gstPercentage: '',
   }));
@@ -101,7 +101,7 @@ export function VendorQuotationFormModal({ open, onClose, rfq, onSubmit, isSubmi
               return (
                 <div key={field.id} className="grid grid-cols-[1fr_5rem_6rem_6rem] items-start gap-2">
                   <div className="flex h-9 items-center text-sm text-text">
-                    {material?.itemId
+                    {material?.itemVariantId
                       ? `${material.itemCode ?? ''} — ${material.itemName ?? ''}`
                       : material?.sku
                         ? `${material.sku} — ${material.productName ?? ''}`

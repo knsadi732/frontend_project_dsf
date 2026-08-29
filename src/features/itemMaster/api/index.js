@@ -1,1 +1,1 @@
-export { itemCategoryApi, itemApi, itemStockApi } from '@/services/item.api';
+export { itemCategoryApi, itemApi, itemVariantApi, itemStockApi } from '@/services/item.api';

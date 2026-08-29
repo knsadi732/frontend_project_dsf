@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { workOrderSchema } from '@/features/production/validators/workOrder.schema';
+import { productionApi } from '@/features/production/api';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
@@ -41,6 +42,7 @@ export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isS
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(workOrderSchema),
@@ -48,8 +50,16 @@ export function WorkOrderFormModal({ open, onClose, initialValues, onSubmit, isS
   });
 
   useEffect(() => {
-    if (open) reset(initialValues ?? DEFAULT_VALUES);
-  }, [open, initialValues, reset]);
+    if (!open) return;
+    reset(initialValues ?? DEFAULT_VALUES);
+
+    // New work order — the number isn't sequence-backed server-side (see
+    // production.api.js), so fetch a fresh suggestion as soon as the form
+    // opens, same UX as PR/PO/RFQ numbers elsewhere in the app.
+    if (!initialValues?.id) {
+      productionApi.generateNumber().then((generated) => setValue('workOrderNumber', generated));
+    }
+  }, [open, initialValues, reset, setValue]);
 
   // Size/variant options narrow to whatever product is currently selected —
   // a work order without a variant just targets the product broadly.

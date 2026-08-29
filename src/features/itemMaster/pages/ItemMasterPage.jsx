@@ -1,6 +1,7 @@
 import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { ItemCategoriesPanel } from '@/features/itemMaster/pages/ItemCategoriesPanel';
 import { ItemsPanel } from '@/features/itemMaster/pages/ItemsPanel';
+import { ItemVariantsPanel } from '@/features/itemMaster/pages/ItemVariantsPanel';
 import { ItemStockPanel } from '@/features/itemMaster/pages/ItemStockPanel';
 import { ItemStockMovementsPanel } from '@/features/itemMaster/pages/ItemStockMovementsPanel';
 import { Tabs } from '@/layouts/components/Tabs';
@@ -8,6 +9,7 @@ import { Tabs } from '@/layouts/components/Tabs';
 const TABS = [
   { key: 'categories', label: 'Categories' },
   { key: 'items', label: 'Items' },
+  { key: 'variants', label: 'Variants' },
   { key: 'stock', label: 'Stock' },
   { key: 'movements', label: 'Stock Movements' },
 ];
@@ -30,6 +32,7 @@ export function ItemMasterPage() {
 
       {activeTab === 'categories' && <ItemCategoriesPanel />}
       {activeTab === 'items' && <ItemsPanel />}
+      {activeTab === 'variants' && <ItemVariantsPanel />}
       {activeTab === 'stock' && <ItemStockPanel />}
       {activeTab === 'movements' && <ItemStockMovementsPanel />}
     </div>

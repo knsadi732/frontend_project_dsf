@@ -62,7 +62,7 @@ export function ItemStockPanel() {
               size="sm"
               title="Consume stock"
               aria-label={`Consume ${row.itemName}`}
-              onClick={(e) => { e.stopPropagation(); setConsumeTarget({ warehouseId: row.warehouseId, itemId: row.itemId }); }}
+              onClick={(e) => { e.stopPropagation(); setConsumeTarget({ warehouseId: row.warehouseId, itemVariantId: row.itemVariantId }); }}
             >
               <PackageMinus className="size-4" />
             </AppButton>

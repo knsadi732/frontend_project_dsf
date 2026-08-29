@@ -17,16 +17,16 @@ export const PURCHASE_ORDER_STATUS_PIPELINE = [
 ];
 export const PURCHASE_ORDER_CANCELLED = 'cancelled';
 
-// Exactly one of productVariantId (sellable Product) / itemId (Item &
-// Material Master) — mirrors the backend's xor validation.
+// Exactly one of productVariantId (sellable Product) / itemVariantId (Item &
+// Material Master variant) — mirrors the backend's xor validation.
 export const purchaseItemSchema = z
   .object({
     productVariantId: z.string().optional(),
-    itemId: z.string().optional(),
+    itemVariantId: z.string().optional(),
     quantity: z.coerce.number().int().positive('Quantity must be greater than 0'),
     unitCost: z.coerce.number().min(0, 'Unit cost cannot be negative'),
   })
-  .refine((item) => Boolean(item.productVariantId) !== Boolean(item.itemId), {
+  .refine((item) => Boolean(item.productVariantId) !== Boolean(item.itemVariantId), {
     message: 'Missing a product variant or item reference',
     path: ['productVariantId'],
   });

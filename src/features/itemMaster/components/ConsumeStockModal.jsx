@@ -1,24 +1,28 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
-import { useItemsQuery } from '@/features/itemMaster/queries/useItemsQuery';
+import { useItemVariantsQuery } from '@/features/itemMaster/queries/useItemVariantsQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
 
-const DEFAULT_VALUES = { warehouseId: '', itemId: '', quantity: '', remarks: '' };
+const DEFAULT_VALUES = { warehouseId: '', itemVariantId: '', quantity: '', remarks: '' };
 
 // Internal consumption (POST /items/stock/consume) — no Finance posting,
-// unlike Receive Stock. Pre-fills warehouse/item when opened from a stock row.
+// unlike Receive Stock. Pre-fills warehouse/item variant when opened from a
+// stock row. Stock is tracked per Item Variant (Chapter 8), not per Item.
 export function ConsumeStockModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
   const { data: warehousesData } = useWarehousesQuery({ pageSize: 200 });
   const warehouseOptions = (warehousesData?.data ?? []).map((w) => ({ value: w.id, label: w.name }));
 
-  const { data: itemsData } = useItemsQuery({ pageSize: 500 });
-  const itemOptions = (itemsData?.data ?? [])
-    .filter((item) => item.stockKind !== 'fixed_asset' && item.stockKind !== 'service')
-    .map((item) => ({ value: item.id, label: `${item.itemCode} — ${item.itemName}` }));
+  const { data: itemVariantsData } = useItemVariantsQuery({ pageSize: 500 });
+  const itemVariantOptions = (itemVariantsData?.data ?? [])
+    .filter((variant) => variant.stockKind !== 'fixed_asset' && variant.stockKind !== 'service')
+    .map((variant) => {
+      const attrs = [variant.size, variant.color].filter(Boolean).join('/');
+      return { value: variant.id, label: `${variant.sku} — ${variant.itemName}${attrs ? ` (${attrs})` : ''}` };
+    });
 
   const {
     register,
@@ -53,12 +57,12 @@ export function ConsumeStockModal({ open, onClose, initialValues, onSubmit, isSu
           {...register('warehouseId', { required: 'Warehouse is required' })}
         />
         <AppSelect
-          label="Item"
+          label="Item variant"
           required
-          placeholder="Select item"
-          options={itemOptions}
-          error={errors.itemId?.message}
-          {...register('itemId', { required: 'Item is required' })}
+          placeholder="Select item variant"
+          options={itemVariantOptions}
+          error={errors.itemVariantId?.message}
+          {...register('itemVariantId', { required: 'Item variant is required' })}
         />
         <AppInput
           label="Quantity"

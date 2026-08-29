@@ -48,6 +48,11 @@ function toBackendPayload(payload) {
 }
 
 export const productionApi = {
+  // GET /work-orders/generate-number — previews the next work order number.
+  // Not sequence-backed (see workOrder.repository.js#generateWorkOrderNumber),
+  // so this is a fresh value every call, not a "peek" of something reserved
+  // server-side — the frontend sends this same value back on create.
+  generateNumber: () => apiClient.get('/work-orders/generate-number').then((res) => res.data.data.workOrderNumber),
   // ProductionPage.jsx's filter state is named `status` (matching every
   // other module's convention) but the backend's stage field/query param is
   // `stage` (workOrder.controller.js reads req.query.stage) — translate here.

@@ -57,9 +57,9 @@ function downloadPurchasePdf(row, productsById, variantsById, company, vendorsBy
       vendor: vendorsById[full.vendorId],
       warehouse: warehousesById[full.warehouseId],
       items: (full.items ?? []).map((item) => {
-        if (item.itemId) {
+        if (item.itemVariantId) {
           return {
-            label: `${item.itemCode ?? item.itemId} — ${item.itemName ?? 'Item'}`,
+            label: `${item.itemCode ?? item.itemVariantId} — ${item.itemName ?? 'Item'}`,
             quantity: item.quantity,
             unitCost: item.unitCost,
             hsnCode: undefined,
@@ -252,12 +252,12 @@ export function PurchasesPage() {
     const items = rfq.materialItems.map((material) => {
       // A material line is either a Product Variant or an Item Master row —
       // match the quotation's corresponding line by whichever it is.
-      const quoted = material.itemId
-        ? quotation.items.find((item) => item.itemId === material.itemId)
+      const quoted = material.itemVariantId
+        ? quotation.items.find((item) => item.itemVariantId === material.itemVariantId)
         : quotation.items.find((item) => item.productVariantId === material.productVariantId);
       return {
-        ...(material.itemId
-          ? { itemId: material.itemId, itemCode: material.itemCode, itemName: material.itemName }
+        ...(material.itemVariantId
+          ? { itemVariantId: material.itemVariantId, itemCode: material.itemCode, itemName: material.itemName }
           : { productVariantId: material.productVariantId }),
         quantity: material.quantity,
         unitCost: quoted?.unitPrice ?? '',

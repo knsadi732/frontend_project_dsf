@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
-import { useItemsQuery } from '@/features/itemMaster/queries/useItemsQuery';
+import { useItemVariantsQuery } from '@/features/itemMaster/queries/useItemVariantsQuery';
 import { useFundingSourcesQuery } from '@/features/ledger/queries/useFundingSourcesQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
@@ -38,7 +38,7 @@ function todayIso() {
 
 const DEFAULT_VALUES = {
   warehouseId: '',
-  itemId: '',
+  itemVariantId: '',
   quantity: '',
   unitCost: '',
   description: '',
@@ -82,10 +82,13 @@ export function ReceiveStockModal({ open, onClose, onSubmit, isSubmitting }) {
   const { data: warehousesData } = useWarehousesQuery({ pageSize: 200 });
   const warehouseOptions = (warehousesData?.data ?? []).map((w) => ({ value: w.id, label: w.name }));
 
-  const { data: itemsData } = useItemsQuery({ pageSize: 500 });
-  const itemOptions = (itemsData?.data ?? [])
-    .filter((item) => item.stockKind !== 'fixed_asset' && item.stockKind !== 'service')
-    .map((item) => ({ value: item.id, label: `${item.itemCode} — ${item.itemName}` }));
+  const { data: itemVariantsData } = useItemVariantsQuery({ pageSize: 500 });
+  const itemVariantOptions = (itemVariantsData?.data ?? [])
+    .filter((variant) => variant.stockKind !== 'fixed_asset' && variant.stockKind !== 'service')
+    .map((variant) => {
+      const attrs = [variant.size, variant.color].filter(Boolean).join('/');
+      return { value: variant.id, label: `${variant.sku} — ${variant.itemName}${attrs ? ` (${attrs})` : ''}` };
+    });
 
   const { data: fundingSourcesData } = useFundingSourcesQuery();
   const fundingSources = fundingSourcesData?.data ?? [];
@@ -176,12 +179,12 @@ export function ReceiveStockModal({ open, onClose, onSubmit, isSubmitting }) {
             {...register('warehouseId', { required: 'Warehouse is required' })}
           />
           <AppSelect
-            label="Item"
+            label="Item variant"
             required
-            placeholder="Select item"
-            options={itemOptions}
-            error={errors.itemId?.message}
-            {...register('itemId', { required: 'Item is required' })}
+            placeholder="Select item variant"
+            options={itemVariantOptions}
+            error={errors.itemVariantId?.message}
+            {...register('itemVariantId', { required: 'Item variant is required' })}
           />
         </div>
         <div className="grid grid-cols-2 gap-4">

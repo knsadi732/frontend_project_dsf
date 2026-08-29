@@ -10,23 +10,23 @@ export const PR_STATUS_OPTIONS = [
   { value: 'rejected', label: 'Rejected' },
 ];
 
-// Exactly one of productVariantId (sellable Product) / itemId (Item &
-// Material Master — raw material, packaging, consumable, spare, tool,
-// service) — mirrors the backend's xor validation.
+// Exactly one of productVariantId (sellable Product) / itemVariantId (Item &
+// Material Master variant — raw material, packaging, consumable, spare,
+// tool, service) — mirrors the backend's xor validation.
 export const purchaseRequestItemSchema = z
   .object({
     productVariantId: z.string().optional(),
-    itemId: z.string().optional(),
+    itemVariantId: z.string().optional(),
     quantity: z.coerce.number().int().positive('Quantity must be greater than 0'),
     remarks: z.string().optional(),
   })
-  .refine((item) => Boolean(item.productVariantId) !== Boolean(item.itemId), {
+  .refine((item) => Boolean(item.productVariantId) !== Boolean(item.itemVariantId), {
     message: 'Select a product variant or an item',
     path: ['productVariantId'],
   });
 
 // Real backend body: { warehouseId, departmentId?, branchId?, priority?,
-// requiredDate?, remarks?, items: [{ productVariantId | itemId, quantity, remarks? }] }
+// requiredDate?, remarks?, items: [{ productVariantId | itemVariantId, quantity, remarks? }] }
 // — confirmed against purchaseRequest.validator.js / purchase_request_items table.
 export const purchaseRequestSchema = z.object({
   warehouseId: z.string().min(1, 'Warehouse is required'),

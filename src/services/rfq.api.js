@@ -42,7 +42,7 @@ function fromBackendMaterialItem(row) {
     color: row.color,
     productName: row.product_name,
     // Item Master side (mutually exclusive with the product fields above).
-    itemId: row.item_id ?? row.itemId,
+    itemVariantId: row.item_variant_id ?? row.itemVariantId,
     itemCode: row.item_code,
     itemName: row.item_name,
     itemUom: row.item_uom,
@@ -72,7 +72,7 @@ function fromBackendQuotation(row) {
       size: item.size,
       color: item.color,
       productName: item.product_name,
-      itemId: item.item_id,
+      itemVariantId: item.item_variant_id,
       itemCode: item.item_code,
       itemName: item.item_name,
       unitPrice: Number(item.unit_price ?? 0),
