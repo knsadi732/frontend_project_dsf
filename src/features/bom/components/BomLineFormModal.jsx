@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { bomLineSchema } from '@/features/bom/validators/bomLine.schema';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
-import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
+import { useItemVariantsQuery } from '@/features/itemMaster/queries/useItemVariantsQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -22,13 +22,16 @@ export function BomLineFormModal({ open, onClose, initialValues, onSubmit, isSub
     .filter((product) => product.productionRequired)
     .map((product) => ({ value: product.id, label: product.name }));
 
-  // Raw material inputs only — see PurchaseRequestFormModal's product_type
-  // filter (GET /product-variants?product_type=raw_material).
-  const { data: variantsData } = useProductVariantsQuery({ pageSize: 500, product_type: 'raw_material' });
-  const variantOptions = (variantsData?.data ?? []).map((variant) => ({
-    value: variant.id,
-    label: [variant.sku, variant.size, variant.color].filter(Boolean).join(' — '),
-  }));
+  // Raw material lives in the Item & Material Master domain (Chapter 8),
+  // never Product — Product is only sellable/manufactured finished goods
+  // (Chapter 7). BOM's raw material side references item_variants.
+  const { data: itemVariantsData } = useItemVariantsQuery({ pageSize: 500 });
+  const variantOptions = (itemVariantsData?.data ?? [])
+    .filter((variant) => variant.stockKind === 'raw_material')
+    .map((variant) => ({
+      value: variant.id,
+      label: [variant.itemName, variant.sku, variant.size, variant.color].filter(Boolean).join(' — '),
+    }));
 
   const {
     register,

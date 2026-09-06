@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { quickEntrySchema } from '@/features/ledger/validators/quickEntry.schema';
 import { useFundingSourcesQuery } from '@/features/ledger/queries/useFundingSourcesQuery';
@@ -7,6 +7,7 @@ import { useUsersQuery } from '@/features/users/queries/useUsersQuery';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
+import { AppComboSelect } from '@/components/ui/AppComboSelect';
 import { AppButton } from '@/components/ui/AppButton';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -173,12 +174,19 @@ export function QuickEntryModal({ open, onClose, onSubmit, isSubmitting, onNewFu
           <AppSelect label="Funding type" options={FUNDING_TYPE_OPTIONS} error={errors.fundingType?.message} {...register('fundingType')} />
         </div>
 
-        <AppSelect
-          label="Paid / received by"
-          placeholder="Select person"
-          options={users.map((u) => ({ value: u.id, label: u.fullName }))}
-          error={errors.paidReceivedBy?.message}
-          {...register('paidReceivedBy')}
+        <Controller
+          control={control}
+          name="paidReceivedBy"
+          render={({ field }) => (
+            <AppComboSelect
+              label="Paid / received by"
+              placeholder="Select person"
+              options={users.map((u) => ({ value: u.id, label: u.fullName }))}
+              error={errors.paidReceivedBy?.message}
+              value={field.value}
+              onChange={field.onChange}
+            />
+          )}
         />
 
         <label className="flex items-center gap-2 text-sm text-text">

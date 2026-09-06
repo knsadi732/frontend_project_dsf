@@ -24,12 +24,18 @@ export function BaseTable({
   onSortChange,
   onRowClick,
   className,
+  stickyHeader = false,
 }) {
   return (
     <div className={cn('overflow-x-auto', className)}>
       <table className="w-full border-collapse text-left text-sm">
-        <thead>
-          <tr className="border-b border-border bg-surface-hover/60 text-xs uppercase tracking-wide text-text-muted">
+        <thead className={cn(stickyHeader && 'sticky top-0 z-10')}>
+          <tr
+            className={cn(
+              'border-b border-border text-xs uppercase tracking-wide text-text-muted',
+              stickyHeader ? 'bg-surface' : 'bg-surface-hover/60',
+            )}
+          >
             {columns.map((column) => {
               const isSorted = sort?.key === column.key;
               const SortIcon = isSorted ? (sort.direction === 'asc' ? ArrowUp : ArrowDown) : ChevronsUpDown;

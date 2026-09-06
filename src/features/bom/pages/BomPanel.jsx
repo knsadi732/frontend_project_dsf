@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useBomLinesQuery } from '@/features/bom/queries/useBomLinesQuery';
-import { useCreateBomLine } from '@/features/bom/mutations/useCreateBomLine';
+import { useCreateBomLines } from '@/features/bom/mutations/useCreateBomLines';
 import { useUpdateBomLine } from '@/features/bom/mutations/useUpdateBomLine';
 import { useDeleteBomLine } from '@/features/bom/mutations/useDeleteBomLine';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
+import { BomBuilderModal } from '@/features/bom/components/BomBuilderModal';
 import { BomLineFormModal } from '@/features/bom/components/BomLineFormModal';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
@@ -27,6 +28,7 @@ export function BomPanel() {
   const [productFilter, setProductFilter] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [builderOpen, setBuilderOpen] = useState(false);
   const [formState, setFormState] = useState({ open: false, bomLine: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -42,16 +44,16 @@ export function BomPanel() {
     .filter((product) => product.productionRequired)
     .map((product) => ({ value: product.id, label: product.name }));
 
-  const createBomLine = useCreateBomLine();
+  const createBomLines = useCreateBomLines();
   const updateBomLine = useUpdateBomLine();
   const deleteBomLine = useDeleteBomLine();
 
-  const handleSubmit = (values) => {
-    const action = formState.bomLine?.id
-      ? updateBomLine.mutateAsync({ id: formState.bomLine.id, payload: values })
-      : createBomLine.mutateAsync(values);
+  const handleCreate = (values) => {
+    createBomLines.mutateAsync(values).then(() => setBuilderOpen(false));
+  };
 
-    action.then(() => setFormState({ open: false, bomLine: null }));
+  const handleUpdate = (values) => {
+    updateBomLine.mutateAsync({ id: formState.bomLine.id, payload: values }).then(() => setFormState({ open: false, bomLine: null }));
   };
 
   const handleConfirmDelete = () => {
@@ -90,7 +92,7 @@ export function BomPanel() {
           Define how much raw material goes into one unit of each manufactured product.
         </p>
         <Can module={MODULES.PRODUCTION} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, bomLine: null })}>New BOM line</CreateButton>
+          <CreateButton onClick={() => setBuilderOpen(true)}>New BOM</CreateButton>
         </Can>
       </div>
 
@@ -133,12 +135,19 @@ export function BomPanel() {
         emptyMessage="No BOM lines yet"
       />
 
+      <BomBuilderModal
+        open={builderOpen}
+        onClose={() => setBuilderOpen(false)}
+        onSubmit={handleCreate}
+        isSubmitting={createBomLines.isPending}
+      />
+
       <BomLineFormModal
         open={formState.open}
         initialValues={formState.bomLine}
         onClose={() => setFormState({ open: false, bomLine: null })}
-        onSubmit={handleSubmit}
-        isSubmitting={createBomLine.isPending || updateBomLine.isPending}
+        onSubmit={handleUpdate}
+        isSubmitting={updateBomLine.isPending}
       />
 
       <AppModal

@@ -1,4 +1,5 @@
 import { BaseCard, CardHeader, CardBody } from '@/components/ui/BaseCard';
+import { formatDisplayDate } from '@/features/compliance/utils/reportPeriod';
 import { cn } from '@/utils/cn';
 
 function fmt(value) {
@@ -13,7 +14,14 @@ export function PnlReportCard({ report, isLoading }) {
   return (
     <BaseCard>
       <CardHeader>
-        <h3 className="text-sm font-semibold text-text">Profit &amp; loss (ITR / CA reference)</h3>
+        <h3 className="text-sm font-semibold text-text">
+          Profit &amp; loss (ITR / CA reference)
+          {report?.period?.from && report?.period?.to && (
+            <span className="ml-2 font-normal text-text-muted">
+              for {formatDisplayDate(report.period.from)} – {formatDisplayDate(report.period.to)}
+            </span>
+          )}
+        </h3>
       </CardHeader>
       <CardBody>
         {isLoading ? (
@@ -60,49 +68,40 @@ export function PnlReportCard({ report, isLoading }) {
               </div>
             )}
 
-            {report?.fixedAssetsSummary && report.fixedAssetsSummary.assets.length > 0 && (
+            {report?.fixedAssetsSummary?.periodAdditions && (
               <div className="flex flex-col gap-2 rounded-md border border-border bg-surface-hover/40 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                  Fixed assets on the books (not in P&amp;L expense — only depreciation is)
+                  Assets purchased in this period
                 </p>
-                <dl className="grid grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <dt className="text-text-muted">Total cost</dt>
-                    <dd className="font-semibold text-text">{fmt(report.fixedAssetsSummary.totalCost)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-text-muted">Accumulated depreciation</dt>
-                    <dd className="font-semibold text-text">{fmt(report.fixedAssetsSummary.totalAccumulatedDepreciation)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-text-muted">Net book value</dt>
-                    <dd className="font-semibold text-success">{fmt(report.fixedAssetsSummary.netBookValue)}</dd>
-                  </div>
-                </dl>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-border bg-surface-hover/60 text-xs uppercase tracking-wide text-text-muted">
-                        <th scope="col" className="px-3 py-1.5 font-medium">Asset</th>
-                        <th scope="col" className="px-3 py-1.5 font-medium">Cost</th>
-                        <th scope="col" className="px-3 py-1.5 font-medium">Depreciation</th>
-                        <th scope="col" className="px-3 py-1.5 font-medium">Net book value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {report.fixedAssetsSummary.assets.map((asset) => (
-                        <tr key={asset.assetTag} className="border-b border-border last:border-0">
-                          <td className="px-3 py-2 text-text">
-                            {asset.assetTag} — {asset.assetName}
-                          </td>
-                          <td className="px-3 py-2 text-text">{fmt(asset.purchaseCost)}</td>
-                          <td className="px-3 py-2 text-text">{fmt(asset.accumulatedDepreciation)}</td>
-                          <td className="px-3 py-2 text-text">{fmt(asset.netBookValue)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {report.fixedAssetsSummary.periodAdditions.assets.length === 0 ? (
+                  <p className="text-sm text-text-muted">No asset purchases in this period.</p>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-text">{fmt(report.fixedAssetsSummary.periodAdditions.totalCost)}</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-border bg-surface-hover/60 text-xs uppercase tracking-wide text-text-muted">
+                            <th scope="col" className="px-3 py-1.5 font-medium">Asset</th>
+                            <th scope="col" className="px-3 py-1.5 font-medium">Purchase date</th>
+                            <th scope="col" className="px-3 py-1.5 font-medium">Cost</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {report.fixedAssetsSummary.periodAdditions.assets.map((asset) => (
+                            <tr key={asset.assetTag} className="border-b border-border last:border-0">
+                              <td className="px-3 py-2 text-text">
+                                {asset.assetTag} — {asset.assetName}
+                              </td>
+                              <td className="px-3 py-2 text-text">{formatDisplayDate(String(asset.purchaseDate).slice(0, 10))}</td>
+                              <td className="px-3 py-2 text-text">{fmt(asset.purchaseCost)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

@@ -29,14 +29,20 @@ export function LedgerPanel() {
   const [fundingSourceOpen, setFundingSourceOpen] = useState(false);
 
   const { data, isLoading, isFetching, refetch } = useLedgerQuery();
-  const { data: summary, refetch: refetchSummary } = useLedgerSummaryQuery();
+  const { refetch: refetchSummary } = useLedgerSummaryQuery();
   const recordTransaction = useRecordTransaction();
   const quickEntry = useQuickEntry();
   const createFundingSource = useCreateFundingSource();
   const allEntries = data?.data ?? [];
   const start = (page - 1) * pageSize;
   const pageEntries = allEntries.slice(start, start + pageSize);
-  const balance = summary?.balance ?? 0;
+  // The header "Balance" must reflect actual company cash, not the CA/compliance
+  // summary endpoint's full P&L total (which intentionally includes amounts a
+  // funding source paid a vendor directly, never touching DS Footwear's own
+  // bank/cash — see affectsCompanyCash). The per-row running `balance` (oldest
+  // first, from ledger.api.js) already excludes those, so its last entry is the
+  // correct current cash position.
+  const balance = allEntries.length > 0 ? allEntries[allEntries.length - 1].balance : 0;
 
   // One shared fetch per attachment type (not per-row) — LedgerAttachmentCell
   // just looks up its own transaction id in the resulting map.
@@ -83,6 +89,18 @@ export function LedgerPanel() {
     { key: 'voucher', header: 'Voucher', render: (row) => <BaseBadge variant="info">{row.voucher}</BaseBadge> },
     { key: 'category', header: 'Category', render: (row) => row.category || '—' },
     { key: 'partyName', header: 'Party', render: (row) => row.partyName || '—' },
+    {
+      key: 'companyCash',
+      header: 'DSF A/c?',
+      render: (row) =>
+        row.affectsCompanyCash ? (
+          '—'
+        ) : (
+          <BaseBadge variant="warning" title="Paid directly by the funding source — never entered DS Footwear's own bank/cash, so it's excluded from the running Balance below (still counted in the Owner Advance payable).">
+            Not in DSF a/c
+          </BaseBadge>
+        ),
+    },
     { key: 'utrReference', header: 'UTR / Txn ID', render: (row) => row.utrReference || '—' },
     { key: 'invoiceNumber', header: 'Invoice No', render: (row) => row.invoiceNumber || '—' },
     { key: 'orderNumber', header: 'Order ID', render: (row) => row.orderId || row.orderNumber || '—' },
@@ -183,6 +201,8 @@ export function LedgerPanel() {
           setPage(1);
         }}
         emptyMessage="No ledger entries yet"
+        stickyHeader
+        className="max-h-[560px] overflow-y-auto"
       />
 
       <AddFundModal

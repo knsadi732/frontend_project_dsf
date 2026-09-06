@@ -45,6 +45,12 @@ function fromBackendTransaction(row) {
     debit: Number(row.debit),
     credit: Number(row.credit),
     balance: Number(row.balance),
+    // False for a funding source paying a vendor directly out of their own
+    // pocket "on the company's behalf" — that money never touched DS
+    // Footwear's own bank/cash, so it's excluded from the running `balance`
+    // above (see financeTransaction.repository.js) even though it still
+    // counts as a real business expense and toward what's owed back to them.
+    affectsCompanyCash: row.affects_company_cash ?? true,
   };
 }
 
@@ -117,6 +123,10 @@ export const ledgerApi = {
   // CA scope — re-derives the ledger summary and stamps it verified
   // (finance.routes.js GET /finance/ledger/cross-verify).
   crossVerify: () => apiClient.get('/finance/ledger/cross-verify').then((res) => res.data.data),
+  // GET /finance/ledger/cash-balance — the company's real bank/cash position
+  // (only rows where affects_company_cash), unlike summary() above which is the
+  // CA/compliance-scope total including a funding source's direct-to-vendor spend.
+  cashBalance: () => apiClient.get('/finance/ledger/cash-balance').then((res) => Number(res.data.data.balance)),
   // POST /finance/transactions (finance.validator.js's recordTransaction).
   // Only `referenceType: 'manual'` lets the caller pick `direction` — every
   // other type ('order'/'purchase_order'/'expense') has its direction

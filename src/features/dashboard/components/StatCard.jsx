@@ -12,12 +12,18 @@ const TONES = {
   silver: ['#e4e7eb', '#9ca3af'],
 };
 
-export function StatCard({ label, value, delta, icon: Icon, tone = 'blue' }) {
+export function StatCard({ label, value, delta, icon: Icon, tone = 'blue', subtitle, onClick }) {
   const isPositive = delta?.startsWith('+');
   const [light, dark] = TONES[tone] ?? TONES.blue;
+  const Wrapper = onClick ? 'button' : 'div';
 
   return (
-    <div className="p-1" style={{ filter: `drop-shadow(0 10px 16px ${dark}80)` }}>
+    <Wrapper
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      className={onClick ? 'block w-full p-1 text-left transition-transform duration-150 hover:-translate-y-0.5' : 'p-1'}
+      style={{ filter: `drop-shadow(0 10px 16px ${dark}80)` }}
+    >
       <div
         className="relative flex min-h-[104px] flex-col justify-between overflow-hidden p-3.5 text-white"
         style={{
@@ -65,8 +71,9 @@ export function StatCard({ label, value, delta, icon: Icon, tone = 'blue' }) {
           <p className="mt-0.5 text-xl font-bold tracking-tight" style={{ textShadow: '0 1px 0 rgba(0,0,0,0.35)' }}>
             {value}
           </p>
+          {subtitle && <p className="mt-0.5 truncate text-[11px] text-white/75">{subtitle}</p>}
         </div>
       </div>
-    </div>
+    </Wrapper>
   );
 }
