@@ -31,14 +31,22 @@ export function ItemVariantFormModal({ open, onClose, initialValues, itemOptions
     formState: { errors },
   } = useForm({ defaultValues: DEFAULT_VALUES });
 
+  // Set the displayed SKU the instant `open` flips true — during render
+  // (the "adjusting state on a prop change" pattern), not in an effect, so
+  // it doesn't cost an extra cascading render. The edit-mode value is known
+  // synchronously (initialValues.sku); only the generated one needs a fetch.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setSkuPreview(isEdit ? initialValues?.sku ?? '' : '');
+  }
+
   useEffect(() => {
     if (!open) return;
     reset(initialValues ?? DEFAULT_VALUES);
 
     if (!isEdit) {
       itemVariantApi.generateSku().then((sku) => setSkuPreview(sku));
-    } else {
-      setSkuPreview(initialValues?.sku ?? '');
     }
   }, [open, initialValues, isEdit, reset, setValue]);
 

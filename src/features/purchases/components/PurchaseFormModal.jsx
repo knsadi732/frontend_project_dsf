@@ -145,14 +145,15 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, onCa
     reset(initialValues ?? {});
 
     // New PO (via Convert to PO) — the number is server-generated
-    // (sequence-backed), fetch it as soon as the form opens.
+    // (sequence-backed), fetch it as soon as the form opens. Edit mode needs
+    // no preview state at all: `poNumber` already carries the real value via
+    // the reset() above, so the render below reads straight from that
+    // instead of mirroring it into poNumberPreview.
     if (!isEdit) {
       purchaseApi.generateNumber().then((generated) => {
         setPoNumberPreview(generated);
         setValue('poNumber', generated);
       });
-    } else {
-      setPoNumberPreview(initialValues?.poNumber ?? '');
     }
   }, [open, initialValues, isEdit, reset, setValue]);
 
@@ -199,7 +200,7 @@ export function PurchaseFormModal({ open, onClose, initialValues, onSubmit, onCa
             required
             disabled
             placeholder={isGeneratingNumber ? 'Generating…' : undefined}
-            value={poNumberPreview || poNumber || ''}
+            value={(!isEdit && poNumberPreview) || poNumber || ''}
             error={errors.poNumber?.message}
             {...register('poNumber')}
           />

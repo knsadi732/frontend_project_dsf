@@ -134,13 +134,23 @@ export function PurchaseRequestFormModal({
   // doesn't carry departmentId yet (see auth.api.js's fromBackendUser).
   const departmentAutoFilled = Boolean(user?.departmentId);
 
+  // Reset the form + UI-only local state the instant `open` flips true —
+  // done during render (the "adjusting state on a prop change" pattern),
+  // not in an effect, so it doesn't cost an extra cascading render.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      reset({ ...DEFAULT_VALUES, departmentId: user?.departmentId ?? '' });
+      setSourceTypes(['product']);
+      setItemFilters([{ categoryId: '', itemId: '' }]);
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
-    reset({ ...DEFAULT_VALUES, departmentId: user?.departmentId ?? '' });
-    setSourceTypes(['product']);
-    setItemFilters([{ categoryId: '', itemId: '' }]);
     purchaseRequestApi.generateNumber().then((generated) => setValue('__prNumberPreview', generated));
-  }, [open, reset, setValue, user]);
+  }, [open, setValue]);
 
   const handleAddItem = () => {
     append(EMPTY_ITEM);

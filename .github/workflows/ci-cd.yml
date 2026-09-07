@@ -1,0 +1,54 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [test-server, development, main]
+  pull_request:
+    branches: [test-server, development, main]
+
+jobs:
+  test:
+    name: Lint + test + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_SOCKET_URL: ${{ vars.VITE_SOCKET_URL }}
+          VITE_MOCK_AUTH: 'false'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Cloudflare Pages (test-server)
+    needs: test
+    if: github.ref == 'refs/heads/test-server' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+          directory: dist
+          branch: test-server

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useWorkOrdersQuery } from '@/features/production/queries/useWorkOrdersQuery';
 import { useOverheadPerUnitQuery } from '@/features/production/queries/useOverheadPerUnitQuery';
 import { useMarketplaceChannelsQuery } from '@/features/marketplaceChannels/queries/useMarketplaceChannelsQuery';
@@ -57,11 +57,15 @@ export function PricingCalculatorModal({ variant, onClose }) {
       ? channelMonthly.actualCostPerUnit
       : (selectedChannel?.defaultCostPerUnit ?? 0);
 
-  useEffect(() => {
-    if (selectedChannel) {
-      setMargin(Math.round((selectedChannel.marginMin + selectedChannel.marginMax) / 2));
-    }
-  }, [channelId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Reset margin to the new channel's midpoint the instant the channel
+  // selection changes — during render (the "adjusting state on a prop
+  // change" pattern), not in an effect, so it doesn't cost an extra
+  // cascading render. `margin` stays independently editable afterward.
+  const [prevChannelId, setPrevChannelId] = useState(channelId);
+  if (channelId !== prevChannelId) {
+    setPrevChannelId(channelId);
+    if (selectedChannel) setMargin(Math.round((selectedChannel.marginMin + selectedChannel.marginMax) / 2));
+  }
 
   const sellingPrice = actualUnitCost + marketplaceCost + Number(margin || 0);
   const mrp = sellingPrice > 0 ? roundToNine(sellingPrice / (1 - Number(assumedDiscountPercent || 0) / 100)) : 0;

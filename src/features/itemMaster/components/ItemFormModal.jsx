@@ -60,10 +60,18 @@ export function ItemFormModal({ open, onClose, initialValues, categoryOptions, o
   // on save (or the typed-over value is used instead).
   const [codePreview, setCodePreview] = useState('');
 
+  // Clear the stale preview the instant `open` flips true — during render
+  // (the "adjusting state on a prop change" pattern), not in an effect, so
+  // it doesn't cost an extra cascading render.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open && !initialValues?.id) setCodePreview('');
+  }
+
   useEffect(() => {
     if (open) {
       if (!initialValues?.id) {
-        setCodePreview('');
         itemApi.generateCode().then(setCodePreview);
       }
       reset(

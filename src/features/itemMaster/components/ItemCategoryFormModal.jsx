@@ -22,6 +22,15 @@ export function ItemCategoryFormModal({ open, onClose, initialValues, parentOpti
   // leaving it blank) is fine; the real code is assigned server-side on save.
   const [codePreview, setCodePreview] = useState('');
 
+  // Clear the stale preview the instant `open` flips true — during render
+  // (the "adjusting state on a prop change" pattern), not in an effect, so
+  // it doesn't cost an extra cascading render.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open && !initialValues?.id) setCodePreview('');
+  }
+
   useEffect(() => {
     if (open) {
       reset(
@@ -36,7 +45,6 @@ export function ItemCategoryFormModal({ open, onClose, initialValues, parentOpti
           : DEFAULT_VALUES,
       );
       if (!initialValues?.id) {
-        setCodePreview('');
         itemCategoryApi.generateCode().then(setCodePreview);
       }
     }

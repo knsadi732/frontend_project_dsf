@@ -134,6 +134,9 @@ function toBackendItemVariantCreatePayload(payload) {
 }
 
 function toBackendItemVariantUpdatePayload(payload) {
+  // itemId/sku are destructured out purely to exclude them from `rest` —
+  // neither is editable on an existing variant.
+  // eslint-disable-next-line no-unused-vars
   const { itemId, sku, standardCost, ...rest } = payload;
   return {
     ...rest,
