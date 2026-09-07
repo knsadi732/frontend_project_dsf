@@ -1,12 +1,11 @@
-import { Bar, BarChart, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useThemeStore } from '@/store/themeStore';
 
 // Diverging by definition (dataviz skill: "Above/below a baseline → diverging
 // bar") — blue↔red poles (the skill's own default diverging pair; blue↔aqua
 // was rejected there because both read as "cool" and lose the "opposite"
 // signal, and red↔green fails CVD separation outright), neutral gray for the
-// break-even band around zero. Same blue/red hexes as the Credit/Debit chart
-// for consistency, already validated in both modes.
+// break-even band around zero.
 const PROFIT = { light: '#2a78d6', dark: '#3987e5' };
 const LOSS = { light: '#e34948', dark: '#e66767' };
 const BREAK_EVEN = { light: '#9c9c94', dark: '#7a7a72' };
@@ -32,9 +31,10 @@ function ChartTooltip({ active, payload }) {
   );
 }
 
-// Margin per SKU/variant = selling price - production unit cost. A ~2% band
-// around zero reads as "no loss, no profit" (break-even) rather than forcing
-// every near-zero rounding difference into a false profit/loss color.
+// Margin per SKU/variant = selling price - production unit cost, plotted
+// against a zero reference line — a ~2% band around zero reads as "no loss,
+// no profit" (break-even) rather than forcing every near-zero rounding
+// difference into a false profit/loss color.
 export function MarginChart({ data, height = 170 }) {
   const theme = useThemeStore((s) => s.theme);
 
@@ -51,17 +51,23 @@ export function MarginChart({ data, height = 170 }) {
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={colored} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 0 }} barCategoryGap="30%">
-        <XAxis type="number" tickFormatter={formatMoney} tickLine={false} axisLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} />
-        <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={110} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} />
-        <ReferenceLine x={0} stroke="var(--color-border)" />
-        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-surface-hover)' }} />
-        <Bar dataKey="margin" maxBarSize={16} radius={[4, 4, 4, 4]}>
-          {colored.map((entry) => (
-            <Cell key={entry.name} fill={entry.color} />
-          ))}
-        </Bar>
-      </BarChart>
+      <LineChart data={colored} margin={{ top: 8, right: 16, left: 4, bottom: 0 }}>
+        <CartesianGrid vertical={false} stroke="var(--color-border)" />
+        <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={50} />
+        <YAxis tickFormatter={formatMoney} tickLine={false} axisLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} width={64} />
+        <ReferenceLine y={0} stroke="var(--color-border)" />
+        <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-border)' }} />
+        <Line
+          type="monotone"
+          dataKey="margin"
+          stroke={theme === 'dark' ? PROFIT.dark : PROFIT.light}
+          strokeWidth={2}
+          dot={(props) => {
+            const { cx, cy, payload, index } = props;
+            return <circle key={`dot-${payload.name}-${index}`} cx={cx} cy={cy} r={4} fill={payload.color} stroke="var(--color-surface)" strokeWidth={2} />;
+          }}
+        />
+      </LineChart>
     </ResponsiveContainer>
   );
 }

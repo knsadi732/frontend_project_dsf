@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useThemeStore } from '@/store/themeStore';
 
 // Two real series across shared product categories → categorical, legend
@@ -27,8 +27,8 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 // Units sold vs current on-hand stock, per top product — a fast-mover with
-// low stock (tall blue, short orange) or a slow-mover with excess (short
-// blue, tall orange) both read at a glance.
+// low stock (sold line above stock line) or a slow-mover with excess (stock
+// line above sold line) both read at a glance.
 export function SalesVsInventoryChart({ data, height = 170 }) {
   const theme = useThemeStore((s) => s.theme);
   const soldColor = theme === 'dark' ? SOLD.dark : SOLD.light;
@@ -40,15 +40,15 @@ export function SalesVsInventoryChart({ data, height = 170 }) {
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 0 }} barCategoryGap="25%" barGap={2}>
+      <LineChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke="var(--color-border)" />
         <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={50} />
         <YAxis tickLine={false} axisLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} width={44} tickFormatter={formatQty} />
-        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--color-surface-hover)' }} />
+        <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'var(--color-border)' }} />
         <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: 'var(--color-text-muted)' }} />
-        <Bar dataKey="sold" name="Units Sold" fill={soldColor} maxBarSize={20} radius={[4, 4, 0, 0]} />
-        <Bar dataKey="stock" name="Current Stock" fill={stockColor} maxBarSize={20} radius={[4, 4, 0, 0]} />
-      </BarChart>
+        <Line type="monotone" dataKey="sold" name="Units Sold" stroke={soldColor} strokeWidth={2} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="stock" name="Current Stock" stroke={stockColor} strokeWidth={2} dot={{ r: 3 }} />
+      </LineChart>
     </ResponsiveContainer>
   );
 }

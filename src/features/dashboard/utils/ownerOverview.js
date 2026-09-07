@@ -40,14 +40,57 @@ export function otifRate(orders) {
   return Math.round((onTime.length / judged.length) * 100);
 }
 
-// Today's actual production output — sum of `actualQuantity` (falling back
-// to planned `quantity`) across work orders that reached "completed" today
-// (by completedAt, not updated_at — see 0084 migration note).
-export function dailyProductionOutput(workOrders) {
-  const todayStr = new Date().toISOString().slice(0, 10);
+// Sum of `actualQuantity` (falling back to planned `quantity`) across work
+// orders that reached "completed" within [from, to] (inclusive, "YYYY-MM-DD",
+// by completedAt not updated_at — see 0084 migration note) — powers the
+// Executive Overview's period-scoped Production tile.
+export function productionOutputInRange(workOrders, from, to) {
+  if (!from || !to) return 0;
   return workOrders
-    .filter((wo) => wo.stage === 'completed' && wo.completedAt?.slice(0, 10) === todayStr)
+    .filter((wo) => wo.stage === 'completed' && wo.completedAt && wo.completedAt.slice(0, 10) >= from && wo.completedAt.slice(0, 10) <= to)
     .reduce((sum, wo) => sum + Number(wo.actualQuantity ?? wo.quantity ?? 0), 0);
+}
+
+// On-hand stock per product *variant* (size/colour), biggest first, with the
+// tail folded into "Other" — a stock row is already one variant × warehouse,
+// so a variant held in two warehouses is summed back into a single slice.
+export function inventoryByVariant(stockRows, maxSlices = 6) {
+  const byVariant = new Map();
+  stockRows.forEach((row) => {
+    const key = row.productVariantId ?? row.sku;
+    if (!key) return;
+    const attrs = [row.variantSize, row.variantColor].filter(Boolean).join(' / ');
+    const name = [row.productName, attrs].filter(Boolean).join(' — ') || row.sku || 'Unknown';
+    const existing = byVariant.get(key);
+    if (existing) {
+      existing.onHand += Number(row.quantityOnHand ?? 0);
+      existing.reserved += Number(row.quantityReserved ?? 0);
+      return;
+    }
+    byVariant.set(key, {
+      name,
+      sku: row.sku,
+      onHand: Number(row.quantityOnHand ?? 0),
+      reserved: Number(row.quantityReserved ?? 0),
+    });
+  });
+
+  const sorted = Array.from(byVariant.values())
+    .filter((variant) => variant.onHand > 0)
+    .sort((a, b) => b.onHand - a.onHand);
+
+  if (sorted.length <= maxSlices) return sorted;
+  const top = sorted.slice(0, maxSlices);
+  const rest = sorted.slice(maxSlices);
+  return [
+    ...top,
+    {
+      name: `Other (${rest.length} variants)`,
+      sku: null,
+      onHand: rest.reduce((sum, variant) => sum + variant.onHand, 0),
+      reserved: rest.reduce((sum, variant) => sum + variant.reserved, 0),
+    },
+  ];
 }
 
 // Products with at least one month of real sales — the population the

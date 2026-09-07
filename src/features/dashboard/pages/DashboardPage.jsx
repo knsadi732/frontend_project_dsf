@@ -8,16 +8,7 @@ import {
   Users,
   IndianRupee,
   Target,
-  Factory,
-  ShoppingCart,
-  Wallet,
-  PackageCheck,
-  PackageSearch,
-  Landmark,
-  ArrowDownToLine,
-  ArrowUpFromLine,
   HandCoins,
-  ScrollText,
 } from 'lucide-react';
 import { useDashboardQuery } from '@/features/dashboard/queries/useDashboardQuery';
 import { useSalesForecastQuery } from '@/features/dashboard/queries/useSalesForecastQuery';
@@ -37,25 +28,35 @@ import { useMachinesQuery } from '@/features/machines/queries/useMachinesQuery';
 import { useApprovalRequestsQuery } from '@/features/approvalRequests/queries/useApprovalRequestsQuery';
 import { useSettingsQuery } from '@/features/settings/queries/useSettingsQuery';
 import { useUpdateSettings } from '@/features/settings/mutations/useUpdateSettings';
-import { StatCard } from '@/features/dashboard/components/StatCard';
+import { useSalesTargetsQuery } from '@/features/dashboard/queries/useSalesTargetsQuery';
+import { useUpsertSalesTarget } from '@/features/dashboard/mutations/useUpsertSalesTarget';
+import { ExecutiveOverview } from '@/features/dashboard/components/ExecutiveOverview';
+import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
+import { KpiComparisonTable } from '@/features/dashboard/components/KpiComparisonTable';
+import { usePnlReportQuery } from '@/features/compliance/queries/usePnlReportQuery';
+import { usePeriodSelector } from '@/features/compliance/utils/usePeriodSelector';
+import { previousPeriodRange, currentPeriodLabel, previousPeriodLabel } from '@/features/compliance/utils/reportPeriod';
 import { ChartCard } from '@/features/dashboard/components/ChartCard';
-import { DashboardBarChart } from '@/features/dashboard/components/DashboardBarChart';
+import { DashboardLineChart } from '@/features/dashboard/components/DashboardLineChart';
 import { SalesTrendChart } from '@/features/dashboard/components/SalesTrendChart';
 import { SalesProductPieChart } from '@/features/dashboard/components/SalesProductPieChart';
 import { SalesVsInventoryChart } from '@/features/dashboard/components/SalesVsInventoryChart';
+import { InventorySplitPieChart } from '@/features/dashboard/components/InventorySplitPieChart';
+import { SalesTargetChart } from '@/features/dashboard/components/SalesTargetChart';
 import { MarginChart } from '@/features/dashboard/components/MarginChart';
 import { BreakEvenChart } from '@/features/dashboard/components/BreakEvenChart';
 import { ProductLifecycleChart } from '@/features/dashboard/components/ProductLifecycleChart';
 import { ProductSalesTrendModal } from '@/features/dashboard/components/ProductSalesTrendModal';
 import { SalesForecastChart } from '@/features/dashboard/components/SalesForecastChart';
-import { salesTrendByDate, productMix, salesVsInventory } from '@/features/dashboard/utils/salesChartData';
+import { salesTrendByDate, productMix, salesVsInventory, salesTotalsInRange, salesUnitsInRange, salesTargetProgress } from '@/features/dashboard/utils/salesChartData';
 import { marginByVariant, breakEvenEligibleVariants } from '@/features/production/utils/unitCost';
 import {
   wipTotal,
   receivablesByBucket,
   avgCostPerPair,
   otifRate,
-  dailyProductionOutput,
+  productionOutputInRange,
+  inventoryByVariant,
   lifecycleEligibleProducts,
 } from '@/features/dashboard/utils/ownerOverview';
 import { receivableAging } from '@/features/reports/utils/reportAggregations';
@@ -65,9 +66,6 @@ import { AppInput } from '@/components/ui/AppInput';
 import { BaseLoader } from '@/components/ui/BaseLoader';
 import { useAuth } from '@/hooks/useAuth';
 import { MODULES, ACTIONS } from '@/constants/roles';
-
-const AMBER_RAMP_LIGHT = ['#fde68a', '#fbbf24', '#d97706', '#b91c1c'];
-const AMBER_RAMP_DARK = ['#fcd34d', '#f59e0b', '#c2410c', '#dc2626'];
 
 // Role-scoped by construction: each section below is gated by the same
 // module permission used everywhere else in the app (can()), so e.g. an
@@ -92,6 +90,19 @@ export function DashboardPage() {
   // matrix entirely (FULL_ACCESS_ROLES).
   const canViewForecast = can(MODULES.FORECASTING, ACTIONS.VIEW);
 
+  // Same YTD/Quarterly/Monthly/Custom picker as Compliance → Reports (see
+  // usePeriodSelector) — "Sales"/"Production"/"Revenue" below are scoped to
+  // this, each paired against the equivalent prior period (last month for
+  // Monthly, last quarter for Quarterly, last FY for YTD).
+  const periodSelector = usePeriodSelector({ defaultType: 'monthly', monthMode: 'fy-anchored' });
+  const previousRange = useMemo(
+    () => previousPeriodRange(periodSelector),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periodSelector.periodType, periodSelector.monthValue, periodSelector.fyStartYear, periodSelector.quarter, periodSelector.range.from, periodSelector.range.to],
+  );
+  const { data: pnlCurrent } = usePnlReportQuery(periodSelector.range);
+  const { data: pnlPrevious } = usePnlReportQuery(previousRange);
+
   // Called unconditionally (Rules of Hooks) regardless of canViewSales/
   // canViewInventory — cheap read-only fetches, only their *results* are
   // gated in the JSX below, same "just try, don't block the rest of the
@@ -110,11 +121,14 @@ export function DashboardPage() {
   const { data: usersData } = useUsersQuery({ pageSize: 500 });
   const { data: machinesDownData } = useMachinesQuery({ status: 'down', pageSize: 50 });
   const { data: settingsData } = useSettingsQuery();
+  const { data: salesTargetsData } = useSalesTargetsQuery();
   const { data: forecastData, isLoading: isForecastLoading } = useSalesForecastQuery(canViewForecast);
   const { data: channelForecastData } = useChannelForecastQuery(canViewForecast);
   const updateSettings = useUpdateSettings();
-  const [targetDraft, setTargetDraft] = useState(null);
+  const upsertSalesTarget = useUpsertSalesTarget();
   const [salesTargetDraft, setSalesTargetDraft] = useState(null);
+  const [forecastTargetDraft, setForecastTargetDraft] = useState(null);
+  const [salesUnitsTargetDraft, setSalesUnitsTargetDraft] = useState(null);
 
   const orders = useMemo(() => salesOrdersData?.data ?? [], [salesOrdersData]);
   const salesTrend = useMemo(() => salesTrendByDate(orders), [orders]);
@@ -125,6 +139,7 @@ export function DashboardPage() {
     () => salesVsInventory(orders, stockData?.data ?? [], variantsById, productsById),
     [orders, stockData, variantsById, productsById],
   );
+  const inventoryVariants = useMemo(() => inventoryByVariant(stockData?.data ?? []), [stockData]);
   const margins = useMemo(
     () => marginByVariant(workOrdersData?.data ?? [], variantsById),
     [workOrdersData, variantsById],
@@ -133,6 +148,23 @@ export function DashboardPage() {
   const breakEvenVariants = useMemo(
     () => breakEvenEligibleVariants(workOrders, variantsById),
     [workOrders, variantsById],
+  );
+
+  const salesCurrent = useMemo(
+    () => salesTotalsInRange(orders, periodSelector.range.from, periodSelector.range.to),
+    [orders, periodSelector.range.from, periodSelector.range.to],
+  );
+  const salesPrevious = useMemo(
+    () => salesTotalsInRange(orders, previousRange.from, previousRange.to),
+    [orders, previousRange.from, previousRange.to],
+  );
+  const productionCurrent = useMemo(
+    () => productionOutputInRange(workOrders, periodSelector.range.from, periodSelector.range.to),
+    [workOrders, periodSelector.range.from, periodSelector.range.to],
+  );
+  const productionPrevious = useMemo(
+    () => productionOutputInRange(workOrders, previousRange.from, previousRange.to),
+    [workOrders, previousRange.from, previousRange.to],
   );
 
   const pendingApprovalsCount =
@@ -151,16 +183,58 @@ export function DashboardPage() {
   );
   const cpp = useMemo(() => avgCostPerPair(workOrders), [workOrders]);
   const otif = useMemo(() => otifRate(orders), [orders]);
-  const dailyOutput = useMemo(() => dailyProductionOutput(workOrders), [workOrders]);
-  const dailyTarget = settingsData?.dailyProductionTarget ?? null;
-  const monthlySalesTarget = settingsData?.monthlySalesTarget ?? null;
+  // The Sales forecast card's own ₹ baseline (company_settings.monthly_sales_target,
+  // a forecasting bootstrap) — distinct from the Sales target card's per-month
+  // revenue target in sales_targets, so the two keep separate drafts.
+  const forecastBaselineTarget = settingsData?.monthlySalesTarget ?? null;
+  const forecastTargetInputValue =
+    forecastTargetDraft ?? (forecastBaselineTarget != null ? String(forecastBaselineTarget) : '');
   const lifecycleProducts = useMemo(
     () => lifecycleEligibleProducts(productsData?.data ?? [], orders),
     [productsData, orders],
   );
   const machinesDown = machinesDownData?.data ?? [];
-  const targetInputValue = targetDraft ?? (dailyTarget != null ? String(dailyTarget) : '');
-  const salesTargetInputValue = salesTargetDraft ?? (monthlySalesTarget != null ? String(monthlySalesTarget) : '');
+
+  // Calendar month the "Sales target" widget tracks — always the current
+  // month (e.g. September), not the Overview period selector above it.
+  // Built from local y/m/d components directly, never via toISOString() on a
+  // local Date — that converts to UTC first, and in a positive-offset zone
+  // (e.g. IST) midnight-local-on-the-1st lands on the previous UTC day,
+  // shifting `from` into the prior month and, downstream in
+  // salesTargetProgress()'s from.slice(0,7) reconstruction, the whole chart.
+  const currentMonth = useMemo(() => {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    const from = `${y}-${pad(m + 1)}-01`;
+    const to = `${y}-${pad(m + 1)}-${pad(lastDay)}`;
+    return { from, to, label: now.toLocaleString('en-US', { month: 'long' }) };
+  }, []);
+  const salesUnitsThisMonth = useMemo(
+    () => salesUnitsInRange(orders, currentMonth.from, currentMonth.to),
+    [orders, currentMonth],
+  );
+  // Targets are per-month rows (the FY26-27 plan ramps 150 pairs in Sep to
+  // 1200 in Mar), so the widget reads this month's row rather than one
+  // company-wide figure.
+  const currentMonthTarget = useMemo(
+    () => (salesTargetsData ?? []).find((target) => target.targetMonth === currentMonth.from) ?? null,
+    [salesTargetsData, currentMonth],
+  );
+  const salesUnitsTarget = currentMonthTarget?.unitsTarget ?? null;
+  const salesRevenueTarget = currentMonthTarget?.revenueTarget ?? null;
+  const salesUnitsTargetInputValue = salesUnitsTargetDraft ?? (salesUnitsTarget != null ? String(salesUnitsTarget) : '');
+  const salesTargetInputValue = salesTargetDraft ?? (salesRevenueTarget != null ? String(salesRevenueTarget) : '');
+  const salesRevenueThisMonth = useMemo(
+    () => salesTotalsInRange(orders, currentMonth.from, currentMonth.to).total,
+    [orders, currentMonth],
+  );
+  const salesTargetProgressRows = useMemo(
+    () => salesTargetProgress(orders, currentMonth.from, currentMonth.to, salesUnitsTarget, salesRevenueTarget),
+    [orders, currentMonth, salesUnitsTarget, salesRevenueTarget],
+  );
 
   if (isLoading) return <BaseLoader label="Loading dashboard…" />;
   if (isError || !data) {
@@ -176,58 +250,36 @@ export function DashboardPage() {
     );
   }
 
-  const { salesSummary, inventoryStatus, ledgerBalance, ledgerMonth, collectionsTotal, outstandingDebt } = data;
+  const { inventoryStatus, ledgerBalance, ledgerMonth, collectionsTotal, outstandingDebt, payablesDue } = data;
   const hasFinanceData = ledgerBalance != null || ledgerMonth || collectionsTotal != null || outstandingDebt != null;
   const noWidgetsVisible = !canViewSales && !canViewInventory && !(canViewFinance && hasFinanceData);
+  const payableTotal = (outstandingDebt ?? 0) + (payablesDue ?? 0);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="relative isolate flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-xl bg-[#0c1622] p-5 sm:p-6">
-        {/* two blades cut at the same angles as the logo's D-stroke and
-            S-sweep — the panel's shape is traced from the mark itself,
-            not a generic diagonal */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: 'linear-gradient(115deg, #1a3a5e 0%, #2a78d6 46%, #4f97e8 60%, #2a78d6 74%, #1a3a5e 100%)',
-            clipPath: 'polygon(0 0, 58% 0, 40% 100%, 0% 100%)',
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-90"
-          style={{
-            background: 'linear-gradient(115deg, #4b5563 0%, #9ca3af 50%, #6b7280 100%)',
-            clipPath: 'polygon(46% 0, 66% 0, 48% 100%, 28% 100%)',
-          }}
-        />
-        {/* bevel edge — a thin bright sliver along each blade's leading
-            cut, same construction as the logo's raised-letter highlight */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: 'rgba(255,255,255,0.55)',
-            clipPath: 'polygon(58% 0, 59.4% 0, 41.4% 100%, 40% 100%)',
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background: 'rgba(255,255,255,0.55)',
-            clipPath: 'polygon(66% 0, 67.4% 0, 49.4% 100%, 48% 100%)',
-          }}
-        />
-
-        <div className="relative">
-          <h1 className="text-xl font-semibold tracking-tight text-white">Dashboard</h1>
-          <p className="text-sm text-white/70">Overview of today's operations — DS Footwear.</p>
+    <div className="flex h-full flex-col gap-3">
+      {/* Deliberately flat and quiet: the previous banner cut two bright
+          diagonal blades with near-white 55%-opacity bevel slivers across a
+          near-black panel — that local contrast is the single harshest thing
+          on the page to look at all day. One soft muted gradient instead. */}
+      <div className="relative isolate flex shrink-0 flex-wrap items-center justify-between gap-3 overflow-hidden rounded-xl bg-gradient-to-r from-[#243447] to-[#2f4b6b] px-5 py-3.5">
+        <div>
+          <h1 className="text-lg font-semibold tracking-tight text-white/95">Dashboard</h1>
+          <p className="text-xs text-white/60">Overview of today's operations — DS Footwear.</p>
         </div>
+
+        {(canViewSales || canViewInventory || canViewFinance) && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-white/70">Overview</span>
+            <PeriodSelectorBar state={periodSelector} showRangeLabel={false} />
+          </div>
+        )}
 
         {canRegenerate && (
           <AppButton
             variant="secondary"
             loading={regenerate.isPending}
             onClick={() => regenerate.mutate()}
-            className="relative border-white/25 bg-white/10 text-white hover:bg-white/20"
+            className="border-white/20 bg-white/10 text-white/90 hover:bg-white/15"
           >
             <RefreshCw className="size-4" />
             Regenerate snapshot
@@ -236,7 +288,7 @@ export function DashboardPage() {
       </div>
 
       {machinesDown.length > 0 && (
-        <div className="flex items-start gap-2 rounded-md border border-danger/30 bg-danger/10 px-4 py-3">
+        <div className="flex shrink-0 items-start gap-2 rounded-md border border-danger/30 bg-danger/10 px-4 py-3">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-danger" />
           <p className="text-sm text-danger">
             {machinesDown.length} machine{machinesDown.length > 1 ? 's' : ''} down:{' '}
@@ -245,167 +297,136 @@ export function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
-        <StatCard label="Work In Progress (units)" value={wip.toLocaleString('en-IN')} icon={Boxes} tone="navy" />
-        <StatCard label="Pending Approvals" value={String(pendingApprovalsCount)} icon={ClipboardCheck} tone="sky" />
-        <StatCard
-          label="Attendance Today"
-          value={activeUserCount > 0 ? `${attendanceTodayCount} / ${activeUserCount}` : String(attendanceTodayCount)}
-          icon={Users}
-          tone="steel"
+      {/* 12-col-style split (lg+): sidebar is the app's own left nav (outside
+          this page); here it's 6/10 middle (Details) : 4/10 right (Charts),
+          each an independently-scrollable pane. Below lg, both stack full-width
+          and just flow normally with the page. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-10">
+      <div className="flex flex-col gap-3 lg:col-span-6 lg:h-full lg:overflow-y-auto lg:pr-1">
+        <ExecutiveOverview
+          hideHeader
+          periodSelector={periodSelector}
+          canViewSales={canViewSales}
+          canViewInventory={canViewInventory}
+          canViewFinance={canViewFinance}
+          salesInPeriod={salesCurrent.total}
+          ordersInPeriod={salesCurrent.count}
+          productionInPeriod={productionCurrent}
+          revenueInPeriod={pnlCurrent?.totalSales}
+          cashBalance={ledgerBalance}
+          inventoryOnHand={inventoryStatus?.data?.total_on_hand}
+          payableTotal={payableTotal}
+          opsStats={[
+            { label: 'Work In Progress', value: wip.toLocaleString('en-IN'), icon: Boxes, tone: 'navy' },
+            { label: 'Pending Approvals', value: String(pendingApprovalsCount), icon: ClipboardCheck, tone: 'sky' },
+            {
+              label: 'Attendance Today',
+              value: activeUserCount > 0 ? `${attendanceTodayCount} / ${activeUserCount}` : String(attendanceTodayCount),
+              icon: Users,
+              tone: 'steel',
+            },
+            ...(cpp > 0
+              ? [{ label: 'Avg Cost / Pair', value: `₹${cpp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, icon: IndianRupee, tone: 'blue' }]
+              : []),
+            ...(otif != null ? [{ label: 'OTIF Rate', value: `${otif}%`, icon: Target, tone: 'steel' }] : []),
+            ...(canViewFinance && collectionsTotal != null
+              ? [{ label: 'Collections', value: `₹${collectionsTotal.toLocaleString('en-IN')}`, icon: HandCoins, tone: 'steel' }]
+              : []),
+          ]}
         />
-        {cpp > 0 && (
-          <StatCard
-            label="Avg Cost Per Pair"
-            value={`₹${cpp.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
-            icon={IndianRupee}
-            tone="blue"
+
+        {(canViewSales || canViewFinance) && (
+          <KpiComparisonTable
+            currentLabel={currentPeriodLabel(periodSelector.periodType)}
+            previousLabel={previousPeriodLabel(periodSelector.periodType)}
+            rows={[
+              ...(canViewSales ? [{ label: 'Sales', unit: 'currency', current: salesCurrent.total, previous: salesPrevious.total }] : []),
+              { label: 'Production', unit: 'units', current: productionCurrent, previous: productionPrevious },
+              ...(canViewFinance
+                ? [{ label: 'Revenue', unit: 'currency', current: pnlCurrent?.totalSales ?? 0, previous: pnlPrevious?.totalSales ?? 0 }]
+                : []),
+            ]}
           />
         )}
-        {otif != null && <StatCard label="OTIF Rate" value={`${otif}%`} icon={Target} tone="steel" />}
-        <StatCard label="Daily Production Output" value={dailyOutput.toLocaleString('en-IN')} icon={Factory} tone="navy" />
+
+        {noWidgetsVisible && (
+          <BaseCard className="p-4">
+            <p className="text-sm text-text-muted">No dashboard widgets available for your role.</p>
+          </BaseCard>
+        )}
       </div>
 
-      <BaseCard className="group relative overflow-hidden p-4 transition-shadow duration-200 hover:shadow-md">
+      {/* Right rail: Charts only, its own independently-scrollable pane. */}
+      <div className="flex min-h-[260px] flex-col gap-3 lg:col-span-4 lg:h-full lg:overflow-y-auto lg:pr-1">
+      <h2 className="shrink-0 text-sm font-semibold text-text">Charts</h2>
+
+      <BaseCard className="group relative shrink-0 overflow-hidden p-4 transition-shadow duration-200 hover:shadow-md">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-[#2a78d6] via-[#5b8fc7] to-[#9ca3af]"
           aria-hidden="true"
         />
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-3">
           <div>
-            <h2 className="text-sm font-medium text-text">Daily production target</h2>
+            <h2 className="text-sm font-medium text-text">Sales target ({currentMonth.label})</h2>
             <p className="text-xs text-text-muted">
-              Today's output: <span className="font-medium text-text">{dailyOutput.toLocaleString('en-IN')}</span>
-              {dailyTarget != null && <> of {dailyTarget.toLocaleString('en-IN')}</>}
+              Actual sales: <span className="font-medium text-text">{salesUnitsThisMonth.toLocaleString('en-IN')}</span>
+              {salesUnitsTarget != null && <> of {salesUnitsTarget.toLocaleString('en-IN')}</>} pairs ·{' '}
+              <span className="font-medium text-text">₹{Math.round(salesRevenueThisMonth).toLocaleString('en-IN')}</span>
+              {salesRevenueTarget != null && <> of ₹{salesRevenueTarget.toLocaleString('en-IN')}</>}
             </p>
           </div>
-          <div className="flex items-end gap-2">
+          <div className="flex flex-wrap items-end gap-2">
             <AppInput
-              label="Target (units/day)"
+              label="Target (pairs/month)"
               type="number"
-              value={targetInputValue}
-              onChange={(e) => setTargetDraft(e.target.value)}
+              value={salesUnitsTargetInputValue}
+              onChange={(e) => setSalesUnitsTargetDraft(e.target.value)}
+            />
+            <AppInput
+              label="Target (₹/month)"
+              type="number"
+              value={salesTargetInputValue}
+              onChange={(e) => setSalesTargetDraft(e.target.value)}
             />
             <AppButton
               variant="secondary"
-              loading={updateSettings.isPending}
-              disabled={targetDraft === null || targetDraft === ''}
+              loading={upsertSalesTarget.isPending}
+              disabled={
+                (salesUnitsTargetDraft === null || salesUnitsTargetDraft === '') &&
+                (salesTargetDraft === null || salesTargetDraft === '')
+              }
               onClick={() => {
-                updateSettings.mutate(
-                  { dailyProductionTarget: Number(targetDraft) },
-                  { onSuccess: () => setTargetDraft(null) },
-                );
+                const payload = { targetMonth: currentMonth.from };
+                if (salesUnitsTargetDraft !== null && salesUnitsTargetDraft !== '') {
+                  payload.unitsTarget = Number(salesUnitsTargetDraft);
+                }
+                if (salesTargetDraft !== null && salesTargetDraft !== '') {
+                  payload.revenueTarget = Number(salesTargetDraft);
+                }
+                upsertSalesTarget.mutate(payload, {
+                  onSuccess: () => {
+                    setSalesUnitsTargetDraft(null);
+                    setSalesTargetDraft(null);
+                  },
+                });
               }}
             >
               Save
             </AppButton>
           </div>
         </div>
-        {dailyTarget != null && (
-          <div className="mt-3">
-            <DashboardBarChart
-              height={100}
-              data={[
-                { name: 'Actual', value: dailyOutput, light: '#2a78d6', dark: '#3987e5' },
-                { name: 'Target', value: dailyTarget, light: '#9c9c94', dark: '#7a7a72' },
-              ]}
-            />
-          </div>
-        )}
+        <div className="mt-3">
+          <SalesTargetChart data={salesTargetProgressRows} height={190} />
+        </div>
       </BaseCard>
 
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
-        {canViewSales && (
-          salesSummary?.data ? (
-            <>
-              <StatCard label="Sales Orders" value={String(salesSummary.data.order_count ?? 0)} icon={ShoppingCart} tone="navy" />
-              <StatCard label="Total Sales" value={`₹${(salesSummary.data.total_sales ?? 0).toLocaleString('en-IN')}`} icon={Wallet} tone="blue" />
-            </>
-          ) : (
-            <BaseCard className="p-4">
-              <p className="text-sm text-text-muted">Sales snapshot not generated yet.</p>
-            </BaseCard>
-          )
-        )}
-
+      {/* Charts, last on the page — each one full-width, stacked one below
+          another (not side-by-side), so every chart gets its full width to
+          read clearly. */}
+      <div className="flex flex-col gap-3">
         {canViewInventory && (
-          inventoryStatus?.data ? (
-            <>
-              <StatCard label="Inventory On Hand" value={String(inventoryStatus.data.total_on_hand ?? 0)} icon={PackageCheck} tone="steel" />
-              <StatCard label="Inventory Reserved" value={String(inventoryStatus.data.total_reserved ?? 0)} icon={PackageSearch} tone="sky" />
-            </>
-          ) : (
-            <BaseCard className="p-4">
-              <p className="text-sm text-text-muted">Inventory snapshot not generated yet.</p>
-            </BaseCard>
-          )
-        )}
-
-        {canViewFinance && (
-          hasFinanceData ? (
-            <>
-              {ledgerBalance != null && (
-                <StatCard
-                  label="Ledger Balance (all-time)"
-                  value={`₹${Math.abs(ledgerBalance).toLocaleString('en-IN')} ${ledgerBalance >= 0 ? 'Cr' : 'Dr'}`}
-                  icon={Landmark}
-                  tone={ledgerBalance >= 0 ? 'blue' : 'charcoal'}
-                />
-              )}
-              {ledgerMonth && (
-                <>
-                  <StatCard label="Credit This Month" value={`₹${ledgerMonth.credit.toLocaleString('en-IN')}`} icon={ArrowDownToLine} tone="blue" />
-                  <StatCard label="Debit This Month" value={`₹${ledgerMonth.debit.toLocaleString('en-IN')}`} icon={ArrowUpFromLine} tone="charcoal" />
-                </>
-              )}
-              {collectionsTotal != null && (
-                <StatCard label="Collections (Receivables)" value={`₹${collectionsTotal.toLocaleString('en-IN')}`} icon={HandCoins} tone="steel" />
-              )}
-              {outstandingDebt != null && (
-                <StatCard label="Outstanding Debt (Loans)" value={`₹${outstandingDebt.toLocaleString('en-IN')}`} icon={ScrollText} tone="sky" />
-              )}
-            </>
-          ) : (
-            <BaseCard className="p-4">
-              <p className="text-sm text-text-muted">Ledger data isn't available right now.</p>
-            </BaseCard>
-          )
-        )}
-
-        {noWidgetsVisible && (
-          <BaseCard className="p-4 col-span-full">
-            <p className="text-sm text-text-muted">No dashboard widgets available for your role.</p>
-          </BaseCard>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {canViewInventory && inventoryStatus?.data && (
-          <ChartCard title="Inventory split" tone="blue">
-            {/* green/amber — validated pair (dataviz skill), same hex both
-                modes since the app's lightened dark shades fail the
-                dark-surface lightness band as an adjacent chart pair */}
-            <DashboardBarChart
-              height={130}
-              data={[
-                { name: 'On Hand', value: inventoryStatus.data.total_on_hand ?? 0, light: '#16a34a', dark: '#16a34a' },
-                { name: 'Reserved', value: inventoryStatus.data.total_reserved ?? 0, light: '#d97706', dark: '#d97706' },
-              ]}
-            />
-          </ChartCard>
-        )}
-
-        {canViewFinance && ledgerMonth && (
-          <ChartCard title="Credit vs debit (this month)" tone="steel">
-            {/* blue/red, not green/red — validated pair; red/green fails CVD
-                separation outright (deutan ΔE 5.0, below the hard floor) */}
-            <DashboardBarChart
-              height={130}
-              data={[
-                { name: 'Credit', value: ledgerMonth.credit ?? 0, light: '#2a78d6', dark: '#3987e5' },
-                { name: 'Debit', value: ledgerMonth.debit ?? 0, light: '#e34948', dark: '#e66767' },
-              ]}
-            />
+          <ChartCard title="Inventory split — by variant" tone="blue">
+            <InventorySplitPieChart height={150} variants={inventoryVariants} />
           </ChartCard>
         )}
 
@@ -416,7 +437,7 @@ export function DashboardPage() {
         )}
 
         {canViewSales && (
-          <ChartCard title="Product mix — click a slice" tone="navy">
+          <ChartCard title="Product mix — click a point" tone="navy">
             <SalesProductPieChart data={salesMix} onSliceClick={setSelectedProduct} height={170} />
           </ChartCard>
         )}
@@ -435,16 +456,7 @@ export function DashboardPage() {
 
         {canViewFinance && (
           <ChartCard title="Receivables aging" tone="sky">
-            {/* single-hue sequential ramp (amber) — magnitude-by-age-bucket,
-                not identity, so a categorical palette would be wrong here */}
-            <DashboardBarChart
-              height={170}
-              data={receivables.map((bucket, i) => ({
-                ...bucket,
-                light: AMBER_RAMP_LIGHT[i],
-                dark: AMBER_RAMP_DARK[i],
-              }))}
-            />
+            <DashboardLineChart height={170} data={receivables} />
           </ChartCard>
         )}
       </div>
@@ -470,19 +482,19 @@ export function DashboardPage() {
                 <AppInput
                   label="Monthly sales target (₹)"
                   type="number"
-                  value={salesTargetInputValue}
-                  onChange={(e) => setSalesTargetDraft(e.target.value)}
+                  value={forecastTargetInputValue}
+                  onChange={(e) => setForecastTargetDraft(e.target.value)}
                 />
                 <AppButton
                   variant="secondary"
                   loading={updateSettings.isPending}
-                  disabled={salesTargetDraft === null || salesTargetDraft === ''}
+                  disabled={forecastTargetDraft === null || forecastTargetDraft === ''}
                   onClick={() => {
                     updateSettings.mutate(
-                      { monthlySalesTarget: Number(salesTargetDraft) },
+                      { monthlySalesTarget: Number(forecastTargetDraft) },
                       {
                         onSuccess: () => {
-                          setSalesTargetDraft(null);
+                          setForecastTargetDraft(null);
                           queryClient.invalidateQueries({ queryKey: ['forecast'] });
                         },
                       },
@@ -538,6 +550,8 @@ export function DashboardPage() {
           <ProductLifecycleChart products={lifecycleProducts} orders={orders} height={220} />
         </ChartCard>
       )}
+      </div>
+      </div>
 
       <ProductSalesTrendModal
         open={Boolean(selectedProduct)}

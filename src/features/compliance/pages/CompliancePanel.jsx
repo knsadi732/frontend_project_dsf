@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useGstProfileQuery } from '@/features/compliance/queries/useGstProfileQuery';
 import { useStatutoryAuditsQuery } from '@/features/compliance/queries/useStatutoryAuditsQuery';
 import { useCreateStatutoryAudit } from '@/features/compliance/mutations/useCreateStatutoryAudit';
@@ -12,59 +12,29 @@ import { LedgerCrossVerifyCard } from '@/features/compliance/components/LedgerCr
 import { StatutoryAuditFormModal } from '@/features/compliance/components/StatutoryAuditFormModal';
 import { PnlReportCard } from '@/features/compliance/components/PnlReportCard';
 import { BalanceSheetSnapshotCard } from '@/features/compliance/components/BalanceSheetSnapshotCard';
+import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
 import { Gstr3bReportCard } from '@/features/compliance/components/Gstr3bReportCard';
 import { Gstr1ReportSection } from '@/features/compliance/components/Gstr1ReportSection';
 import { Gstr2bProxySection } from '@/features/compliance/components/Gstr2bProxySection';
 import { AppTable } from '@/components/ui/AppTable';
-import { AppInput } from '@/components/ui/AppInput';
-import { AppSelect } from '@/components/ui/AppSelect';
-import { FilterBar } from '@/components/ui/FilterBar';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
-import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { usePersistedTab } from '@/hooks/usePersistedTab';
-import {
-  currentFyQuarter,
-  currentFyStartYear,
-  currentMonthValue,
-  formatDisplayDate,
-  fyOptions,
-  fyRange,
-  monthRange,
-  quarterRange,
-  QUARTER_OPTIONS,
-} from '@/features/compliance/utils/reportPeriod';
+import { usePeriodSelector } from '@/features/compliance/utils/usePeriodSelector';
 
 const SUB_TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'reports', label: 'Reports' },
 ];
 
-// Default is 'monthly' (current month) — order here matches the dropdown order requested.
-const PERIOD_TYPE_OPTIONS = [
-  { value: 'ytd', label: 'YTD (Financial Year)' },
-  { value: 'quarterly', label: 'Quarterly' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'custom', label: 'Custom' },
-];
-
 function ReportsTab() {
-  const [periodType, setPeriodType] = useState('monthly');
-  const [monthValue, setMonthValue] = useState(() => currentMonthValue());
-  const [fyStartYear, setFyStartYear] = useState(() => String(currentFyStartYear()));
-  const [quarter, setQuarter] = useState(() => String(currentFyQuarter()));
-  // Custom mode reuses the old two-date-field behaviour (debounced, only fires once both are set).
-  const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
-
-  const range = useMemo(() => {
-    if (periodType === 'monthly') return monthRange(monthValue);
-    if (periodType === 'quarterly') return quarterRange(Number(fyStartYear), Number(quarter));
-    if (periodType === 'ytd') return fyRange(Number(fyStartYear));
-    return { from: appliedDateFrom || undefined, to: appliedDateTo || undefined };
-  }, [periodType, monthValue, fyStartYear, quarter, appliedDateFrom, appliedDateTo]);
+  // fy-anchored: Monthly picks one of the selected FY's 12 months (a dropdown),
+  // not an open-ended month/year — same convention as Quarterly/YTD below it.
+  const periodSelector = usePeriodSelector({ defaultType: 'monthly', monthMode: 'fy-anchored' });
+  const { range } = periodSelector;
 
   const { data: pnl, isLoading: isPnlLoading } = usePnlReportQuery(range);
   const { data: gstr3b, isLoading: isGstr3bLoading } = useGstr3bReportQuery(range);
@@ -73,79 +43,7 @@ function ReportsTab() {
 
   return (
     <div className="flex flex-col gap-3">
-      <FilterBar>
-        <AppSelect
-          value={periodType}
-          onChange={(event) => setPeriodType(event.target.value)}
-          options={PERIOD_TYPE_OPTIONS}
-          className="w-40"
-          aria-label="Report period type"
-        />
-
-        {periodType === 'monthly' && (
-          <AppInput
-            type="month"
-            value={monthValue}
-            onChange={(event) => setMonthValue(event.target.value)}
-            className="w-40"
-            aria-label="Month"
-          />
-        )}
-
-        {periodType === 'quarterly' && (
-          <>
-            <AppSelect
-              value={fyStartYear}
-              onChange={(event) => setFyStartYear(event.target.value)}
-              options={fyOptions()}
-              className="w-32"
-              aria-label="Financial year"
-            />
-            <AppSelect
-              value={quarter}
-              onChange={(event) => setQuarter(event.target.value)}
-              options={QUARTER_OPTIONS}
-              className="w-44"
-              aria-label="Quarter"
-            />
-          </>
-        )}
-
-        {periodType === 'ytd' && (
-          <AppSelect
-            value={fyStartYear}
-            onChange={(event) => setFyStartYear(event.target.value)}
-            options={fyOptions()}
-            className="w-32"
-            aria-label="Financial year"
-          />
-        )}
-
-        {periodType === 'custom' && (
-          <>
-            <AppInput
-              type="date"
-              value={dateFrom}
-              onChange={(event) => setDateFrom(event.target.value)}
-              className="w-36"
-              aria-label="Report period from"
-            />
-            <AppInput
-              type="date"
-              value={dateTo}
-              onChange={(event) => setDateTo(event.target.value)}
-              className="w-36"
-              aria-label="Report period to"
-            />
-          </>
-        )}
-      </FilterBar>
-
-      {range.from && range.to && (
-        <p className="text-xs text-text-muted">
-          Showing: {formatDisplayDate(range.from)} – {formatDisplayDate(range.to)}
-        </p>
-      )}
+      <PeriodSelectorBar state={periodSelector} />
 
       <PnlReportCard report={pnl} isLoading={isPnlLoading} />
       <BalanceSheetSnapshotCard report={pnl} isLoading={isPnlLoading} />

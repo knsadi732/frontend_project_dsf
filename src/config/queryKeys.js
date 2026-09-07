@@ -69,6 +69,7 @@ export const queryKeys = {
   reports: resourceKeys('reports'),
   dashboard: { all: ['dashboard'] },
   settings: { all: ['settings'] },
+  salesTargets: { all: ['salesTargets'] },
   fundingSources: resourceKeys('fundingSources'),
   documents: resourceKeys('documents'),
   itemCategories: resourceKeys('itemCategories'),

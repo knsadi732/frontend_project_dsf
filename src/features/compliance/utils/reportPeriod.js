@@ -99,3 +99,56 @@ export function formatDisplayDate(isoDate) {
   const [year, month, day] = isoDate.split('-');
   return `${day} ${MONTH_NAMES[Number(month) - 1].slice(0, 3)} ${year}`;
 }
+
+function previousMonthValue(monthValue) {
+  const [year, month] = monthValue.split('-').map(Number);
+  return month === 1 ? `${year - 1}-12` : `${year}-${pad2(month - 1)}`;
+}
+
+function previousQuarter(startYear, quarter) {
+  return quarter === 1 ? { startYear: startYear - 1, quarter: 4 } : { startYear, quarter: quarter - 1 };
+}
+
+/**
+ * The "last [same period type]" range for a `usePeriodSelector()` state —
+ * last month for Monthly, last quarter for Quarterly, last FY for YTD. For
+ * Custom (no natural "previous" period) it's an equal-length window
+ * immediately preceding the selected range.
+ */
+export function previousPeriodRange({ periodType, monthValue, fyStartYear, quarter, range }) {
+  if (periodType === 'monthly') return monthRange(previousMonthValue(monthValue));
+  if (periodType === 'quarterly') {
+    const prev = previousQuarter(Number(fyStartYear), Number(quarter));
+    return quarterRange(prev.startYear, prev.quarter);
+  }
+  if (periodType === 'ytd') return fyRange(Number(fyStartYear) - 1);
+
+  if (!range?.from || !range?.to) return { from: undefined, to: undefined };
+  const from = new Date(range.from);
+  const to = new Date(range.to);
+  const days = Math.round((to - from) / 86400000) + 1;
+  const prevTo = new Date(from);
+  prevTo.setDate(prevTo.getDate() - 1);
+  const prevFrom = new Date(prevTo);
+  prevFrom.setDate(prevFrom.getDate() - days + 1);
+  return { from: prevFrom.toISOString().slice(0, 10), to: prevTo.toISOString().slice(0, 10) };
+}
+
+const PREVIOUS_PERIOD_LABELS = { monthly: 'Last Month', quarterly: 'Last Quarter', ytd: 'Last FY', custom: 'Previous Period' };
+export function previousPeriodLabel(periodType) {
+  return PREVIOUS_PERIOD_LABELS[periodType] ?? 'Previous Period';
+}
+
+const CURRENT_PERIOD_LABELS = { monthly: 'This Month', quarterly: 'This Quarter', ytd: 'This FY', custom: 'Selected Period' };
+export function currentPeriodLabel(periodType) {
+  return CURRENT_PERIOD_LABELS[periodType] ?? 'Selected Period';
+}
+
+/** The 12 months of the FY starting in `startYear` (Apr..Mar), as { value: "YYYY-MM", label } options. */
+export function fyMonthOptions(startYear) {
+  return Array.from({ length: 12 }, (_, i) => {
+    const monthIndex = (3 + i) % 12; // 0-based: Apr=3 ... next Mar=2
+    const year = i < 9 ? startYear : startYear + 1; // Apr(0)..Dec(8) same year, Jan-Mar(9-11) next year
+    return { value: `${year}-${pad2(monthIndex + 1)}`, label: `${MONTH_NAMES[monthIndex].slice(0, 3)} ${year}` };
+  });
+}

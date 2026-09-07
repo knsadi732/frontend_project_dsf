@@ -4,6 +4,76 @@
 // ApiList.md "Orders"), so product-level charts here are quantity-based,
 // not revenue-based.
 
+// Sales revenue + order count within [from, to] (inclusive, "YYYY-MM-DD") —
+// powers the Executive Overview's period-scoped Sales tile, since the
+// analytics `sales_summary` widget is a fixed "today only" daily snapshot.
+export function salesTotalsInRange(orders, from, to) {
+  if (!from || !to) return { total: 0, count: 0 };
+  const inRange = orders.filter((order) => {
+    const date = (order.orderDate || order.createdAt || '').slice(0, 10);
+    return date >= from && date <= to;
+  });
+  return { total: inRange.reduce((sum, order) => sum + Number(order.total ?? 0), 0), count: inRange.length };
+}
+
+// Units (pairs) sold within [from, to] (inclusive, "YYYY-MM-DD") — powers the
+// Dashboard's Sales target widget, which tracks pairs against a monthly
+// units target rather than revenue.
+export function salesUnitsInRange(orders, from, to) {
+  if (!from || !to) return 0;
+  return orders.reduce((sum, order) => {
+    const date = (order.orderDate || order.createdAt || '').slice(0, 10);
+    if (date < from || date > to) return sum;
+    const orderUnits = (order.items ?? []).reduce((qty, item) => qty + Number(item.quantity ?? 0), 0);
+    return sum + orderUnits;
+  }, 0);
+}
+
+// Day-by-day cumulative progress toward the month's pair and revenue targets,
+// one row per calendar day in [from, to]. Actuals accumulate only up to today
+// (later days carry null so the line stops rather than flat-lining to the
+// month end); targets ramp linearly across every day, so the vertical gap at
+// today reads directly as "how far behind we are".
+export function salesTargetProgress(orders, from, to, unitsTarget, revenueTarget) {
+  if (!from || !to) return [];
+
+  const unitsByDate = new Map();
+  const revenueByDate = new Map();
+  orders.forEach((order) => {
+    const date = (order.orderDate || order.createdAt || '').slice(0, 10);
+    if (date < from || date > to) return;
+    const units = (order.items ?? []).reduce((qty, item) => qty + Number(item.quantity ?? 0), 0);
+    unitsByDate.set(date, (unitsByDate.get(date) ?? 0) + units);
+    revenueByDate.set(date, (revenueByDate.get(date) ?? 0) + Number(order.total ?? 0));
+  });
+
+  const totalDays = new Date(`${to}T00:00:00Z`).getUTCDate();
+  // A day counts as elapsed if it's on or before today *or* it already has
+  // orders on it — `today` is a UTC date while order dates are the viewer's,
+  // so on either side of midnight one of them is a day ahead of the other,
+  // and a day with real sales must never be treated as still in the future.
+  const lastElapsed = [new Date().toISOString().slice(0, 10), ...unitsByDate.keys()].reduce((a, b) => (a > b ? a : b));
+  const rows = [];
+  let cumulativeUnits = 0;
+  let cumulativeRevenue = 0;
+
+  for (let day = 1; day <= totalDays; day += 1) {
+    const date = `${from.slice(0, 7)}-${String(day).padStart(2, '0')}`;
+    cumulativeUnits += unitsByDate.get(date) ?? 0;
+    cumulativeRevenue += revenueByDate.get(date) ?? 0;
+    const elapsed = date <= lastElapsed;
+    rows.push({
+      day,
+      date,
+      actualUnits: elapsed ? cumulativeUnits : null,
+      actualRevenue: elapsed ? cumulativeRevenue : null,
+      targetUnits: unitsTarget != null ? (unitsTarget / totalDays) * day : null,
+      targetRevenue: revenueTarget != null ? (revenueTarget / totalDays) * day : null,
+    });
+  }
+  return rows;
+}
+
 export function salesTrendByDate(orders) {
   const totals = new Map();
   orders.forEach((order) => {

@@ -7,12 +7,17 @@
      scrollbars) always render with light OS chrome regardless of .dark —
      color-scheme is what tells the browser which palette to use for them. */
   color-scheme: light;
-  --app-bg: #f6f6f8;
-  --app-surface: #ffffff;
-  --app-surface-hover: #f1f1f4;
-  --app-border: #e2e2e7;
-  --app-text: #1a1a20;
-  --app-text-muted: #6b6b76;
+  /* Deliberately not pure #fff on #1a1a20 — that pairing lands near 19:1,
+     far past the ~10-13:1 that reads comfortably for long sessions, and a
+     full-white surface under office lighting is what actually stings. Soft
+     off-white surfaces + a dark-grey (not near-black) ink keep every text
+     pair well above WCAG AA while dropping the glare. */
+  --app-bg: #eef0f4;
+  --app-surface: #fafbfc;
+  --app-surface-hover: #f0f2f5;
+  --app-border: #dde1e7;
+  --app-text: #2b2f38;
+  --app-text-muted: #6a707c;
   --app-primary: #4f46e5;
   --app-primary-hover: #4338ca;
   --app-primary-fg: #ffffff;
@@ -24,12 +29,14 @@
 
 .dark {
   color-scheme: dark;
-  --app-bg: #101014;
-  --app-surface: #18181d;
-  --app-surface-hover: #202027;
-  --app-border: #2c2c34;
-  --app-text: #e8e8eb;
-  --app-text-muted: #98989f;
+  /* Same reasoning inverted: #e8e8eb on #101014 is ~16:1 and glares in a
+     dark room. Lift the ground slightly, soften the ink. */
+  --app-bg: #14161a;
+  --app-surface: #1c1f25;
+  --app-surface-hover: #242830;
+  --app-border: #30353e;
+  --app-text: #dcdee3;
+  --app-text-muted: #969ba5;
   --app-primary: #6366f1;
   --app-primary-hover: #818cf8;
   --app-primary-fg: #0b0b0f;

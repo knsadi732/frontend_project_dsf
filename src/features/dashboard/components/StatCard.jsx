@@ -1,77 +1,78 @@
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { useThemeStore } from '@/store/themeStore';
 
-// Every tone is a shade of the logo's own blue/grey — no other hues, per
-// brand direction. Light-to-dark diagonal direction matches the logo's
-// own bevel (lit top-left, shadowed bottom-right).
+// Soft tinted card + an icon-badge accent (the reference structure), but
+// every tone stays a shade of the logo's own blue/grey — no rainbow of
+// competing hues (that read as visually noisy/eye-straining at a glance
+// across 9 tiles). Light mode gets an airy tint, dark mode its muted-dark
+// equivalent, so it never reads as a bright patch inside a dark UI.
 const TONES = {
-  navy: ['#3d8ce8', '#1c4c8f'],
-  blue: ['#6fb0f5', '#2a78d6'],
-  sky: ['#9cc8f5', '#3d8ce8'],
-  charcoal: ['#8a94a3', '#3f4b5c'],
-  steel: ['#c3c9d1', '#6b7280'],
-  silver: ['#e4e7eb', '#9ca3af'],
+  navy: { light: '#E7EFFC', dark: '#182848', icon: '#1c4c8f' },
+  blue: { light: '#E9F1FC', dark: '#1E3A5F', icon: '#2a78d6' },
+  sky: { light: '#EDF4FC', dark: '#24425F', icon: '#3d8ce8' },
+  charcoal: { light: '#EEF0F3', dark: '#2A3240', icon: '#3f4b5c' },
+  steel: { light: '#F1F2F4', dark: '#333B47', icon: '#6b7280' },
+  silver: { light: '#F4F5F6', dark: '#3A4048', icon: '#9ca3af' },
 };
 
-export function StatCard({ label, value, delta, icon: Icon, tone = 'blue', subtitle, onClick }) {
+export function StatCard({ label, value, delta, icon: Icon, tone = 'blue', subtitle, onClick, compact = false }) {
+  const theme = useThemeStore((s) => s.theme);
   const isPositive = delta?.startsWith('+');
-  const [light, dark] = TONES[tone] ?? TONES.blue;
+  const palette = TONES[tone] ?? TONES.blue;
+  const cardBg = theme === 'dark' ? palette.dark : palette.light;
   const Wrapper = onClick ? 'button' : 'div';
+
+  if (compact) {
+    return (
+      <Wrapper
+        type={onClick ? 'button' : undefined}
+        onClick={onClick}
+        className={onClick ? 'block w-full text-left transition-transform duration-150 hover:-translate-y-0.5' : 'block w-full'}
+      >
+        <div className="flex min-h-[48px] flex-row items-center gap-2 rounded-xl px-2.5 py-1.5" style={{ background: cardBg }}>
+          {Icon && (
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-full text-white" style={{ background: palette.icon }}>
+              <Icon className="size-3.5" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-medium text-text-muted">{label}</p>
+            <p className="truncate text-base font-semibold tracking-tight text-text">{value}</p>
+          </div>
+        </div>
+      </Wrapper>
+    );
+  }
 
   return (
     <Wrapper
       type={onClick ? 'button' : undefined}
       onClick={onClick}
-      className={onClick ? 'block w-full p-1 text-left transition-transform duration-150 hover:-translate-y-0.5' : 'p-1'}
-      style={{ filter: `drop-shadow(0 10px 16px ${dark}80)` }}
+      className={onClick ? 'block w-full text-left transition-transform duration-150 hover:-translate-y-0.5' : 'block w-full'}
     >
-      <div
-        className="relative flex min-h-[104px] flex-col justify-between overflow-hidden p-3.5 text-white"
-        style={{
-          background: `linear-gradient(160deg, ${light} 0%, ${dark} 100%)`,
-          clipPath: 'polygon(0 0, 100% 0, 100% 100%, 16px 100%, 0 calc(100% - 16px))',
-          // a real, visibly-thick bevel like the logo's extruded letters:
-          // a bright ridge where the light hits (top/left), a dark ridge
-          // in shadow (bottom/right) — not a 1px hint, a plaque edge.
-          borderTop: '3px solid rgba(255,255,255,0.75)',
-          borderLeft: '3px solid rgba(255,255,255,0.75)',
-          borderRight: '3px solid rgba(0,0,0,0.45)',
-          borderBottom: '3px solid rgba(0,0,0,0.45)',
-          boxSizing: 'border-box',
-        }}
-      >
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{ background: 'linear-gradient(140deg, rgba(255,255,255,0.4) 0%, transparent 38%)' }}
-          aria-hidden="true"
-        />
-
-        <div className="relative flex items-start justify-between gap-2">
+      <div className="flex min-h-[112px] flex-col justify-between rounded-2xl p-4" style={{ background: cardBg }}>
+        <div className="flex items-start justify-between gap-2">
           {Icon && (
-            <div
-              className="flex size-8 shrink-0 items-center justify-center rounded-md bg-white/25"
-              style={{
-                borderTop: '2px solid rgba(255,255,255,0.7)',
-                borderLeft: '2px solid rgba(255,255,255,0.7)',
-                borderRight: '2px solid rgba(0,0,0,0.35)',
-                borderBottom: '2px solid rgba(0,0,0,0.35)',
-              }}
-            >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full text-white" style={{ background: palette.icon }}>
               <Icon className="size-4" />
             </div>
           )}
           {delta && (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-black/25 px-1.5 py-0.5 text-[11px] font-semibold">
+            <span
+              className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-semibold"
+              style={{ color: palette.icon, background: `${palette.icon}22` }}
+            >
               {isPositive ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
               {delta}
             </span>
           )}
         </div>
-        <div className="relative">
-          <p className="truncate text-[10.5px] font-medium uppercase tracking-wide text-white/85">{label}</p>
-          <p className="mt-0.5 text-xl font-bold tracking-tight" style={{ textShadow: '0 1px 0 rgba(0,0,0,0.35)' }}>
-            {value}
-          </p>
-          {subtitle && <p className="mt-0.5 truncate text-[11px] text-white/75">{subtitle}</p>}
+        {/* Sizes bumped off the old 10.5/11px: sub-11px labels are what make
+            a tile wall tiring to scan — you squint instead of reading. */}
+        <div className="mt-2.5">
+          <p className="truncate text-xs font-medium text-text-muted">{label}</p>
+          <p className="mt-1 text-xl font-semibold tracking-tight text-text">{value}</p>
+          {subtitle && <p className="mt-1 truncate text-xs leading-relaxed text-text-muted">{subtitle}</p>}
         </div>
       </div>
     </Wrapper>
