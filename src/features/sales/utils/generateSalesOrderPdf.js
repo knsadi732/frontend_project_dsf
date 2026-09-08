@@ -34,7 +34,7 @@ const formatDate = (value) => (value ? String(value).slice(0, 10) : '-');
  * payment status the order itself doesn't carry) — omitted, this renders as
  * a plain Sales Order/Proforma download.
  */
-export function generateSalesOrderPdf({ order, company, customer, items, invoiceNumber, dueDate, paymentStatus }) {
+export function generateSalesOrderPdf({ order, company, customer, items, invoiceNumber, dueDate, paymentStatus, hideStatus }) {
   const isTaxInvoice = Boolean(order.dispatchedAt) || Boolean(invoiceNumber);
   const documentNumber = invoiceNumber || order.orderNumber;
   const doc = new jsPDF();
@@ -106,10 +106,15 @@ export function generateSalesOrderPdf({ order, company, customer, items, invoice
   doc.text(isTaxInvoice ? 'Invoice Date:' : 'Date:', 105, y);
   doc.setFont('helvetica', 'normal');
   doc.text(formatDate(isTaxInvoice ? order.dispatchedAt : order.orderDate), isTaxInvoice ? 128 : 118, y);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Status:', 150, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(String(order.status || '-'), PAGE_RIGHT, y, { align: 'right' });
+  // Marketplace invoices (Meesho/Flipkart/etc — order.channelOrderNumber
+  // set) skip this: the internal fulfillment status isn't something the
+  // marketplace's own tax invoice shows.
+  if (!hideStatus) {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Status:', 150, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(order.status || '-'), PAGE_RIGHT, y, { align: 'right' });
+  }
   y += 6;
 
   if (dueDate || paymentStatus) {

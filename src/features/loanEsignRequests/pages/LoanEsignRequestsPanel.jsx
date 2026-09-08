@@ -9,6 +9,7 @@ import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
+import { generateId } from '@/utils/generateId';
 
 const ESIGN_STATUS_LABEL = { pending: 'Pending', signed: 'eSign Verified' };
 const ESIGN_STATUS_VARIANT = { pending: 'warning', signed: 'success' };
@@ -32,7 +33,7 @@ export function LoanEsignRequestsPanel() {
   const createRequest = useCreateLoanEsignRequest();
 
   const handleSubmit = (values) => {
-    const token = crypto.randomUUID();
+    const token = generateId();
     createRequest.mutateAsync({ ...values, token, status: 'pending', createdDate: new Date().toISOString().slice(0, 10) }).then((record) => {
       setFormOpen(false);
       setActiveRequest({ ...record, link: buildEsignLink(token) });

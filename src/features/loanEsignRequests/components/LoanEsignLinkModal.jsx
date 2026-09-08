@@ -29,7 +29,21 @@ export function LoanEsignLinkModal({ open, onClose, request }) {
   const link = request?.link ?? '';
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(link);
+    // navigator.clipboard only exists in a secure context (HTTPS or
+    // localhost) — falls back to the legacy execCommand approach on plain
+    // HTTP instead of throwing.
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(link);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = link;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

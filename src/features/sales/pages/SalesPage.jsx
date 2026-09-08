@@ -8,6 +8,7 @@ import { useCompanyQuery } from '@/features/company/queries/useCompanyQuery';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
 import { SalesOrderFormModal } from '@/features/sales/components/SalesOrderFormModal';
+import { MarketplaceInvoiceDetailsModal } from '@/features/sales/components/MarketplaceInvoiceDetailsModal';
 import { ORDER_STATUS_PIPELINE } from '@/features/sales/validators/salesOrder.schema';
 import { salesApi } from '@/services/sales.api';
 import { generateSalesOrderPdf } from '@/features/sales/utils/generateSalesOrderPdf';
@@ -51,25 +52,32 @@ const NEXT_STEP = {
 // attaches a lightweight sku/name summary) — fetch the full order detail,
 // whose items are already joined to sku/product_name (order.repository.js
 // findItems) so the invoice never has to fall back to a raw variant ID.
-async function downloadSalesOrderPdf(row, customersById, productsById, variantsById, company) {
+// Marketplace orders (row.channelOrderNumber set — Meesho/Flipkart/etc)
+// don't download straight away: the invoice number and HSN/rate need a
+// manual pass first (see MarketplaceInvoiceDetailsModal), since those
+// often need to match what the marketplace's own portal shows rather than
+// the internal order/product master values.
+async function downloadSalesOrderPdf(row, customersById, productsById, variantsById, company, openMarketplaceModal) {
   const order = await salesApi.get(row.id);
   const customer = customersById[row.customerId];
-  generateSalesOrderPdf({
-    order,
-    company,
-    customer,
-    items: (order.items ?? []).map((item) => {
-      const product = productsById[variantsById[item.productVariantId]?.productId];
-      return {
-        label: item.productName ? `${item.sku ?? ''} — ${item.productName}`.replace(/^ — /, '') : (item.sku ?? item.productVariantId),
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        taxRate: item.taxRate,
-        lineTotal: item.lineTotal,
-        hsnCode: product?.hsnCode,
-      };
-    }),
+  const items = (order.items ?? []).map((item) => {
+    const product = productsById[variantsById[item.productVariantId]?.productId];
+    return {
+      label: item.productName ? `${item.sku ?? ''} — ${item.productName}`.replace(/^ — /, '') : (item.sku ?? item.productVariantId),
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      taxRate: item.taxRate,
+      lineTotal: item.lineTotal,
+      hsnCode: product?.hsnCode,
+    };
   });
+
+  if (row.channelOrderNumber) {
+    openMarketplaceModal({ order, company, customer, items });
+    return;
+  }
+
+  generateSalesOrderPdf({ order, company, customer, items });
 }
 
 export function SalesPage() {
@@ -79,6 +87,7 @@ export function SalesPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, salesOrder: null });
+  const [marketplaceModal, setMarketplaceModal] = useState({ open: false });
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
@@ -175,7 +184,15 @@ export function SalesPage() {
         const next = NEXT_STEP[row.status];
         return (
           <div className="flex justify-end gap-1">
-            <DownloadButton label={`Download ${row.orderNumber}`} onClick={(event) => { event.stopPropagation(); downloadSalesOrderPdf(row, customersById, productsById, variantsById, company); }} />
+            <DownloadButton
+              label={`Download ${row.orderNumber}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                downloadSalesOrderPdf(row, customersById, productsById, variantsById, company, (ctx) =>
+                  setMarketplaceModal({ open: true, ...ctx }),
+                );
+              }}
+            />
             <Can module={MODULES.SALES} action={ACTIONS.EDIT}>
               <EditButton label={`Edit ${row.orderNumber}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, salesOrder: row }); }} />
             </Can>
@@ -280,6 +297,24 @@ export function SalesPage() {
         onClose={() => setFormState({ open: false, salesOrder: null })}
         onSubmit={handleSubmit}
         isSubmitting={createSalesOrder.isPending || updateSalesOrder.isPending}
+      />
+
+      <MarketplaceInvoiceDetailsModal
+        open={marketplaceModal.open}
+        defaultInvoiceNumber="DSF/FY/"
+        items={marketplaceModal.items}
+        onClose={() => setMarketplaceModal({ open: false })}
+        onConfirm={({ invoiceNumber, items }) => {
+          generateSalesOrderPdf({
+            order: marketplaceModal.order,
+            company: marketplaceModal.company,
+            customer: marketplaceModal.customer,
+            items,
+            invoiceNumber,
+            hideStatus: true,
+          });
+          setMarketplaceModal({ open: false });
+        }}
       />
     </div>
   );

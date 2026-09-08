@@ -7,8 +7,8 @@ const NAVY = [15, 30, 70];
 // through every PDF caller.
 const REGISTERED_OFFICE = 'DS Footwears, Committee Hall, Panagarh Bazar, Panagarh, Durgapur, West Bengal - 714133';
 const PHONE = '+91-9144024857';
-const EMAIL = 'shristyadityasingh1996@gmail.com';
-const PAN = 'IMWPD8040N';
+const EMAIL = 'shristyadityasingh1998@gmail.com';
+const PAN = 'IMWPD8040R';
 const PROPRIETOR = 'Mamta Singh';
 
 /**
