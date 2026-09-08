@@ -14,6 +14,9 @@ function toBackendPayload(payload) {
     customerId: payload.customerId,
     // OTIF (On Time In Full) tracking — the sales-committed delivery date.
     ...(payload.promisedDeliveryDate && { promisedDeliveryDate: payload.promisedDeliveryDate }),
+    // The marketplace platform's own order number — for reconciling a
+    // dispatch against a marketplace_settlements payout row later.
+    ...(payload.channelOrderNumber && { channelOrderNumber: payload.channelOrderNumber }),
     items: (payload.items ?? []).map((item) => ({
       productVariantId: item.productVariantId,
       quantity: item.quantity,
@@ -45,6 +48,7 @@ function fromBackendOrder(order, submitted = {}) {
     // whether to print as a Proforma Invoice or a final Tax Invoice.
     dispatchedAt: order.dispatchedAt ?? order.dispatched_at ?? submitted.dispatchedAt ?? null,
     promisedDeliveryDate: order.promisedDeliveryDate ?? order.promised_delivery_date ?? submitted.promisedDeliveryDate ?? null,
+    channelOrderNumber: order.channelOrderNumber ?? order.channel_order_number ?? submitted.channelOrderNumber ?? null,
     items:
       submitted.items ??
       (order.items ?? []).map((item) => ({

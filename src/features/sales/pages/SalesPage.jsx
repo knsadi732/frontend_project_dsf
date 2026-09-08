@@ -138,7 +138,16 @@ export function SalesPage() {
 
   const columns = [
     { key: 'orderNumber', header: 'SO Number' },
-    { key: 'customer', header: 'Customer', render: (row) => customersById[row.customerId]?.name ?? row.customerId },
+    {
+      key: 'customer',
+      header: 'Customer',
+      render: (row) => (
+        <div className="flex flex-col">
+          <span>{customersById[row.customerId]?.name ?? row.customerId}</span>
+          {row.channelOrderNumber && <span className="text-xs text-text-muted">Mkt. order: {row.channelOrderNumber}</span>}
+        </div>
+      ),
+    },
     {
       key: 'items',
       header: 'Product(s)',

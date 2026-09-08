@@ -1,15 +1,12 @@
 import { useEffect } from 'react';
-import { Trash2 } from 'lucide-react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { customerSchema, CUSTOMER_TYPE_OPTIONS, ADDRESS_TYPE_OPTIONS } from '@/features/customers/validators/customer.schema';
+import { customerSchema, CUSTOMER_TYPE_OPTIONS } from '@/features/customers/validators/customer.schema';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { AppButton } from '@/components/ui/AppButton';
-import { CreateButton } from '@/components/ui/ActionButtons';
 
-const EMPTY_ADDRESS = { type: 'billing', contactPerson: '', phone: '', addressLine: '', city: '', state: '', country: 'India', postalCode: '' };
 const DEFAULT_VALUES = {
   name: '',
   customerType: 'retail',
@@ -17,17 +14,19 @@ const DEFAULT_VALUES = {
   phone: '',
   email: '',
   address: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  country: 'India',
   gstNumber: '',
   creditLimit: '',
   creditDays: '',
-  addresses: [],
   status: 'active',
 };
 
 export function CustomerFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
   const {
     register,
-    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -35,8 +34,6 @@ export function CustomerFormModal({ open, onClose, initialValues, onSubmit, isSu
     resolver: zodResolver(customerSchema),
     defaultValues: DEFAULT_VALUES,
   });
-
-  const { fields, append, remove } = useFieldArray({ control, name: 'addresses' });
 
   useEffect(() => {
     if (open) reset(initialValues ?? DEFAULT_VALUES);
@@ -69,7 +66,18 @@ export function CustomerFormModal({ open, onClose, initialValues, onSubmit, isSu
           <AppInput label="Phone" required error={errors.phone?.message} {...register('phone')} />
           <AppInput label="Email" type="email" error={errors.email?.message} {...register('email')} />
         </div>
-        <AppInput label="Address" error={errors.address?.message} {...register('address')} />
+
+        <div className="flex flex-col gap-2 rounded-md border border-border p-3">
+          <span className="text-sm font-medium text-text">Billing address</span>
+          <AppInput label="Address line" error={errors.address?.message} {...register('address')} />
+          <div className="grid grid-cols-4 gap-2">
+            <AppInput label="City" error={errors.city?.message} {...register('city')} />
+            <AppInput label="State" error={errors.state?.message} {...register('state')} />
+            <AppInput label="Postal code" error={errors.postalCode?.message} {...register('postalCode')} />
+            <AppInput label="Country" error={errors.country?.message} {...register('country')} />
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <AppInput label="GST Number" error={errors.gstNumber?.message} {...register('gstNumber')} />
           <AppSelect
@@ -85,43 +93,6 @@ export function CustomerFormModal({ open, onClose, initialValues, onSubmit, isSu
         <div className="grid grid-cols-2 gap-4">
           <AppInput label="Credit limit (₹)" type="number" error={errors.creditLimit?.message} {...register('creditLimit')} />
           <AppInput label="Credit days" type="number" error={errors.creditDays?.message} {...register('creditDays')} />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-text">Addresses</span>
-            <CreateButton type="button" variant="secondary" size="sm" onClick={() => append(EMPTY_ADDRESS)}>Add address</CreateButton>
-          </div>
-
-          {fields.map((field, index) => (
-            <div key={field.id} className="flex flex-col gap-2 rounded-md border border-border p-3">
-              <div className="grid grid-cols-[8rem_1fr_2rem] items-start gap-2">
-                <AppSelect options={ADDRESS_TYPE_OPTIONS} {...register(`addresses.${index}.type`)} />
-                <AppInput placeholder="Contact person" {...register(`addresses.${index}.contactPerson`)} />
-                <AppButton
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => remove(index)}
-                  aria-label="Remove address"
-                  className="text-danger hover:bg-danger/10"
-                >
-                  <Trash2 className="size-4" />
-                </AppButton>
-              </div>
-              <AppInput
-                placeholder="Address line"
-                error={errors.addresses?.[index]?.addressLine?.message}
-                {...register(`addresses.${index}.addressLine`)}
-              />
-              <div className="grid grid-cols-4 gap-2">
-                <AppInput placeholder="City" {...register(`addresses.${index}.city`)} />
-                <AppInput placeholder="State" {...register(`addresses.${index}.state`)} />
-                <AppInput placeholder="Postal code" {...register(`addresses.${index}.postalCode`)} />
-                <AppInput placeholder="Phone" {...register(`addresses.${index}.phone`)} />
-              </div>
-            </div>
-          ))}
         </div>
       </form>
     </AppModal>

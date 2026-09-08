@@ -77,7 +77,13 @@ export function generateSalesOrderPdf({ order, company, customer, items, invoice
   doc.text(customer?.name || 'Customer', rightColX, rightY);
   rightY += 5;
   doc.setFont('helvetica', 'normal');
-  [customer?.gstin && `GST: ${customer.gstin}`, customer?.billing_address, customer?.phone && `Contact: ${customer.phone}`]
+  const customerCityStatePin = [customer?.city, customer?.state, customer?.postal_code].filter(Boolean).join(', ');
+  [
+    customer?.gstin && `GST: ${customer.gstin}`,
+    customer?.billing_address,
+    customerCityStatePin || undefined,
+    customer?.phone && `Contact: ${customer.phone}`,
+  ]
     .filter(Boolean)
     .forEach((line) => {
       doc.text(String(line), rightColX, rightY, { maxWidth: colWidth });
