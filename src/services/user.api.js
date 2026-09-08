@@ -55,6 +55,7 @@ function fromBackendUser(user, submitted = {}) {
     departmentName: user.department,
     designationId: submitted.designationId,
     designationTitle: user.job_title,
+    joiningDate: user.date_of_joining ?? submitted.joiningDate,
     employmentStatus: user.status,
     createdAt: user.created_at,
     updatedAt: user.updated_at,

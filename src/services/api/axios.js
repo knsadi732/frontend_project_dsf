@@ -56,6 +56,13 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Opt-out for requests where a 403/404 is an expected, silent outcome
+    // (e.g. probing whether the viewer can see an optional section) rather
+    // than a real error worth interrupting the user about.
+    if (config?.silent) {
+      return Promise.reject(error);
+    }
+
     const isAuthEndpoint = config?.url?.includes('/auth/login') || config?.url?.includes('/auth/refresh');
 
     if (response.status === 401 && !config._retry && !isAuthEndpoint) {

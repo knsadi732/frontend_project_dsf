@@ -4,6 +4,7 @@ import { BaseAvatar } from '@/components/ui/BaseAvatar';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { getEmployeeFullName } from '@/utils/employeeName';
+import { EmployeeCompensationSection } from '@/features/users/components/EmployeeCompensationSection';
 
 const DOCUMENT_FIELDS = [
   { key: 'aadhaar', label: 'Aadhaar' },
@@ -84,6 +85,8 @@ export function UserDetailModal({ open, onClose, user, departmentsById, designat
           <DetailRow label="Joining date" value={user.joiningDate} />
           <DetailRow label="Employment status" value={<StatusBadge status={user.employmentStatus} />} />
         </div>
+
+        <EmployeeCompensationSection userId={user.id} />
 
         <div className="flex flex-col">
           <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted">Government ID &amp; bank</h3>
