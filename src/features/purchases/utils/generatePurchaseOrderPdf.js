@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { drawLetterhead } from '@/utils/pdfLetterhead';
+import { drawLetterhead, REGISTERED_OFFICE, PHONE } from '@/utils/pdfLetterhead';
 
 const MARGIN = 14;
 const PAGE_RIGHT = 196;
@@ -56,11 +56,17 @@ export function generatePurchaseOrderPdf({ po, company, vendor, warehouse, items
   doc.text(company?.name || 'Company', MARGIN, leftY);
   leftY += 5;
   doc.setFont('helvetica', 'normal');
-  [company?.gstNumber && `GST: ${company.gstNumber}`, company?.address, company?.phone && `Contact: ${company.phone}`]
+  // companies has no address/phone columns — same fix as generateSalesOrderPdf.js.
+  // doc.text(..., { maxWidth }) wraps long lines but doesn't advance the
+  // cursor for the extra lines it drew — splitTextToSize gives back the
+  // actual wrapped line count so leftY/rightY advance correctly instead of
+  // a flat 5, which let a wrapped line collide with the one right after it.
+  [company?.gstNumber && `GST: ${company.gstNumber}`, REGISTERED_OFFICE, `Contact: ${PHONE}`]
     .filter(Boolean)
     .forEach((line) => {
-      doc.text(String(line), MARGIN, leftY, { maxWidth: colWidth });
-      leftY += 5;
+      const wrapped = doc.splitTextToSize(String(line), colWidth);
+      doc.text(wrapped, MARGIN, leftY);
+      leftY += 5 * wrapped.length;
     });
 
   let rightY = y;
@@ -71,8 +77,9 @@ export function generatePurchaseOrderPdf({ po, company, vendor, warehouse, items
   [vendor?.gstNumber && `GST: ${vendor.gstNumber}`, vendor?.address, vendor?.phone && `Contact: ${vendor.phone}`]
     .filter(Boolean)
     .forEach((line) => {
-      doc.text(String(line), rightColX, rightY, { maxWidth: colWidth });
-      rightY += 5;
+      const wrapped = doc.splitTextToSize(String(line), colWidth);
+      doc.text(wrapped, rightColX, rightY);
+      rightY += 5 * wrapped.length;
     });
 
   y = Math.max(leftY, rightY, blockTop + 6) + 4;

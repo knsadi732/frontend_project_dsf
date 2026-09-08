@@ -5,8 +5,8 @@ const NAVY = [15, 30, 70];
 // Static registered-office / statutory details for DS Footwear (single-tenant
 // ERP instance) — not backend-sourced, so it's fixed here rather than passed
 // through every PDF caller.
-const REGISTERED_OFFICE = 'DS Footwears, Committee Hall, Panagarh Bazar, Panagarh, Durgapur, West Bengal - 714133';
-const PHONE = '+91-9144024857';
+export const REGISTERED_OFFICE = 'DS Footwears, Community Hall, Panagarh Bazar, Panagarh, Durgapur, West Bengal - 714133';
+export const PHONE = '+91-9144024857';
 const EMAIL = 'shristyadityasingh1998@gmail.com';
 const PAN = 'IMWPD8040R';
 const PROPRIETOR = 'Mamta Singh';

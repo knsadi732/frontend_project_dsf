@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { salesOrderSchema, ORDER_STATUS_PIPELINE, B2B_CUSTOMER_TYPES } from '@/features/sales/validators/salesOrder.schema';
 import { CUSTOMER_TYPE_OPTIONS } from '@/features/customers/validators/customer.schema';
+import { usePincodeAutofill, PINCODE_STATUS_TEXT } from '@/hooks/usePincodeAutofill';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { useCreateCustomer } from '@/features/customers/mutations/useCreateCustomer';
 import { useMarketplaceChannelsQuery } from '@/features/marketplaceChannels/queries/useMarketplaceChannelsQuery';
@@ -213,11 +214,21 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
   const newCustomerName = useWatch({ control, name: 'newCustomerName' });
   const newCustomerPhone = useWatch({ control, name: 'newCustomerPhone' });
   const newCustomerGstin = useWatch({ control, name: 'newCustomerGstin' });
+  const newCustomerPostalCode = useWatch({ control, name: 'newCustomerPostalCode' });
 
   useEffect(() => {
     if (!open) return;
     reset(isEdit ? initialValues : DEFAULT_VALUES);
   }, [open, isEdit, initialValues, reset]);
+
+  const applyPincodeResult = useCallback(
+    (result) => {
+      setValue('newCustomerCity', result.city, { shouldValidate: true });
+      setValue('newCustomerState', result.state, { shouldValidate: true });
+    },
+    [setValue],
+  );
+  const pincodeStatus = usePincodeAutofill(newCustomerPostalCode, applyPincodeResult);
 
   const selectedCustomer = customerMode === 'existing' ? customers.find((c) => c.id === customerId) : null;
   const hasNewCustomerDraft = customerMode === 'new' && (newCustomerName || newCustomerPhone);
@@ -356,6 +367,7 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
       onClose={onClose}
       title={isEdit ? `Sales order ${initialValues.orderNumber}` : 'New sales order'}
       className="max-w-2xl"
+      closeOnBackdropClick={false}
       footer={
         <>
           <AppButton variant="secondary" onClick={onClose}>
@@ -462,10 +474,16 @@ export function SalesOrderFormModal({ open, onClose, initialValues, onSubmit, is
                   included: DS Footwear does the actual shipping regardless of
                   who invoices the buyer, so this isn't tied to billing/GST. */}
               <AppInput label="Delivery address" required error={errors.newCustomerAddress?.message} {...register('newCustomerAddress')} />
-              <div className="grid grid-cols-3 gap-4">
+              <AppInput
+                label="Postal code"
+                required
+                helperText={PINCODE_STATUS_TEXT[pincodeStatus]}
+                error={errors.newCustomerPostalCode?.message}
+                {...register('newCustomerPostalCode')}
+              />
+              <div className="grid grid-cols-2 gap-4">
                 <AppInput label="City" required error={errors.newCustomerCity?.message} {...register('newCustomerCity')} />
                 <AppInput label="State" required error={errors.newCustomerState?.message} {...register('newCustomerState')} />
-                <AppInput label="Postal code" required error={errors.newCustomerPostalCode?.message} {...register('newCustomerPostalCode')} />
               </div>
               {directDuplicate && (
                 <div className="flex items-center justify-between gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">

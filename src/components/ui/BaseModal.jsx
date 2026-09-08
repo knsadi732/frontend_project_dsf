@@ -15,7 +15,7 @@ function mergeDialogClassName(className) {
   return cn(DEFAULT_DIALOG_CLASSES.replace(/\bmax-w-\S+\s*/, ''), className);
 }
 
-export function BaseModal({ open, onClose, className, children, labelledBy }) {
+export function BaseModal({ open, onClose, className, children, labelledBy, closeOnBackdropClick = true }) {
   const containerRef = useRef(null);
   const previousFocusRef = useRef(null);
 
@@ -55,7 +55,11 @@ export function BaseModal({ open, onClose, className, children, labelledBy }) {
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={closeOnBackdropClick ? onClose : undefined}
+        aria-hidden="true"
+      />
       <div
         ref={containerRef}
         role="dialog"

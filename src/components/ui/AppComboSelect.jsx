@@ -2,6 +2,10 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
+// Matches the dropdown's max-h-56 (14rem = 224px) — used to decide whether
+// there's enough room below before flipping the list above the field.
+const DROPDOWN_MAX_HEIGHT = 224;
+
 // Starts as a free-text search input (filters `options` by label as you
 // type); once an option is picked it collapses into a closed, select-like
 // display. Clicking that display reopens the search box so the choice can
@@ -28,6 +32,7 @@ export function AppComboSelect({
   const inputRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [dropUp, setDropUp] = useState(false);
 
   const selected = options.find((option) => option.value === value);
 
@@ -39,6 +44,11 @@ export function AppComboSelect({
 
   const openForSearch = () => {
     if (disabled) return;
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropUp(spaceBelow < DROPDOWN_MAX_HEIGHT && rect.top > spaceBelow);
+    }
     setQuery('');
     setOpen(true);
     requestAnimationFrame(() => inputRef.current?.focus());
@@ -139,7 +149,12 @@ export function AppComboSelect({
         )}
 
         {open && (
-          <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-surface py-1 shadow-md">
+          <ul
+            className={cn(
+              'absolute z-10 max-h-56 w-full overflow-auto rounded-md border border-border bg-surface py-1 shadow-md',
+              dropUp ? 'bottom-full mb-1' : 'top-full mt-1',
+            )}
+          >
             {filtered.length === 0 && <li className="px-3 py-1.5 text-sm text-text-muted">No matches</li>}
             {filtered.map((option) => (
               <li key={option.value}>

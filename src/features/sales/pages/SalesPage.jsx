@@ -63,12 +63,16 @@ async function downloadSalesOrderPdf(row, customersById, productsById, variantsB
   const items = (order.items ?? []).map((item) => {
     const product = productsById[variantsById[item.productVariantId]?.productId];
     return {
+      id: item.id,
       label: item.productName ? `${item.sku ?? ''} — ${item.productName}`.replace(/^ — /, '') : (item.sku ?? item.productVariantId),
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       taxRate: item.taxRate,
       lineTotal: item.lineTotal,
-      hsnCode: product?.hsnCode,
+      // item.hsnCode already reflects the order line's override if one was
+      // set (order.repository.js findItems COALESCEs it) — product?.hsnCode
+      // is only a fallback for the rare case that's missing.
+      hsnCode: item.hsnCode ?? product?.hsnCode,
     };
   });
 
@@ -301,19 +305,36 @@ export function SalesPage() {
 
       <MarketplaceInvoiceDetailsModal
         open={marketplaceModal.open}
-        defaultInvoiceNumber="DSF/FY/"
         items={marketplaceModal.items}
+        isSaving={marketplaceModal.saving}
         onClose={() => setMarketplaceModal({ open: false })}
-        onConfirm={({ invoiceNumber, items }) => {
-          generateSalesOrderPdf({
-            order: marketplaceModal.order,
-            company: marketplaceModal.company,
-            customer: marketplaceModal.customer,
-            items,
-            invoiceNumber,
-            hideStatus: true,
-          });
-          setMarketplaceModal({ open: false });
+        onConfirm={async ({ invoiceNumber, items }) => {
+          setMarketplaceModal((prev) => ({ ...prev, saving: true }));
+          try {
+            // Persists the rate/HSN correction (order.service.js recomputes
+            // subtotal/tax/total from the new rate) before printing, so the
+            // downloaded invoice and the stored order never disagree.
+            const updatedOrder = await salesApi.updateItems(marketplaceModal.order.id, items);
+            generateSalesOrderPdf({
+              order: updatedOrder,
+              company: marketplaceModal.company,
+              customer: marketplaceModal.customer,
+              items: updatedOrder.items.map((item) => ({
+                label: items.find((i) => i.id === item.id)?.label ?? item.productName ?? item.sku,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                taxRate: item.taxRate,
+                lineTotal: item.lineTotal,
+                hsnCode: item.hsnCode,
+              })),
+              invoiceNumber,
+              hideStatus: true,
+              hideLetterhead: true,
+            });
+            setMarketplaceModal({ open: false });
+          } finally {
+            setMarketplaceModal((prev) => ({ ...prev, saving: false }));
+          }
         }}
       />
     </div>

@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useCallback, useEffect } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { customerSchema, CUSTOMER_TYPE_OPTIONS } from '@/features/customers/validators/customer.schema';
+import { usePincodeAutofill, PINCODE_STATUS_TEXT } from '@/hooks/usePincodeAutofill';
 import { AppModal } from '@/components/ui/AppModal';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppSelect } from '@/components/ui/AppSelect';
@@ -27,8 +28,10 @@ const DEFAULT_VALUES = {
 export function CustomerFormModal({ open, onClose, initialValues, onSubmit, isSubmitting }) {
   const {
     register,
+    control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(customerSchema),
@@ -38,6 +41,16 @@ export function CustomerFormModal({ open, onClose, initialValues, onSubmit, isSu
   useEffect(() => {
     if (open) reset(initialValues ?? DEFAULT_VALUES);
   }, [open, initialValues, reset]);
+
+  const postalCode = useWatch({ control, name: 'postalCode' });
+  const applyPincodeResult = useCallback(
+    (result) => {
+      setValue('city', result.city, { shouldValidate: true });
+      setValue('state', result.state, { shouldValidate: true });
+    },
+    [setValue],
+  );
+  const pincodeStatus = usePincodeAutofill(postalCode, applyPincodeResult);
 
   return (
     <AppModal
@@ -71,9 +84,14 @@ export function CustomerFormModal({ open, onClose, initialValues, onSubmit, isSu
           <span className="text-sm font-medium text-text">Billing address</span>
           <AppInput label="Address line" error={errors.address?.message} {...register('address')} />
           <div className="grid grid-cols-4 gap-2">
+            <AppInput
+              label="Postal code"
+              helperText={PINCODE_STATUS_TEXT[pincodeStatus]}
+              error={errors.postalCode?.message}
+              {...register('postalCode')}
+            />
             <AppInput label="City" error={errors.city?.message} {...register('city')} />
             <AppInput label="State" error={errors.state?.message} {...register('state')} />
-            <AppInput label="Postal code" error={errors.postalCode?.message} {...register('postalCode')} />
             <AppInput label="Country" error={errors.country?.message} {...register('country')} />
           </div>
         </div>

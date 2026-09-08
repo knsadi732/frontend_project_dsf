@@ -61,6 +61,7 @@ function fromBackendOrder(order, submitted = {}) {
         unitPrice: item.unitPrice ?? item.unit_price,
         taxRate: item.taxRate ?? item.tax_rate,
         lineTotal: item.lineTotal ?? item.line_total,
+        hsnCode: item.hsnCode ?? item.hsn_code,
       })),
   };
 }
@@ -70,11 +71,20 @@ export const salesApi = {
     baseApi.list(params).then(({ data, total }) => ({ data: data.map((order) => fromBackendOrder(order)), total })),
   get: (id) => baseApi.get(id).then((order) => fromBackendOrder(order)),
   create: (payload) => baseApi.create(toBackendPayload(payload)).then((order) => fromBackendOrder(order, payload)),
-  // No generic edit endpoint exists — only two status-transition endpoints
-  // (order.routes.js): fulfillment pipeline and payment status, each its own
-  // PATCH. There's no DELETE either.
+  // No generic edit endpoint exists — status/payment-status transitions and
+  // updateItems (rate/HSN correction on existing lines, not add/remove) are
+  // the only ways to change an order after creation. There's no DELETE either.
   transitionStatus: (id, status) =>
     apiClient.patch(`/orders/${id}/status`, { status }).then((res) => fromBackendOrder(res.data.data)),
   transitionPaymentStatus: (id, paymentStatus) =>
     apiClient.patch(`/orders/${id}/payment-status`, { paymentStatus }).then((res) => fromBackendOrder(res.data.data)),
+  // items: [{ id, unitPrice, hsnCode }] — id is the order_item id (existing
+  // lines only), unitPrice is the new GST-inclusive rate; subtotal/tax/total
+  // recompute server-side from it (order.service.js updateOrderItems).
+  updateItems: (id, items) =>
+    apiClient
+      .patch(`/orders/${id}/items`, { items: items.map(({ id: itemId, unitPrice, hsnCode }) => ({ id: itemId, unitPrice, hsnCode })) })
+      .then((res) => fromBackendOrder(res.data.data)),
+  generateMarketplaceInvoiceNumber: () =>
+    apiClient.get('/orders/marketplace-invoice-number').then((res) => res.data.data.invoiceNumber),
 };

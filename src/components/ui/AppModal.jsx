@@ -3,11 +3,17 @@ import { X } from 'lucide-react';
 import { BaseModal } from '@/components/ui/BaseModal';
 import { AppButton } from '@/components/ui/AppButton';
 
-export function AppModal({ open, onClose, title, footer, children, className }) {
+export function AppModal({ open, onClose, title, footer, children, className, closeOnBackdropClick }) {
   const titleId = useId();
 
   return (
-    <BaseModal open={open} onClose={onClose} labelledBy={titleId} className={className}>
+    <BaseModal
+      open={open}
+      onClose={onClose}
+      labelledBy={titleId}
+      className={className}
+      closeOnBackdropClick={closeOnBackdropClick}
+    >
       <div className="mb-4 flex items-center justify-between">
         <h2 id={titleId} className="text-lg font-semibold text-text">
           {title}

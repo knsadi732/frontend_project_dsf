@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { drawLetterhead } from '@/utils/pdfLetterhead';
+import { drawLetterhead, REGISTERED_OFFICE, PHONE } from '@/utils/pdfLetterhead';
 
 const MARGIN = 14;
 const PAGE_RIGHT = 196;
@@ -34,11 +34,14 @@ const formatDate = (value) => (value ? String(value).slice(0, 10) : '-');
  * payment status the order itself doesn't carry) — omitted, this renders as
  * a plain Sales Order/Proforma download.
  */
-export function generateSalesOrderPdf({ order, company, customer, items, invoiceNumber, dueDate, paymentStatus, hideStatus }) {
+export function generateSalesOrderPdf({ order, company, customer, items, invoiceNumber, dueDate, paymentStatus, hideStatus, hideLetterhead }) {
   const isTaxInvoice = Boolean(order.dispatchedAt) || Boolean(invoiceNumber);
   const documentNumber = invoiceNumber || order.orderNumber;
   const doc = new jsPDF();
-  let y = drawLetterhead(doc, { gstin: company?.gstNumber });
+  // Marketplace invoices skip the branded DS Footwear header entirely (not
+  // just the Status line) — per the user's explicit follow-up, the whole
+  // logo/registered-office/PAN block goes, not just individual fields.
+  let y = hideLetterhead ? MARGIN : drawLetterhead(doc, { gstin: company?.gstNumber });
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
@@ -65,11 +68,21 @@ export function generateSalesOrderPdf({ order, company, customer, items, invoice
   doc.text(company?.name || 'DS Footwear', MARGIN, leftY);
   leftY += 5;
   doc.setFont('helvetica', 'normal');
-  [company?.gstNumber && `GST: ${company.gstNumber}`, company?.address, company?.phone && `Contact: ${company.phone}`]
+  // companies has no address/phone columns — company?.address/company?.phone
+  // are always undefined, so the FROM block used to show only name+GST while
+  // the letterhead above it had the full registered office. Reuse the same
+  // static registered-office details the letterhead already uses instead.
+  // doc.text(..., { maxWidth }) wraps long lines but doesn't advance the
+  // cursor for the extra lines it drew — splitTextToSize gives back the
+  // actual wrapped line count so leftY advances by that many, instead of a
+  // flat 5 that let REGISTERED_OFFICE's second wrapped line collide with
+  // the Contact line right after it.
+  [company?.gstNumber && `GST: ${company.gstNumber}`, REGISTERED_OFFICE, `Contact: ${PHONE}`]
     .filter(Boolean)
     .forEach((line) => {
-      doc.text(String(line), MARGIN, leftY, { maxWidth: colWidth });
-      leftY += 5;
+      const wrapped = doc.splitTextToSize(String(line), colWidth);
+      doc.text(wrapped, MARGIN, leftY);
+      leftY += 5 * wrapped.length;
     });
 
   let rightY = y;
@@ -86,8 +99,9 @@ export function generateSalesOrderPdf({ order, company, customer, items, invoice
   ]
     .filter(Boolean)
     .forEach((line) => {
-      doc.text(String(line), rightColX, rightY, { maxWidth: colWidth });
-      rightY += 5;
+      const wrapped = doc.splitTextToSize(String(line), colWidth);
+      doc.text(wrapped, rightColX, rightY);
+      rightY += 5 * wrapped.length;
     });
 
   y = Math.max(leftY, rightY, blockTop + 6) + 4;
