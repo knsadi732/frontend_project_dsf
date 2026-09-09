@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { salesOrderSchema, ORDER_STATUS_PIPELINE, B2B_CUSTOMER_TYPES } from '@/features/sales/validators/salesOrder.schema';
+import { salesOrderSchema, ORDER_STATUS_PIPELINE, CANCELLABLE_ORDER_STATUSES, B2B_CUSTOMER_TYPES } from '@/features/sales/validators/salesOrder.schema';
 import { CUSTOMER_TYPE_OPTIONS } from '@/features/customers/validators/customer.schema';
 import { usePincodeAutofill, PINCODE_STATUS_TEXT } from '@/hooks/usePincodeAutofill';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
@@ -151,6 +151,11 @@ function nextStepOptions(currentStatus) {
   const next = ORDER_STATUS_PIPELINE[index + 1];
   const options = [{ value: currentStatus, label: `${statusLabel(currentStatus)} (current)` }];
   if (next) options.push({ value: next, label: `Advance to ${statusLabel(next)}` });
+  // A fork off the pipeline, not "the next step" — offered for every status
+  // up to (not including) Completed, even after the invoice has been
+  // generated (order.service.js's cancel branch only blocks item edits,
+  // not cancellation itself).
+  if (CANCELLABLE_ORDER_STATUSES.includes(currentStatus)) options.push({ value: 'cancelled', label: 'Cancel order' });
   return options;
 }
 

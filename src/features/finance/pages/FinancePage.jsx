@@ -40,9 +40,10 @@ import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 const STATUS_OPTIONS = toStatusOptions(PAYMENT_STATUS);
 
 // An invoice IS the linked order (finance.service.js createBillForOrder) —
-// reuse the same Tax Invoice template Sales Orders download, just fetching
-// the order's items (list rows don't carry line-item pricing) and passing
-// the bill's own number/due date/payment status through.
+// reuse the exact same Tax Invoice template Sales Orders download (just
+// fetching the order's items, since list rows don't carry line-item
+// pricing), so the PDF looks identical regardless of which module it's
+// downloaded from.
 async function downloadInvoicePdf(row, customersById, productsById, variantsById, company) {
   const order = await salesApi.get(row.orderId);
   const customer = customersById[order.customerId];
@@ -50,9 +51,6 @@ async function downloadInvoicePdf(row, customersById, productsById, variantsById
     order,
     company,
     customer,
-    invoiceNumber: row.invoiceNumber,
-    dueDate: row.dueDate,
-    paymentStatus: row.status,
     items: (order.items ?? []).map((item) => {
       const product = productsById[variantsById[item.productVariantId]?.productId];
       return {

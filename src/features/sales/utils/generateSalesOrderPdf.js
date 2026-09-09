@@ -28,11 +28,11 @@ const formatDate = (value) => (value ? String(value).slice(0, 10) : '-');
  * "dispatched"), the same document becomes the final Tax Invoice — same
  * order number, no separate invoice entity or numbering needed.
  *
- * `invoiceNumber`/`dueDate`/`paymentStatus` are only passed when downloading
- * from the Finance > Invoices tab (finance.service.js's `bills` row, which
- * has its own number distinct from the order number, plus a due date and
- * payment status the order itself doesn't carry) — omitted, this renders as
- * a plain Sales Order/Proforma download.
+ * `invoiceNumber`/`dueDate`/`paymentStatus` are only passed by the
+ * marketplace invoice flow (MarketplaceInvoiceDetailsModal, which has its
+ * own settlement-facing invoice number) — Finance > Invoices now downloads
+ * the same plain Sales Order/Proforma document as the Sales module, so the
+ * PDF is identical no matter which module it's downloaded from.
  */
 export function generateSalesOrderPdf({ order, company, customer, items, invoiceNumber, dueDate, paymentStatus, hideStatus, hideLetterhead }) {
   const isTaxInvoice = Boolean(order.dispatchedAt) || Boolean(invoiceNumber);

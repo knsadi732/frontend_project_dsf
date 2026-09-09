@@ -3,8 +3,15 @@ import { z } from 'zod';
 // Real backend pipeline (order.service.js transitionOrder / order.validator.js
 // transitionStatus): pending -> confirmed -> packed -> dispatched -> delivered
 // -> completed, strictly one step at a time (assertTransition). No draft/
-// approved/rejected/cancelled states exist here — those were mock-era values.
+// approved/rejected states exist here — those were mock-era values.
+// 'cancelled' is a real status but forks off any pre-completed state rather
+// than being the pipeline's next step — see CANCELLABLE_ORDER_STATUSES.
 export const ORDER_STATUS_PIPELINE = ['pending', 'confirmed', 'packed', 'dispatched', 'delivered', 'completed'];
+// Once an order has shipped its invoice is final and dispatched stock has
+// already left, but the order itself can still be cancelled all the way up
+// to (not including) Completed — mirrors order.service.js transitionOrder's
+// cancel branch.
+export const CANCELLABLE_ORDER_STATUSES = ['pending', 'confirmed', 'packed', 'dispatched', 'delivered'];
 export const PAYMENT_STATUS_OPTIONS = ['partial', 'paid', 'refunded'];
 
 // Only 'retail' is B2C — every other direct customer_type is a business,
