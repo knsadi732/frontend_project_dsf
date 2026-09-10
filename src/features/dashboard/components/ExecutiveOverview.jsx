@@ -8,17 +8,6 @@ function fmtCurrency(value) {
   return `₹${Number(value ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 }
 
-// Pre-seed the target page's own persisted tab (see usePersistedTab) before
-// navigating, so the click actually lands on the relevant sub-tab instead of
-// whatever tab that page last remembered.
-function presetTab(storageKey, tab) {
-  try {
-    localStorage.setItem(`tab:${storageKey}`, tab);
-  } catch {
-    // ignore — navigation still works, just lands on whatever tab was last open
-  }
-}
-
 /**
  * CEO/Owner-level "at a glance" tiles — the NetSuite-style Home tiles pattern
  * requested: 6 headline numbers plus the secondary ops stats, all in one flex
@@ -105,11 +94,7 @@ export function ExecutiveOverview({
               subtitle="in period, from books"
               icon={TrendingUp}
               tone="blue"
-              onClick={() => {
-                presetTab('finance', 'compliance');
-                presetTab('compliance', 'reports');
-                navigate('/finance');
-              }}
+              onClick={() => navigate('/finance?tab=complianceReports')}
             />
           </div>
         )}
@@ -121,10 +106,7 @@ export function ExecutiveOverview({
               subtitle="DSF bank/cash — current"
               icon={Landmark}
               tone={cashBalance == null || cashBalance >= 0 ? 'sky' : 'charcoal'}
-              onClick={() => {
-                presetTab('finance', 'ledger');
-                navigate('/finance');
-              }}
+              onClick={() => navigate('/finance?tab=ledger')}
             />
           </div>
         )}
@@ -148,10 +130,7 @@ export function ExecutiveOverview({
               subtitle="loans + dues — current"
               icon={ScrollText}
               tone="charcoal"
-              onClick={() => {
-                presetTab('finance', 'payables');
-                navigate('/finance');
-              }}
+              onClick={() => navigate('/finance?tab=payables')}
             />
           </div>
         )}

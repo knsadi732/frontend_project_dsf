@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
+import { useTabParam } from '@/hooks/useTabParam';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useCreateProduct } from '@/features/products/mutations/useCreateProduct';
 import { useUpdateProduct } from '@/features/products/mutations/useUpdateProduct';
@@ -19,7 +19,6 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DownloadButton, EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
 import { RefreshButton } from '@/components/ui/RefreshButton';
-import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { RECORD_STATUS, toStatusOptions } from '@/constants/statusEnums';
@@ -45,15 +44,8 @@ function downloadProductPdf(row, categoriesById, brandsById) {
   });
 }
 
-const TABS = [
-  { key: 'products', label: 'Products' },
-  { key: 'categories', label: 'Categories' },
-  { key: 'brands', label: 'Brands' },
-  { key: 'variants', label: 'Variants' },
-];
-
 export function ProductsPage() {
-  const [activeTab, setActiveTab] = usePersistedTab('products', 'products');
+  const [activeTab] = useTabParam('products');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
@@ -136,8 +128,6 @@ export function ProductsPage() {
           </Can>
         )}
       </div>
-
-      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'products' && (
         <>

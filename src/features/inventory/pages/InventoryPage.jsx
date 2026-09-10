@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Download, Pencil, Trash2 } from 'lucide-react';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
+import { useTabParam } from '@/hooks/useTabParam';
 import { useProductStockQuery } from '@/features/inventory/queries/useProductStockQuery';
 import { useStockSummaryQuery } from '@/features/inventory/queries/useStockSummaryQuery';
 import { useCreateInventoryItem } from '@/features/inventory/mutations/useCreateInventoryItem';
@@ -23,7 +23,6 @@ import { AppModal } from '@/components/ui/AppModal';
 import { MultiFilter } from '@/components/ui/MultiFilter';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
-import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -43,16 +42,6 @@ function downloadInventoryPdf(row, sku, productName, warehouseName) {
     fileName: `${sku ?? row.id}-inventory.pdf`,
   });
 }
-
-const TABS = [
-  { key: 'inventory', label: 'Inventory' },
-  { key: 'zones', label: 'Zones' },
-  { key: 'racks', label: 'Racks' },
-  { key: 'shelves', label: 'Shelves' },
-  { key: 'bins', label: 'Bins' },
-  { key: 'movements', label: 'Movements' },
-  { key: 'materialIssue', label: 'Material Issue' },
-];
 
 // 'salable' vs non-salable 'office_consumable'/'raw_material' — derived
 // server-side from products.is_sellable/product_type (see
@@ -78,7 +67,7 @@ const INVENTORY_CATEGORY_VARIANT = {
 };
 
 export function InventoryPage() {
-  const [activeTab, setActiveTab] = usePersistedTab('inventory', 'inventory');
+  const [activeTab] = useTabParam('inventory');
   const [warehouseId, setWarehouseId] = useState('');
   const [inventoryCategory, setInventoryCategory] = useState('');
   const [page, setPage] = useState(1);
@@ -221,8 +210,6 @@ export function InventoryPage() {
           </Can>
         )}
       </div>
-
-      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'inventory' && (
         <>

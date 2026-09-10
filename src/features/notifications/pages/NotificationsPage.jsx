@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
+import { useTabParam } from '@/hooks/useTabParam';
 import { useNotificationsQuery } from '@/features/notifications/queries/useNotificationsQuery';
 import { useMarkNotificationRead } from '@/features/notifications/mutations/useMarkNotificationRead';
 import { useMarkAllNotificationsRead } from '@/features/notifications/mutations/useMarkAllNotificationsRead';
@@ -10,14 +10,8 @@ import { useCommunicationLogsQuery } from '@/features/communicationLogs/queries/
 import { StatCard } from '@/features/dashboard/components/StatCard';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppSelect } from '@/components/ui/AppSelect';
-import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-
-const TABS = [
-  { key: 'notifications', label: 'Notifications' },
-  { key: 'communicationLogs', label: 'Communication Logs' },
-];
 
 const TYPE_FILTER_OPTIONS = [
   { value: 'information', label: 'Information' },
@@ -29,7 +23,7 @@ const TYPE_FILTER_OPTIONS = [
 ];
 
 export function NotificationsPage() {
-  const [activeTab, setActiveTab] = usePersistedTab('notifications', 'notifications');
+  const [activeTab] = useTabParam('notifications');
   const [typeFilter, setTypeFilter] = useState('');
   const { data, isLoading } = useNotificationsQuery();
   const { data: logsData } = useCommunicationLogsQuery();
@@ -77,8 +71,6 @@ export function NotificationsPage() {
         <StatCard label="Simulated emails sent" value={stats.totalEmails} />
         <StatCard label="Read rate" value={`${stats.readRate}%`} />
       </div>
-
-      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'notifications' && (
         <>

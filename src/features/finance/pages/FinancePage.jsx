@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
+import { useTabParam } from '@/hooks/useTabParam';
 import { useInvoicesQuery } from '@/features/finance/queries/useInvoicesQuery';
 import { useUpdateInvoice } from '@/features/finance/mutations/useUpdateInvoice';
 import { InvoiceStatusModal } from '@/features/finance/components/InvoiceStatusModal';
@@ -29,7 +29,6 @@ import { DownloadButton, EditButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
 import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
-import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { PAYMENT_STATUS, toStatusOptions } from '@/constants/statusEnums';
@@ -65,24 +64,8 @@ async function downloadInvoicePdf(row, customersById, productsById, variantsById
   });
 }
 
-const TABS = [
-  { key: 'invoices', label: 'Invoices' },
-  { key: 'payments', label: 'Customer Payments' },
-  { key: 'vendorBills', label: 'Vendor Bills' },
-  { key: 'approvals', label: 'Approval Queue' },
-  { key: 'creditNotes', label: 'Credit Notes' },
-  { key: 'loanRequests', label: 'Loan Requests' },
-  { key: 'loans', label: 'Loans (Debt)' },
-  { key: 'payables', label: 'Payables (Dues)' },
-  { key: 'marketplaceChannels', label: 'Marketplace Channels' },
-  { key: 'marketplaceSettlements', label: 'Marketplace Settlements' },
-  { key: 'ledger', label: 'Ledger' },
-  { key: 'fundingSources', label: 'Funding Sources' },
-  { key: 'compliance', label: 'Compliance' },
-];
-
 export function FinancePage() {
-  const [activeTab, setActiveTab] = usePersistedTab('finance', 'invoices');
+  const [activeTab] = useTabParam('invoices');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
@@ -176,8 +159,6 @@ export function FinancePage() {
         </div>
       </div>
 
-      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
-
       {activeTab === 'invoices' && (
         <>
       <FilterBar>
@@ -262,7 +243,8 @@ export function FinancePage() {
       {activeTab === 'marketplaceSettlements' && <MarketplaceSettlementsPanel />}
       {activeTab === 'ledger' && <LedgerPanel />}
       {activeTab === 'fundingSources' && <FundingSourcesPanel />}
-      {activeTab === 'compliance' && <CompliancePanel />}
+      {activeTab === 'complianceOverview' && <CompliancePanel section="overview" />}
+      {activeTab === 'complianceReports' && <CompliancePanel section="reports" />}
     </div>
   );
 }

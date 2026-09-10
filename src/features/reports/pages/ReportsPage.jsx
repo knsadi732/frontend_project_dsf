@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
+import { useTabParam } from '@/hooks/useTabParam';
 import { useReportsQuery } from '@/features/reports/queries/useReportsQuery';
 import { useGenerateReport } from '@/features/reports/mutations/useGenerateReport';
 import { reportApi } from '@/features/reports/api';
@@ -16,7 +16,6 @@ import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DownloadButton, CreateButton } from '@/components/ui/ActionButtons';
-import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -24,20 +23,8 @@ import { pushToast } from '@/utils/toastBus';
 
 const REPORT_STATUS_VARIANT = { ready: 'success', pending: 'warning', failed: 'danger' };
 
-const TABS = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'sales', label: 'Sales' },
-  { key: 'purchase', label: 'Purchase' },
-  { key: 'inventory', label: 'Inventory' },
-  { key: 'production', label: 'Production' },
-  { key: 'finance', label: 'Finance' },
-  { key: 'customer', label: 'Customer' },
-  { key: 'vendor', label: 'Vendor' },
-  { key: 'employee', label: 'Employee' },
-];
-
 export function ReportsPage() {
-  const [activeTab, setActiveTab] = usePersistedTab('reports', 'overview');
+  const [activeTab] = useTabParam('overview');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [modalOpen, setModalOpen] = useState(false);
@@ -98,8 +85,6 @@ export function ReportsPage() {
           </Can>
         )}
       </div>
-
-      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'overview' && (
         <>

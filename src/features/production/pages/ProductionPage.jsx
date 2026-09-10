@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ClipboardCheck, ChevronRight } from 'lucide-react';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
+import { useTabParam } from '@/hooks/useTabParam';
 import { useWorkOrdersQuery } from '@/features/production/queries/useWorkOrdersQuery';
 import { useCreateWorkOrder } from '@/features/production/mutations/useCreateWorkOrder';
 import { useUpdateWorkOrder } from '@/features/production/mutations/useUpdateWorkOrder';
@@ -24,7 +24,6 @@ import { DownloadButton, EditButton, DeleteButton, CreateButton } from '@/compon
 import { MultiFilter } from '@/components/ui/MultiFilter';
 import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
-import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { WORK_ORDER_STAGE_OPTIONS } from '@/constants/statusEnums';
@@ -32,13 +31,6 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 import { generateRecordPdf } from '@/utils/generateRecordPdf';
-
-const TABS = [
-  { key: 'workOrders', label: 'Work Orders' },
-  { key: 'materialRequests', label: 'Material Requests' },
-  { key: 'bom', label: 'Bill of Materials' },
-  { key: 'machines', label: 'Machines' },
-];
 
 // Shop-floor pipeline — separate from the coarse pending/in_progress/
 // completed/cancelled `stage`. Only meaningful while stage = 'in_progress';
@@ -78,7 +70,7 @@ function downloadWorkOrderPdf(row, productName) {
 // dispatch (order.service.js, see ApiList.md "Work Orders"). No separate
 // "Production Request" step exists on top of it.
 export function ProductionPage() {
-  const [activeTab, setActiveTab] = usePersistedTab('production', 'workOrders');
+  const [activeTab] = useTabParam('workOrders');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
@@ -225,8 +217,6 @@ export function ProductionPage() {
           </Can>
         )}
       </div>
-
-      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'workOrders' && (
         <>

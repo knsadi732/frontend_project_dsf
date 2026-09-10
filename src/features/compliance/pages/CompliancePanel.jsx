@@ -18,17 +18,10 @@ import { Gstr1ReportSection } from '@/features/compliance/components/Gstr1Report
 import { Gstr2bProxySection } from '@/features/compliance/components/Gstr2bProxySection';
 import { AppTable } from '@/components/ui/AppTable';
 import { CreateButton } from '@/components/ui/ActionButtons';
-import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
 import { usePeriodSelector } from '@/features/compliance/utils/usePeriodSelector';
-
-const SUB_TABS = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'reports', label: 'Reports' },
-];
 
 function ReportsTab() {
   // fy-anchored: Monthly picks one of the selected FY's 12 months (a dropdown),
@@ -54,10 +47,7 @@ function ReportsTab() {
   );
 }
 
-export function CompliancePanel() {
-  // Persisted (not plain useState) so a dashboard tile can deep-link straight
-  // into the Reports sub-tab by pre-seeding localStorage before navigating.
-  const [subTab, setSubTab] = usePersistedTab('compliance', 'overview');
+export function CompliancePanel({ section = 'overview' }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
@@ -80,9 +70,7 @@ export function CompliancePanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      <Tabs tabs={SUB_TABS} activeKey={subTab} onChange={setSubTab} />
-
-      {subTab === 'overview' && (
+      {section === 'overview' && (
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <GstProfileCard profile={gstProfile} isLoading={isGstLoading} />
@@ -124,7 +112,7 @@ export function CompliancePanel() {
         </div>
       )}
 
-      {subTab === 'reports' && <ReportsTab />}
+      {section === 'reports' && <ReportsTab />}
     </div>
   );
 }

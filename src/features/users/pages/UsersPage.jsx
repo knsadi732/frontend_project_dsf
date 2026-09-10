@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Download, Eye } from 'lucide-react';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
+import { useTabParam } from '@/hooks/useTabParam';
 import { useUsersQuery } from '@/features/users/queries/useUsersQuery';
 import { useCreateUser } from '@/features/users/mutations/useCreateUser';
 import { useUpdateUser } from '@/features/users/mutations/useUpdateUser';
@@ -31,7 +31,6 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
 import { RefreshButton } from '@/components/ui/RefreshButton';
-import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { EMPLOYMENT_STATUS, toStatusOptions } from '@/constants/statusEnums';
@@ -63,21 +62,8 @@ function buildGmailComposeUrl({ email, phone, password }) {
 
 const STATUS_OPTIONS = toStatusOptions(EMPLOYMENT_STATUS);
 
-const TABS = [
-  { key: 'users', label: 'Employees' },
-  { key: 'departments', label: 'Departments' },
-  { key: 'designations', label: 'Designations' },
-  { key: 'company', label: 'Company' },
-  { key: 'branches', label: 'Branches' },
-  { key: 'warehouses', label: 'Warehouses' },
-  { key: 'leaves', label: 'Leave' },
-  { key: 'assets', label: 'Assets' },
-  { key: 'audit-logs', label: 'Audit Logs' },
-  { key: 'roles', label: 'Roles & Permissions' },
-];
-
 export function UsersPage() {
-  const [activeTab, setActiveTab] = usePersistedTab('users', 'users');
+  const [activeTab] = useTabParam('users');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
@@ -277,8 +263,6 @@ export function UsersPage() {
         <h1 className="text-xl font-semibold text-text">Employee Management</h1>
         <p className="text-sm text-text-muted">Employees, departments, designations and role permissions.</p>
       </div>
-
-      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'users' && (
         <div className="flex flex-col gap-3">

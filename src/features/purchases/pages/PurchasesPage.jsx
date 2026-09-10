@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Check, PackageCheck, PackageOpen, Send, SendHorizonal } from 'lucide-react';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
+import { useTabParam } from '@/hooks/useTabParam';
 import { usePurchasesQuery } from '@/features/purchases/queries/usePurchasesQuery';
 import { useCreatePurchase } from '@/features/purchases/mutations/useCreatePurchase';
 import { useUpdatePurchase } from '@/features/purchases/mutations/useUpdatePurchase';
@@ -28,7 +28,6 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DownloadButton, EditButton, CancelButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { Tabs } from '@/layouts/components/Tabs';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -109,15 +108,8 @@ const NEXT_STEP = {
   partially_received: { status: 'completed', label: 'Mark completed', icon: PackageCheck, variant: 'success' },
 };
 
-const TABS = [
-  { key: 'requests', label: 'Purchase Requests' },
-  { key: 'rfqs', label: 'RFQ & Quotations' },
-  { key: 'purchases', label: 'Purchase Orders' },
-  { key: 'grn', label: 'Goods Receipt Notes' },
-];
-
 export function PurchasesPage() {
-  const [activeTab, setActiveTab] = usePersistedTab('purchases', 'purchases');
+  const [activeTab, setActiveTab] = useTabParam('purchases');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
@@ -288,8 +280,6 @@ export function PurchasesPage() {
         <h1 className="text-xl font-semibold text-text">Purchases</h1>
         <p className="text-sm text-text-muted">Purchase requests, purchase orders and goods receipt notes.</p>
       </div>
-
-      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'purchases' && (
         <>

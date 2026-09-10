@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
+import { useTabParam } from '@/hooks/useTabParam';
 import { clearPendingPasswordChange } from '@/utils/pendingPasswordChange';
 import { pushToast } from '@/utils/toastBus';
 import { useProfileQuery } from '@/features/profile/queries/useProfileQuery';
@@ -14,10 +14,10 @@ import { ProfileForm } from '@/features/profile/components/ProfileForm';
 import { ChangePasswordForm } from '@/features/profile/components/ChangePasswordForm';
 import { LoginHistoryTable } from '@/features/profile/components/LoginHistoryTable';
 import { BaseCard, CardBody } from '@/components/ui/BaseCard';
-import { Tabs } from '@/layouts/components/Tabs';
+import { cn } from '@/utils/cn';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
-const TABS = [
+const SECTIONS = [
   { key: 'profile', label: 'Profile' },
   { key: 'password', label: 'Password' },
   { key: 'login-history', label: 'Login History' },
@@ -30,8 +30,8 @@ export function ProfilePage() {
   // Persisted like every other page's tab, except a forced password change
   // always wins over whatever was last open — it's a security nudge, not a
   // preference to remember.
-  const [persistedTab, setActiveTab] = usePersistedTab('profile', 'profile');
-  const activeTab = forcePasswordChange ? 'password' : persistedTab;
+  const [urlTab, setActiveTab] = useTabParam('profile');
+  const activeTab = forcePasswordChange ? 'password' : urlTab;
   const [loginHistoryPage, setLoginHistoryPage] = useState(1);
   const [loginHistoryPageSize, setLoginHistoryPageSize] = useState(DEFAULT_PAGE_SIZE);
 
@@ -65,9 +65,24 @@ export function ProfilePage() {
         <p className="text-sm text-text-muted">Manage your personal details, password and login activity.</p>
       </div>
 
-      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <nav className="flex shrink-0 gap-1 overflow-x-auto sm:w-48 sm:flex-col sm:overflow-visible">
+          {SECTIONS.map((section) => (
+            <button
+              key={section.key}
+              type="button"
+              onClick={() => setActiveTab(section.key)}
+              className={cn(
+                'shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm font-medium text-text-muted transition-colors hover:bg-surface-hover hover:text-text',
+                activeTab === section.key && 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary',
+              )}
+            >
+              {section.label}
+            </button>
+          ))}
+        </nav>
 
-      <BaseCard>
+        <BaseCard className="flex-1">
         <CardBody>
           {activeTab === 'profile' && (
             <ProfileForm
@@ -98,7 +113,8 @@ export function ProfilePage() {
             />
           )}
         </CardBody>
-      </BaseCard>
+        </BaseCard>
+      </div>
     </div>
   );
 }

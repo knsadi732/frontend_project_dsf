@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { usePersistedTab } from '@/hooks/usePersistedTab';
+import { useTabParam } from '@/hooks/useTabParam';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { useCreateCustomer } from '@/features/customers/mutations/useCreateCustomer';
 import { useUpdateCustomer } from '@/features/customers/mutations/useUpdateCustomer';
@@ -14,19 +14,13 @@ import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
-import { Tabs } from '@/layouts/components/Tabs';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { useDebounce } from '@/hooks/useDebounce';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
-const TABS = [
-  { key: 'customers', label: 'Customers' },
-  { key: 'communications', label: 'Communication History' },
-];
-
 export function CustomersPage() {
-  const [activeTab, setActiveTab] = usePersistedTab('customers', 'customers');
+  const [activeTab] = useTabParam('customers');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -89,8 +83,6 @@ export function CustomersPage() {
           </Can>
         )}
       </div>
-
-      <Tabs tabs={TABS} activeKey={activeTab} onChange={setActiveTab} />
 
       {activeTab === 'customers' && (
         <>
