@@ -52,7 +52,7 @@ import { SalesForecastChart } from '@/features/dashboard/components/SalesForecas
 import { MarketplaceMarginPanel } from '@/features/dashboard/components/MarketplaceMarginPanel';
 import { salesTrendByDate, productMix, salesVsInventory, salesTotalsInRange, salesUnitsInRange, salesTargetProgress } from '@/features/dashboard/utils/salesChartData';
 import { marketplaceMarginByProduct } from '@/features/dashboard/utils/marketplaceMargin';
-import { marginByVariant, breakEvenEligibleVariants } from '@/features/production/utils/unitCost';
+import { marginByVariant, breakEvenEligibleProducts } from '@/features/production/utils/unitCost';
 import { useMarketplaceChannelsQuery } from '@/features/marketplaceChannels/queries/useMarketplaceChannelsQuery';
 import { useOverheadPerUnitQuery } from '@/features/production/queries/useOverheadPerUnitQuery';
 import {
@@ -154,9 +154,9 @@ export function DashboardPage() {
     [workOrdersData, variantsById],
   );
   const workOrders = useMemo(() => workOrdersData?.data ?? [], [workOrdersData]);
-  const breakEvenVariants = useMemo(
-    () => breakEvenEligibleVariants(workOrders, variantsById),
-    [workOrders, variantsById],
+  const breakEvenProducts = useMemo(
+    () => breakEvenEligibleProducts(workOrders, variantsById, productsById),
+    [workOrders, variantsById, productsById],
   );
   const variantsBySku = useMemo(() => new Map((variantsData?.data ?? []).map((v) => [v.sku, v])), [variantsData]);
   const activeMarketplaceChannel = useMemo(() => {
@@ -567,7 +567,7 @@ export function DashboardPage() {
           tone="sky"
           subtitle="Fixed cost (salary + machine + overhead) vs. Total Cost vs. Revenue, by quantity — where Total Cost and Revenue cross is the no-loss-no-profit point for the selected SKU."
         >
-          <BreakEvenChart variants={breakEvenVariants} workOrders={workOrders} variantsById={variantsById} height={220} />
+          <BreakEvenChart products={breakEvenProducts} workOrders={workOrders} variantsById={variantsById} productsById={productsById} height={220} />
         </ChartCard>
       )}
 

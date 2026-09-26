@@ -138,19 +138,10 @@ export function breakEvenEligibleVariants(workOrders, variantsById) {
     }));
 }
 
-// Classic break-even analysis for one variant: Fixed Cost, Variable Cost
-// per unit, and Selling Price — Break-Even Qty = Fixed / (Price - Variable).
-// Returns a set of {qty, totalCost, revenue} points spanning 0 to comfortably
-// past the break-even point (or past current production, whichever is
-// larger) so the crossing is actually visible on the line chart, plus the
-// break-even qty/revenue for the marker.
-export function breakEvenAnalysis(workOrders, variantsById, variantId, steps = 20) {
-  const entry = unitCostByVariant(workOrders, variantsById).find((row) => row.productVariantId === variantId);
-  if (!entry) return null;
-
-  const variant = variantsById.get(variantId);
-  const sellingPrice = Number(variant?.sellingPrice ?? 0);
-  const { fixedCost, variableCostPerUnit, quantity } = entry;
+// Shared by the variant- and product-level break-even functions below: given
+// a resolved {fixedCost, variableCostPerUnit, sellingPrice, quantity}, build
+// the {qty, totalCost, revenue} point series and the break-even marker.
+function computeBreakEven({ name, fixedCost, variableCostPerUnit, sellingPrice, quantity }, steps) {
   const contributionPerUnit = sellingPrice - variableCostPerUnit;
   // contributionPerUnit <= 0: every extra unit loses more money — there is
   // no break-even quantity, it's a structural loss regardless of volume.
@@ -169,7 +160,7 @@ export function breakEvenAnalysis(workOrders, variantsById, variantId, steps = 2
   });
 
   return {
-    name: entry.sku ? [entry.sku, entry.size, entry.color].filter(Boolean).join(' — ') : variantId,
+    name,
     fixedCost,
     variableCostPerUnit,
     sellingPrice,
@@ -178,4 +169,75 @@ export function breakEvenAnalysis(workOrders, variantsById, variantId, steps = 2
     currentQuantity: quantity,
     points,
   };
+}
+
+// Classic break-even analysis for one variant: Fixed Cost, Variable Cost
+// per unit, and Selling Price — Break-Even Qty = Fixed / (Price - Variable).
+export function breakEvenAnalysis(workOrders, variantsById, variantId, steps = 20) {
+  const entry = unitCostByVariant(workOrders, variantsById).find((row) => row.productVariantId === variantId);
+  if (!entry) return null;
+  const variant = variantsById.get(variantId);
+  const sellingPrice = Number(variant?.sellingPrice ?? 0);
+  const name = entry.sku ? [entry.sku, entry.size, entry.color].filter(Boolean).join(' — ') : variantId;
+  return computeBreakEven({ name, fixedCost: entry.fixedCost, variableCostPerUnit: entry.variableCostPerUnit, sellingPrice, quantity: entry.quantity }, steps);
+}
+
+// Rolls every variant of a product into one line: quantity and fixed cost
+// (a real period total) are summed across variants; variable cost/unit and
+// selling price are averaged, weighted by each variant's own quantity (or 1
+// for a variant with no production logged yet, so a cost_price-only variant
+// still counts instead of vanishing) — an approximation given the app has no
+// per-product cost breakdown, but the right level for "is this PRODUCT
+// profitable" rather than one specific size/colour.
+export function unitCostByProduct(workOrders, variantsById, productsById) {
+  const groups = new Map();
+  unitCostByVariant(workOrders, variantsById).forEach((entry) => {
+    if (!entry.productVariantId) return;
+    const variant = variantsById.get(entry.productVariantId);
+    if (!variant) return;
+    const sellingPrice = Number(variant.sellingPrice ?? 0);
+    const weight = Math.max(entry.quantity, 1);
+
+    const group = groups.get(variant.productId) ?? {
+      productId: variant.productId,
+      quantity: 0,
+      fixedCost: 0,
+      weightedVariableCost: 0,
+      weightTotal: 0,
+      weightedSellingPrice: 0,
+      sellingWeightTotal: 0,
+    };
+    group.quantity += entry.quantity;
+    group.fixedCost += entry.fixedCost;
+    group.weightedVariableCost += entry.variableCostPerUnit * weight;
+    group.weightTotal += weight;
+    if (sellingPrice > 0) {
+      group.weightedSellingPrice += sellingPrice * weight;
+      group.sellingWeightTotal += weight;
+    }
+    groups.set(variant.productId, group);
+  });
+
+  return Array.from(groups.values()).map((group) => ({
+    productId: group.productId,
+    name: productsById.get(group.productId)?.name ?? group.productId,
+    quantity: group.quantity,
+    fixedCost: group.fixedCost,
+    variableCostPerUnit: group.weightTotal > 0 ? group.weightedVariableCost / group.weightTotal : 0,
+    sellingPrice: group.sellingWeightTotal > 0 ? group.weightedSellingPrice / group.sellingWeightTotal : 0,
+  }));
+}
+
+// Every product with real cost + selling-price data — feeds the product
+// picker on the break-even chart.
+export function breakEvenEligibleProducts(workOrders, variantsById, productsById) {
+  return unitCostByProduct(workOrders, variantsById, productsById)
+    .filter((entry) => entry.sellingPrice > 0)
+    .map((entry) => ({ id: entry.productId, name: entry.name, quantity: entry.quantity }));
+}
+
+export function breakEvenAnalysisByProduct(workOrders, variantsById, productsById, productId, steps = 20) {
+  const entry = unitCostByProduct(workOrders, variantsById, productsById).find((row) => row.productId === productId);
+  if (!entry) return null;
+  return computeBreakEven({ name: entry.name, fixedCost: entry.fixedCost, variableCostPerUnit: entry.variableCostPerUnit, sellingPrice: entry.sellingPrice, quantity: entry.quantity }, steps);
 }
