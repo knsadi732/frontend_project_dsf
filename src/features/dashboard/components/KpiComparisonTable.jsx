@@ -17,7 +17,14 @@ function ChangeBadge({ current, previous }) {
       </span>
     );
   }
-  const pct = ((current - previous) / previous) * 100;
+  // Divide by |previous|, not previous — a metric that can go negative (Net
+  // Profit) needs this to stay sign-correct. Dividing by a negative previous
+  // flips the sign of a genuine improvement (e.g. a loss shrinking from
+  // -12,243 to -7,808 is +36% better, but current-previous over a negative
+  // previous comes out negative and paints it red/declining — backwards).
+  // |previous| keeps "current > previous = up" true regardless of which side
+  // of zero either value sits on.
+  const pct = ((current - previous) / Math.abs(previous)) * 100;
   const isUp = pct >= 0;
   return (
     <span className={cn('inline-flex items-center gap-0.5 text-xs font-semibold', isUp ? 'text-success' : 'text-danger')}>
@@ -53,8 +60,8 @@ export function KpiComparisonTable({ rows, currentLabel, previousLabel }) {
               {rows.map((row) => (
                 <tr key={row.label} className="border-b border-border last:border-0">
                   <td className="px-3 py-2 font-medium text-text">{row.label}</td>
-                  <td className="px-3 py-2 text-text">{fmt(row.current, row.unit)}</td>
-                  <td className="px-3 py-2 text-text-muted">{fmt(row.previous, row.unit)}</td>
+                  <td className={cn('px-3 py-2', Number(row.current) < 0 ? 'font-semibold text-danger' : 'text-text')}>{fmt(row.current, row.unit)}</td>
+                  <td className={cn('px-3 py-2', Number(row.previous) < 0 ? 'text-danger' : 'text-text-muted')}>{fmt(row.previous, row.unit)}</td>
                   <td className="px-3 py-2">
                     <ChangeBadge current={row.current} previous={row.previous} />
                   </td>
