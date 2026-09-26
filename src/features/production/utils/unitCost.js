@@ -156,12 +156,7 @@ function computeBreakEven({ name, fixedCost, variableCostPerUnit, sellingPrice, 
   const stepSize = maxQty / steps;
   const points = Array.from({ length: steps + 1 }, (_, i) => {
     const qty = Math.round(stepSize * i);
-    return {
-      qty,
-      variableCost: variableCostPerUnit * qty,
-      totalCost: fixedCost + variableCostPerUnit * qty,
-      revenue: sellingPrice * qty,
-    };
+    return { qty, totalCost: fixedCost + variableCostPerUnit * qty, revenue: sellingPrice * qty };
   });
 
   return {

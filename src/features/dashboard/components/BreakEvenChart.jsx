@@ -8,17 +8,15 @@ const COMPANY_OPTION_ID = '__company__';
 
 // Revenue / Total Cost — validated blue+orange pair (same as Sales vs
 // Inventory), consistent hue-to-job mapping: blue = money coming in
-// (Revenue, matches Credit), orange = money going out (Total Cost = Fixed +
-// Variable×Qty — the classic break-even chart's 3rd line). Variable Cost is
-// drawn as its own 4th, muted line (0 at qty 0, not stacked on Fixed) purely
-// so Fixed vs Variable is visible at a glance instead of only inferrable
-// from the gap between the Fixed Cost reference line and Total Cost — it's
-// redundant with Total Cost - Fixed Cost by construction, an explicit aid,
-// not a 4th independent quantity. Fixed Cost stays a dashed neutral
-// reference line — a constant threshold, not a trend.
+// (Revenue, always starts at the origin), orange = money going out (Total
+// Cost — starts AT the Fixed Cost line and rises from there, since a
+// company already spends the fixed amount regardless of volume; every
+// variable cost stacks on top of that baseline, never from zero — this line
+// IS "fixed cost, then variable cost building on top of it" in one series,
+// not two separate ones). Fixed Cost is a dashed neutral reference line — a
+// constant threshold, not a trend.
 const REVENUE = { light: '#2a78d6', dark: '#3987e5' };
 const TOTAL_COST = { light: '#eb6834', dark: '#d95926' };
-const VARIABLE_COST = { light: '#9c9c94', dark: '#7a7a72' };
 
 function formatMoney(value) {
   return `₹${Number(value ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
@@ -52,7 +50,6 @@ export function BreakEvenChart({ products, workOrders, orders, variantsById, pro
   const theme = useThemeStore((s) => s.theme);
   const revenueColor = theme === 'dark' ? REVENUE.dark : REVENUE.light;
   const costColor = theme === 'dark' ? TOTAL_COST.dark : TOTAL_COST.light;
-  const variableColor = theme === 'dark' ? VARIABLE_COST.dark : VARIABLE_COST.light;
 
   if (!products.length) {
     return <p className="py-10 text-center text-sm text-text-muted">No product has both a manufacturing cost and a selling price to analyze yet.</p>;
@@ -102,7 +99,6 @@ export function BreakEvenChart({ products, workOrders, orders, variantsById, pro
               <Tooltip content={<ChartTooltip />} />
               <Legend iconType="plainline" wrapperStyle={{ fontSize: 12, color: 'var(--color-text-muted)' }} />
               <ReferenceLine y={analysis.fixedCost} stroke="var(--color-text-muted)" strokeWidth={2} strokeDasharray="4 4" label={{ value: `Fixed cost (${formatMoney(analysis.fixedCost)})`, position: 'insideTopLeft', fill: 'var(--color-text-muted)', fontSize: 11 }} />
-              <Line type="monotone" dataKey="variableCost" name="Variable Cost" stroke={variableColor} strokeWidth={1.5} strokeDasharray="3 3" dot={false} />
               <Line type="monotone" dataKey="totalCost" name="Total Cost (Fixed + Variable)" stroke={costColor} strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="revenue" name="Revenue (Sales)" stroke={revenueColor} strokeWidth={2} dot={false} />
               {analysis.breakEvenQty != null && (
