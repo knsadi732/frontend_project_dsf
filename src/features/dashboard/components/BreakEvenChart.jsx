@@ -45,7 +45,7 @@ function ChartTooltip({ active, payload, label }) {
 // for "is this product profitable"): Fixed Cost (flat reference), Total Cost
 // (Fixed + Variable×Qty), Revenue (Price×Qty) — where Total Cost and Revenue
 // cross is the break-even point.
-export function BreakEvenChart({ products, workOrders, variantsById, productsById, companyFixedCost = 0, height = 220 }) {
+export function BreakEvenChart({ products, workOrders, orders, variantsById, productsById, companyFixedCost = 0, height = 220 }) {
   const [productId, setProductId] = useState(COMPANY_OPTION_ID);
   const theme = useThemeStore((s) => s.theme);
   const revenueColor = theme === 'dark' ? REVENUE.dark : REVENUE.light;
@@ -62,7 +62,7 @@ export function BreakEvenChart({ products, workOrders, variantsById, productsByI
   // product's own line.
   const analysis =
     activeProductId === COMPANY_OPTION_ID
-      ? breakEvenAnalysisForCompany(workOrders, variantsById, productsById, companyFixedCost)
+      ? breakEvenAnalysisForCompany(workOrders, orders, variantsById, productsById, companyFixedCost)
       : breakEvenAnalysisByProduct(workOrders, variantsById, productsById, activeProductId);
 
   return (

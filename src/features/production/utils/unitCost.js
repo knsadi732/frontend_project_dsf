@@ -242,42 +242,99 @@ export function breakEvenAnalysisByProduct(workOrders, variantsById, productsByI
   return computeBreakEven({ name: entry.name, fixedCost: entry.fixedCost, variableCostPerUnit: entry.variableCostPerUnit, sellingPrice: entry.sellingPrice, quantity: entry.quantity }, steps);
 }
 
-// Whole-company break-even: every product blended into one line, weighted
-// the same way unitCostByProduct blends variants within a product. Fixed
-// cost here is the REAL monthly overhead total (loan interest + recurring
-// charges, from overheadAllocation.service.js via useOverheadPerUnitQuery)
-// rather than work orders' own fixedCost fields — those stay ₹0 until
-// production batches start logging labour/machine/overhead costs, which
-// would make "when does the company break even" always read "immediately"
-// even though real fixed costs exist and are already tracked elsewhere in
-// the app. `companyFixedCost` is the caller's totalOverhead for the period.
-export function unitCostForCompany(workOrders, variantsById, productsById, companyFixedCost = 0) {
+// Real units sold per product, from actual order history (order_items'
+// sku -> variant -> productId), NOT production data — this is the sales
+// MIX a multi-product break-even blend has to weight by. A product with no
+// real sales yet falls back to 0 here (the caller decides what to do with
+// that, see unitCostForCompany).
+export function realSalesQuantityByProduct(orders, variantsById) {
+  const variantBySku = new Map(Array.from(variantsById.values()).map((v) => [v.sku, v]));
+  const totals = new Map();
+  (orders ?? [])
+    .filter((order) => order.status !== 'cancelled')
+    .forEach((order) => {
+      (order.items ?? []).forEach((item) => {
+        const variant = item.productVariantId ? variantsById.get(item.productVariantId) : variantBySku.get(item.sku);
+        const productId = variant?.productId ?? item.productId;
+        if (!productId) return;
+        totals.set(productId, (totals.get(productId) ?? 0) + Number(item.quantity ?? 0));
+      });
+    });
+  return totals;
+}
+
+/**
+ * Whole-company break-even using the textbook multi-product method: the
+ * Weighted Average Contribution Margin Ratio, weighted by each product's
+ * REAL sales mix (actual units sold, from order history) — not a plain
+ * average of each product's price/cost, which silently assumes every
+ * product sells in equal numbers (wrong here: DS-WS-001 outsells DS-WS-002
+ * roughly 4:1 in the real recorded orders). A product with no sales history
+ * yet falls back to equal weight (1) among the no-history group only, so it
+ * still contributes to the blend without distorting products that DO have
+ * real sales data.
+ *
+ *   BEP Revenue = Fixed Cost / Weighted-Average CM Ratio
+ *   Weighted-Average CM Ratio = Σ (sales-mix % × that product's own CM ratio)
+ *
+ * Fixed cost is the REAL monthly overhead total (loan interest + recurring
+ * charges + rent, from overheadAllocation.service.js via
+ * useOverheadPerUnitQuery), not work orders' own fixedCost fields — those
+ * stay ₹0 until production batches log labour/machine/overhead costs.
+ */
+export function unitCostForCompany(workOrders, orders, variantsById, productsById, companyFixedCost = 0) {
   const products = unitCostByProduct(workOrders, variantsById, productsById).filter((entry) => entry.sellingPrice > 0);
   if (!products.length) return null;
 
-  let quantity = 0;
-  let weightedVariableCost = 0;
+  const salesQtyByProduct = realSalesQuantityByProduct(orders, variantsById);
+  const hasAnySalesHistory = Array.from(salesQtyByProduct.values()).some((qty) => qty > 0);
+
+  // Weight by real units sold per product wherever sales history exists —
+  // the ratio of (Σ weight×contribution) / (Σ weight×price) below is then
+  // exactly the textbook revenue-weighted average CM ratio. A product with
+  // no sales yet falls back to weight 1 so it still contributes.
+  let totalWeight = 0;
   let weightedSellingPrice = 0;
-  let weightTotal = 0;
+  let weightedContribution = 0;
+  let totalQuantity = 0;
   products.forEach((entry) => {
-    const weight = Math.max(entry.quantity, 1);
-    quantity += entry.quantity;
-    weightedVariableCost += entry.variableCostPerUnit * weight;
+    const realQty = salesQtyByProduct.get(entry.productId) ?? 0;
+    const weight = hasAnySalesHistory ? realQty : 1;
+    totalQuantity += entry.quantity;
+    if (weight <= 0) return;
+    totalWeight += weight;
     weightedSellingPrice += entry.sellingPrice * weight;
-    weightTotal += weight;
+    weightedContribution += (entry.sellingPrice - entry.variableCostPerUnit) * weight;
   });
+  // Every product had real sales history but happened to have none of it in
+  // this particular call's product list — nothing to weight by; fall back
+  // to an unweighted average across products instead of dividing by zero.
+  if (totalWeight === 0) {
+    products.forEach((entry) => {
+      totalWeight += 1;
+      weightedSellingPrice += entry.sellingPrice;
+      weightedContribution += entry.sellingPrice - entry.variableCostPerUnit;
+    });
+  }
+
+  // Weighted-average selling price and weighted-average contribution/unit,
+  // both normalized by the same totalWeight — variableCostPerUnit backed out
+  // from the two so contributionPerUnit downstream reproduces the correct
+  // weighted CM ratio exactly.
+  const sellingPrice = weightedSellingPrice / totalWeight;
+  const variableCostPerUnit = sellingPrice - weightedContribution / totalWeight;
 
   return {
     name: 'Overall (Company)',
-    quantity,
+    quantity: totalQuantity,
     fixedCost: companyFixedCost,
-    variableCostPerUnit: weightTotal > 0 ? weightedVariableCost / weightTotal : 0,
-    sellingPrice: weightTotal > 0 ? weightedSellingPrice / weightTotal : 0,
+    variableCostPerUnit,
+    sellingPrice,
   };
 }
 
-export function breakEvenAnalysisForCompany(workOrders, variantsById, productsById, companyFixedCost, steps = 20) {
-  const entry = unitCostForCompany(workOrders, variantsById, productsById, companyFixedCost);
+export function breakEvenAnalysisForCompany(workOrders, orders, variantsById, productsById, companyFixedCost, steps = 20) {
+  const entry = unitCostForCompany(workOrders, orders, variantsById, productsById, companyFixedCost);
   if (!entry) return null;
   return computeBreakEven(entry, steps);
 }

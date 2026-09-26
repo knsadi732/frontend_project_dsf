@@ -570,6 +570,7 @@ export function DashboardPage() {
           <BreakEvenChart
             products={breakEvenProducts}
             workOrders={workOrders}
+            orders={orders}
             variantsById={variantsById}
             productsById={productsById}
             companyFixedCost={overheadData?.totalOverhead ?? 0}
