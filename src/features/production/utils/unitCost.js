@@ -23,7 +23,15 @@ function sumFields(row, fields) {
 // those work orders. Work orders with no specific productVariantId (a
 // product-level batch, not tied to one size/color) fall into their own
 // "product:<id>" bucket rather than being dropped.
-export function unitCostByVariant(workOrders) {
+//
+// `variantsById` (optional) seeds a variant that has a real mfg cost
+// (product_variants.cost_price, entered directly rather than built up from a
+// work order's raw-material/labour/etc breakdown) but no work-order cost
+// data yet — without this, that cost sits unused and the margin/break-even
+// charts stay empty until a work order happens to exist for it. Such a
+// variant shows quantity 0 (nothing produced/logged here yet); its stored
+// cost is already a per-unit figure, not a batch total needing division.
+export function unitCostByVariant(workOrders, variantsById = new Map()) {
   const groups = new Map();
   workOrders
     .filter((wo) => wo.stage !== 'cancelled')
@@ -43,6 +51,7 @@ export function unitCostByVariant(workOrders) {
         electricityCost: 0,
         packagingCost: 0,
         overheadCost: 0,
+        hasProductionData: true,
       };
       entry.quantity += Number(wo.quantity ?? 0);
       COST_FIELDS.forEach((field) => {
@@ -51,18 +60,44 @@ export function unitCostByVariant(workOrders) {
       groups.set(key, entry);
     });
 
+  variantsById.forEach((variant) => {
+    if (groups.has(variant.id)) return;
+    const costPrice = Number(variant.costPrice ?? 0);
+    if (costPrice <= 0) return;
+    groups.set(variant.id, {
+      id: variant.id,
+      productId: variant.productId,
+      productVariantId: variant.id,
+      sku: variant.sku,
+      size: variant.size,
+      color: variant.color,
+      quantity: 0,
+      rawMaterialCost: costPrice,
+      labourCost: 0,
+      machineCost: 0,
+      electricityCost: 0,
+      packagingCost: 0,
+      overheadCost: 0,
+      hasProductionData: false,
+    });
+  });
+
   return Array.from(groups.values())
     .map((entry) => {
       const total = totalCost(entry);
       const fixedCost = sumFields(entry, FIXED_COST_FIELDS);
       const variableCost = sumFields(entry, VARIABLE_COST_FIELDS);
+      // Real work-order data divides by quantity actually produced; a
+      // cost_price-only entry (hasProductionData: false) has no batch to
+      // divide — its stored total is already per-unit.
+      const divisor = entry.quantity > 0 ? entry.quantity : entry.hasProductionData === false ? 1 : 0;
       return {
         ...entry,
         totalCost: total,
-        unitPrice: entry.quantity > 0 ? total / entry.quantity : 0,
+        unitPrice: divisor > 0 ? total / divisor : 0,
         fixedCost,
         variableCost,
-        variableCostPerUnit: entry.quantity > 0 ? variableCost / entry.quantity : 0,
+        variableCostPerUnit: divisor > 0 ? variableCost / divisor : 0,
       };
     })
     .sort((a, b) => b.totalCost - a.totalCost);
@@ -73,7 +108,7 @@ export function unitCostByVariant(workOrders) {
 // bucket has no single selling price to compare against) — top `maxItems`
 // by |margin| so the biggest wins/losses lead the chart.
 export function marginByVariant(workOrders, variantsById, maxItems = 8) {
-  return unitCostByVariant(workOrders)
+  return unitCostByVariant(workOrders, variantsById)
     .filter((entry) => entry.productVariantId)
     .map((entry) => {
       const variant = variantsById.get(entry.productVariantId);
@@ -94,7 +129,7 @@ export function marginByVariant(workOrders, variantsById, maxItems = 8) {
 // on the break-even chart. Same eligibility as marginByVariant, unsorted
 // (caller decides ordering).
 export function breakEvenEligibleVariants(workOrders, variantsById) {
-  return unitCostByVariant(workOrders)
+  return unitCostByVariant(workOrders, variantsById)
     .filter((entry) => entry.productVariantId && Number(variantsById.get(entry.productVariantId)?.sellingPrice ?? 0) > 0)
     .map((entry) => ({
       id: entry.productVariantId,
@@ -110,7 +145,7 @@ export function breakEvenEligibleVariants(workOrders, variantsById) {
 // larger) so the crossing is actually visible on the line chart, plus the
 // break-even qty/revenue for the marker.
 export function breakEvenAnalysis(workOrders, variantsById, variantId, steps = 20) {
-  const entry = unitCostByVariant(workOrders).find((row) => row.productVariantId === variantId);
+  const entry = unitCostByVariant(workOrders, variantsById).find((row) => row.productVariantId === variantId);
   if (!entry) return null;
 
   const variant = variantsById.get(variantId);
