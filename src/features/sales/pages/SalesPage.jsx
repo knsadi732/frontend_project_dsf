@@ -11,6 +11,7 @@ import { SalesOrderFormModal } from '@/features/sales/components/SalesOrderFormM
 import { MarketplaceInvoiceDetailsModal } from '@/features/sales/components/MarketplaceInvoiceDetailsModal';
 import { ORDER_STATUS_PIPELINE } from '@/features/sales/validators/salesOrder.schema';
 import { salesApi } from '@/services/sales.api';
+import { financeApi } from '@/services/finance.api';
 import { generateSalesOrderPdf } from '@/features/sales/utils/generateSalesOrderPdf';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
@@ -315,6 +316,11 @@ export function SalesPage() {
             // subtotal/tax/total from the new rate) before printing, so the
             // downloaded invoice and the stored order never disagree.
             const updatedOrder = await salesApi.updateItems(marketplaceModal.order.id, items);
+            // Records the marketplace's own invoice number as a real Bill
+            // (Finance > Invoices) — not just baked into the downloaded PDF.
+            // Idempotent: a second download for the same order just returns
+            // the bill already created here.
+            await financeApi.print(marketplaceModal.order.id, invoiceNumber);
             generateSalesOrderPdf({
               order: updatedOrder,
               company: marketplaceModal.company,

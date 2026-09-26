@@ -25,6 +25,7 @@ export const PAYMENT_STATUS = {
   PARTIAL: 'partial',
   PAID: 'paid',
   OVERDUE: 'overdue',
+  CANCELLED: 'cancelled',
 };
 
 export const WORK_ORDER_STAGE_OPTIONS = [

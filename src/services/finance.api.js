@@ -43,4 +43,11 @@ export const financeApi = {
   // (backend derives balance_due = amount - paidAmount).
   updateStatus: (id, { status, paidAmount }) =>
     apiClient.patch(`/finance/bills/${id}/status`, { status, paidAmount }).then((res) => fromBackendBill(res.data.data)),
+  // billNumber is required for a marketplace order (the marketplace's own
+  // invoice number — Amazon's "IN-1" etc) — the backend rejects the call
+  // without it rather than silently claiming an internal DSF number.
+  // Optional for a direct-customer order (auto-claims the next internal
+  // number when omitted).
+  print: (orderId, billNumber) =>
+    apiClient.post('/finance/bills/print', { orderId, billNumber }).then((res) => fromBackendBill(res.data.data)),
 };
