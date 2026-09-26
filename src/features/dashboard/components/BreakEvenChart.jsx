@@ -136,7 +136,13 @@ export function BreakEvenChart({ products, workOrders, orders, variantsById, pro
               <YAxis tickFormatter={formatMoney} tickLine={false} axisLine={false} tick={{ fill: 'var(--color-text-muted)', fontSize: 12 }} width={56} />
               <Tooltip content={<ChartTooltip />} />
               <Legend iconType="plainline" wrapperStyle={{ fontSize: 12, color: 'var(--color-text-muted)' }} />
-              <ReferenceLine y={analysis.fixedCost} stroke="var(--color-text-muted)" strokeWidth={2} strokeDasharray="4 4" label={{ value: `Fixed cost (${formatMoney(analysis.fixedCost)})`, position: 'insideTopLeft', fill: 'var(--color-text-muted)', fontSize: 11 }} />
+              {/* Dotted, not dashed — dashed now specifically means "projection past
+                  real data" on the two trend lines below. Fixed Cost is a known,
+                  already-real constant at every quantity (not a trend that becomes
+                  hypothetical further right), so reusing that dash pattern here would
+                  wrongly read as "this number is also just a guess." Dotted keeps it
+                  visually distinct from both solid-real and dashed-projected. */}
+              <ReferenceLine y={analysis.fixedCost} stroke="var(--color-text-muted)" strokeWidth={2} strokeDasharray="1 3" label={{ value: `Fixed cost (${formatMoney(analysis.fixedCost)})`, position: 'insideTopLeft', fill: 'var(--color-text-muted)', fontSize: 11 }} />
               {/* Solid = real (qty already sold this period); dashed = projection past
                   today's real data — each pair shares one legend entry via the same
                   `name`, Recharts folds matching names into a single legend row. */}
