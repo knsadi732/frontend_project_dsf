@@ -169,6 +169,11 @@ export function BreakEvenChart({ products, workOrders, orders, variantsById, pro
               Fixed cost is ₹0 this period (no logged overhead/labour/machine cost yet) — its reference line sits flat on the x-axis rather than as a separate band.
             </p>
           )}
+          {channelCostPerUnit > 0 && (
+            <p className="text-xs text-text-muted">
+              Includes an assumed marketplace cost of {formatMoney(channelCostPerUnit)}/unit (Amazon fee + ads + return-charge, from the CPC/CTP estimate in Marketplace Channels) — not yet a verified expense, since no real settlement/payment-advice has been recorded for this period. This will switch to real recorded figures once a settlement is entered.
+            </p>
+          )}
 
           <ResponsiveContainer width="100%" height={height}>
             <LineChart data={analysis.points} margin={{ top: 8, right: 16, left: 4, bottom: 0 }}>
@@ -238,6 +243,11 @@ export function BreakEvenChart({ products, workOrders, orders, variantsById, pro
             <p className="text-xs text-text-muted">
               Fixed cost {formatMoney(timeAnalysis.fixedCost)} (this period, flat) · Solid = real days so far · Dashed = projected at today's average daily pace, for the rest of the selected period.
             </p>
+            {channelCostPerUnit > 0 && (
+              <p className="text-xs text-text-muted">
+                Includes an assumed marketplace cost of {formatMoney(channelCostPerUnit)}/unit — not yet a verified expense until a real settlement/payment-advice is recorded for this period.
+              </p>
+            )}
 
             <ResponsiveContainer width="100%" height={height}>
               <LineChart data={timeAnalysis.points} margin={{ top: 8, right: 16, left: 4, bottom: 0 }}>
