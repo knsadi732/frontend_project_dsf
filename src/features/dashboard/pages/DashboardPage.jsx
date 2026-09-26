@@ -48,8 +48,12 @@ import { BreakEvenChart } from '@/features/dashboard/components/BreakEvenChart';
 import { ProductLifecycleChart } from '@/features/dashboard/components/ProductLifecycleChart';
 import { ProductSalesTrendModal } from '@/features/dashboard/components/ProductSalesTrendModal';
 import { SalesForecastChart } from '@/features/dashboard/components/SalesForecastChart';
+import { MarketplaceMarginPanel } from '@/features/dashboard/components/MarketplaceMarginPanel';
 import { salesTrendByDate, productMix, salesVsInventory, salesTotalsInRange, salesUnitsInRange, salesTargetProgress } from '@/features/dashboard/utils/salesChartData';
+import { marketplaceMarginByProduct } from '@/features/dashboard/utils/marketplaceMargin';
 import { marginByVariant, breakEvenEligibleVariants } from '@/features/production/utils/unitCost';
+import { useMarketplaceChannelsQuery } from '@/features/marketplaceChannels/queries/useMarketplaceChannelsQuery';
+import { useOverheadPerUnitQuery } from '@/features/production/queries/useOverheadPerUnitQuery';
 import {
   wipTotal,
   receivablesByBucket,
@@ -124,6 +128,8 @@ export function DashboardPage() {
   const { data: salesTargetsData } = useSalesTargetsQuery();
   const { data: forecastData, isLoading: isForecastLoading } = useSalesForecastQuery(canViewForecast);
   const { data: channelForecastData } = useChannelForecastQuery(canViewForecast);
+  const { data: marketplaceChannelsData } = useMarketplaceChannelsQuery();
+  const { data: overheadData } = useOverheadPerUnitQuery();
   const updateSettings = useUpdateSettings();
   const upsertSalesTarget = useUpsertSalesTarget();
   const [salesTargetDraft, setSalesTargetDraft] = useState(null);
@@ -148,6 +154,15 @@ export function DashboardPage() {
   const breakEvenVariants = useMemo(
     () => breakEvenEligibleVariants(workOrders, variantsById),
     [workOrders, variantsById],
+  );
+  const variantsBySku = useMemo(() => new Map((variantsData?.data ?? []).map((v) => [v.sku, v])), [variantsData]);
+  const activeMarketplaceChannel = useMemo(() => {
+    const channels = marketplaceChannelsData ?? [];
+    return channels.find((c) => c.name?.toLowerCase() === 'amazon') ?? channels[0] ?? null;
+  }, [marketplaceChannelsData]);
+  const marketplaceMargin = useMemo(
+    () => marketplaceMarginByProduct(orders, variantsBySku, activeMarketplaceChannel, overheadData?.overheadPerUnit ?? 0),
+    [orders, variantsBySku, activeMarketplaceChannel, overheadData],
   );
 
   const salesCurrent = useMemo(
@@ -452,6 +467,14 @@ export function DashboardPage() {
           <ChartCard title="Profit / loss per unit" tone="blue">
             <MarginChart data={margins} height={170} />
           </ChartCard>
+        )}
+
+        {canViewSales && (
+          <MarketplaceMarginPanel
+            channelName={activeMarketplaceChannel?.name ?? 'Marketplace'}
+            rows={marketplaceMargin.rows}
+            combined={marketplaceMargin.combined}
+          />
         )}
 
         {canViewFinance && (
