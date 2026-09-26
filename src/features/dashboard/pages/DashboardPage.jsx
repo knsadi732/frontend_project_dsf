@@ -567,7 +567,14 @@ export function DashboardPage() {
           tone="sky"
           subtitle="Fixed cost (salary + machine + overhead) vs. Total Cost vs. Revenue, by quantity — where Total Cost and Revenue cross is the no-loss-no-profit point for the selected SKU."
         >
-          <BreakEvenChart products={breakEvenProducts} workOrders={workOrders} variantsById={variantsById} productsById={productsById} height={220} />
+          <BreakEvenChart
+            products={breakEvenProducts}
+            workOrders={workOrders}
+            variantsById={variantsById}
+            productsById={productsById}
+            companyFixedCost={overheadData?.totalOverhead ?? 0}
+            height={220}
+          />
         </ChartCard>
       )}
 

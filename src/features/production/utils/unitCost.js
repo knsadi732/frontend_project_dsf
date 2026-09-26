@@ -241,3 +241,43 @@ export function breakEvenAnalysisByProduct(workOrders, variantsById, productsByI
   if (!entry) return null;
   return computeBreakEven({ name: entry.name, fixedCost: entry.fixedCost, variableCostPerUnit: entry.variableCostPerUnit, sellingPrice: entry.sellingPrice, quantity: entry.quantity }, steps);
 }
+
+// Whole-company break-even: every product blended into one line, weighted
+// the same way unitCostByProduct blends variants within a product. Fixed
+// cost here is the REAL monthly overhead total (loan interest + recurring
+// charges, from overheadAllocation.service.js via useOverheadPerUnitQuery)
+// rather than work orders' own fixedCost fields — those stay ₹0 until
+// production batches start logging labour/machine/overhead costs, which
+// would make "when does the company break even" always read "immediately"
+// even though real fixed costs exist and are already tracked elsewhere in
+// the app. `companyFixedCost` is the caller's totalOverhead for the period.
+export function unitCostForCompany(workOrders, variantsById, productsById, companyFixedCost = 0) {
+  const products = unitCostByProduct(workOrders, variantsById, productsById).filter((entry) => entry.sellingPrice > 0);
+  if (!products.length) return null;
+
+  let quantity = 0;
+  let weightedVariableCost = 0;
+  let weightedSellingPrice = 0;
+  let weightTotal = 0;
+  products.forEach((entry) => {
+    const weight = Math.max(entry.quantity, 1);
+    quantity += entry.quantity;
+    weightedVariableCost += entry.variableCostPerUnit * weight;
+    weightedSellingPrice += entry.sellingPrice * weight;
+    weightTotal += weight;
+  });
+
+  return {
+    name: 'Overall (Company)',
+    quantity,
+    fixedCost: companyFixedCost,
+    variableCostPerUnit: weightTotal > 0 ? weightedVariableCost / weightTotal : 0,
+    sellingPrice: weightTotal > 0 ? weightedSellingPrice / weightTotal : 0,
+  };
+}
+
+export function breakEvenAnalysisForCompany(workOrders, variantsById, productsById, companyFixedCost, steps = 20) {
+  const entry = unitCostForCompany(workOrders, variantsById, productsById, companyFixedCost);
+  if (!entry) return null;
+  return computeBreakEven(entry, steps);
+}

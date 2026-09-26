@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { CartesianGrid, Legend, Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useThemeStore } from '@/store/themeStore';
 import { AppComboSelect } from '@/components/ui/AppComboSelect';
-import { breakEvenAnalysisByProduct } from '@/features/production/utils/unitCost';
+import { breakEvenAnalysisByProduct, breakEvenAnalysisForCompany } from '@/features/production/utils/unitCost';
+
+const COMPANY_OPTION_ID = '__company__';
 
 // Total Cost / Revenue — validated blue+orange pair (same as Sales vs
 // Inventory), consistent hue-to-job mapping: blue = money coming in
@@ -43,8 +45,8 @@ function ChartTooltip({ active, payload, label }) {
 // for "is this product profitable"): Fixed Cost (flat reference), Total Cost
 // (Fixed + Variable×Qty), Revenue (Price×Qty) — where Total Cost and Revenue
 // cross is the break-even point.
-export function BreakEvenChart({ products, workOrders, variantsById, productsById, height = 220 }) {
-  const [productId, setProductId] = useState(products[0]?.id ?? '');
+export function BreakEvenChart({ products, workOrders, variantsById, productsById, companyFixedCost = 0, height = 220 }) {
+  const [productId, setProductId] = useState(COMPANY_OPTION_ID);
   const theme = useThemeStore((s) => s.theme);
   const revenueColor = theme === 'dark' ? REVENUE.dark : REVENUE.light;
   const costColor = theme === 'dark' ? TOTAL_COST.dark : TOTAL_COST.light;
@@ -53,15 +55,22 @@ export function BreakEvenChart({ products, workOrders, variantsById, productsByI
     return <p className="py-10 text-center text-sm text-text-muted">No product has both a manufacturing cost and a selling price to analyze yet.</p>;
   }
 
-  const activeProductId = productId || products[0].id;
-  const analysis = breakEvenAnalysisByProduct(workOrders, variantsById, productsById, activeProductId);
+  const activeProductId = productId || COMPANY_OPTION_ID;
+  // "Overall (Company)" blends every product into one line (real monthly
+  // overhead as Fixed Cost) — the default view, since "when does the
+  // business break even" is usually the more useful question than any one
+  // product's own line.
+  const analysis =
+    activeProductId === COMPANY_OPTION_ID
+      ? breakEvenAnalysisForCompany(workOrders, variantsById, productsById, companyFixedCost)
+      : breakEvenAnalysisByProduct(workOrders, variantsById, productsById, activeProductId);
 
   return (
     <div className="flex flex-col gap-2">
       <AppComboSelect
         aria-label="Select product for break-even analysis"
         className="w-full sm:w-64"
-        options={products.map((p) => ({ value: p.id, label: p.name }))}
+        options={[{ value: COMPANY_OPTION_ID, label: 'Overall (Company) — all products' }, ...products.map((p) => ({ value: p.id, label: p.name }))]}
         value={activeProductId}
         onChange={setProductId}
       />
