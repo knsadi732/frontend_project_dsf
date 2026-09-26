@@ -213,13 +213,26 @@ export function breakEvenAnalysis(workOrders, variantsById, variantId, steps = 2
 // still counts instead of vanishing) — an approximation given the app has no
 // per-product cost breakdown, but the right level for "is this PRODUCT
 // profitable" rather than one specific size/colour.
-export function unitCostByProduct(workOrders, variantsById, productsById) {
+// `orders` (optional): when a product has real sales, its actual average
+// selling price (realSellingPriceByProduct) overrides the configured
+// product_variants.selling_price, which is just a static MRP that can go
+// stale — this system's configured selling_price sat at ₹799/₹399 while
+// the real Amazon price was ₹649/₹599. `channelCostPerUnit` (optional):
+// the marketplace channel's own real blended per-pair cost (Amazon
+// fee + ads + return-charge — see marketplaceMargin.js /
+// marketplace_channels.default_cost_per_unit) is ALSO a variable cost
+// (it's charged per unit sold, same as raw material), so it's added into
+// variableCostPerUnit here rather than only ever showing up in the
+// Marketplace Margin panel — omitting it understated true variable cost
+// for a channel-sold product.
+export function unitCostByProduct(workOrders, variantsById, productsById, orders = [], channelCostPerUnit = 0) {
+  const realPriceByProduct = realSellingPriceByProduct(orders, variantsById);
   const groups = new Map();
   unitCostByVariant(workOrders, variantsById).forEach((entry) => {
     if (!entry.productVariantId) return;
     const variant = variantsById.get(entry.productVariantId);
     if (!variant) return;
-    const sellingPrice = Number(variant.sellingPrice ?? 0);
+    const sellingPrice = realPriceByProduct.get(variant.productId) ?? Number(variant.sellingPrice ?? 0);
     const weight = Math.max(entry.quantity, 1);
 
     const group = groups.get(variant.productId) ?? {
@@ -233,7 +246,7 @@ export function unitCostByProduct(workOrders, variantsById, productsById) {
     };
     group.quantity += entry.quantity;
     group.fixedCost += entry.fixedCost;
-    group.weightedVariableCost += entry.variableCostPerUnit * weight;
+    group.weightedVariableCost += (entry.variableCostPerUnit + channelCostPerUnit) * weight;
     group.weightTotal += weight;
     if (sellingPrice > 0) {
       group.weightedSellingPrice += sellingPrice * weight;
@@ -260,8 +273,8 @@ export function breakEvenEligibleProducts(workOrders, variantsById, productsById
     .map((entry) => ({ id: entry.productId, name: entry.name, quantity: entry.quantity }));
 }
 
-export function breakEvenAnalysisByProduct(workOrders, orders, variantsById, productsById, productId, steps = 20) {
-  const entry = unitCostByProduct(workOrders, variantsById, productsById).find((row) => row.productId === productId);
+export function breakEvenAnalysisByProduct(workOrders, orders, variantsById, productsById, productId, channelCostPerUnit = 0, steps = 20) {
+  const entry = unitCostByProduct(workOrders, variantsById, productsById, orders, channelCostPerUnit).find((row) => row.productId === productId);
   if (!entry) return null;
   // Real units sold (order history), not production quantity — same reason
   // unitCostForCompany uses it: work orders are empty, so "how close to
@@ -292,6 +305,48 @@ export function realSalesQuantityByProduct(orders, variantsById) {
 }
 
 /**
+ * Real average selling price per product, from actual order totals (GST-
+ * inclusive, matching product_variants.selling_price's own convention) —
+ * NOT the product_variants.selling_price config field, which is a static
+ * MRP that can go stale (this system's real Amazon price is ₹649/₹599;
+ * the configured selling_price sat at ₹799/₹399, an old figure). A product
+ * with no real sales yet falls back to null here (the caller decides what
+ * to do with that — see unitCostByProduct, which falls back to the
+ * configured selling_price only in that case).
+ */
+export function realSellingPriceByProduct(orders, variantsById) {
+  // The orders LIST endpoint's item rows are a lightweight summary
+  // (sku/productName/quantity only, no unitPrice) — order.total (a real
+  // orders-table column, always present) is the only per-order revenue
+  // figure available here, so it's allocated across that order's items by
+  // quantity share, same technique marketplaceMargin.js uses.
+  const variantBySku = new Map(Array.from(variantsById.values()).map((v) => [v.sku, v]));
+  const revenue = new Map();
+  const quantity = new Map();
+  (orders ?? [])
+    .filter((order) => order.status !== 'cancelled')
+    .forEach((order) => {
+      const items = order.items ?? [];
+      const orderQty = items.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0) || 1;
+      const orderTotal = Number(order.total ?? 0);
+      items.forEach((item) => {
+        const variant = item.productVariantId ? variantsById.get(item.productVariantId) : variantBySku.get(item.sku);
+        const productId = variant?.productId ?? item.productId;
+        if (!productId) return;
+        const qty = Number(item.quantity ?? 0);
+        revenue.set(productId, (revenue.get(productId) ?? 0) + orderTotal * (qty / orderQty));
+        quantity.set(productId, (quantity.get(productId) ?? 0) + qty);
+      });
+    });
+  const prices = new Map();
+  revenue.forEach((total, productId) => {
+    const qty = quantity.get(productId) ?? 0;
+    if (qty > 0) prices.set(productId, total / qty);
+  });
+  return prices;
+}
+
+/**
  * Whole-company break-even using the textbook multi-product method: the
  * Weighted Average Contribution Margin Ratio, weighted by each product's
  * REAL sales mix (actual units sold, from order history) — not a plain
@@ -310,8 +365,8 @@ export function realSalesQuantityByProduct(orders, variantsById) {
  * useOverheadPerUnitQuery), not work orders' own fixedCost fields — those
  * stay ₹0 until production batches log labour/machine/overhead costs.
  */
-export function unitCostForCompany(workOrders, orders, variantsById, productsById, companyFixedCost = 0) {
-  const products = unitCostByProduct(workOrders, variantsById, productsById).filter((entry) => entry.sellingPrice > 0);
+export function unitCostForCompany(workOrders, orders, variantsById, productsById, companyFixedCost = 0, channelCostPerUnit = 0) {
+  const products = unitCostByProduct(workOrders, variantsById, productsById, orders, channelCostPerUnit).filter((entry) => entry.sellingPrice > 0);
   if (!products.length) return null;
 
   const salesQtyByProduct = realSalesQuantityByProduct(orders, variantsById);
@@ -365,8 +420,106 @@ export function unitCostForCompany(workOrders, orders, variantsById, productsByI
   };
 }
 
-export function breakEvenAnalysisForCompany(workOrders, orders, variantsById, productsById, companyFixedCost, steps = 20) {
-  const entry = unitCostForCompany(workOrders, orders, variantsById, productsById, companyFixedCost);
+export function breakEvenAnalysisForCompany(workOrders, orders, variantsById, productsById, companyFixedCost, channelCostPerUnit = 0, steps = 20) {
+  const entry = unitCostForCompany(workOrders, orders, variantsById, productsById, companyFixedCost, channelCostPerUnit);
   if (!entry) return null;
   return computeBreakEven(entry, steps);
+}
+
+function toDateKey(value) {
+  return value ? String(value).slice(0, 10) : null;
+}
+
+/**
+ * Break-even against a CALENDAR (when, not how many): cumulative real
+ * revenue and cumulative real cost (Fixed + Variable×units-sold-so-far)
+ * for every day in [rangeFrom, rangeTo], solid up to `referenceDate`
+ * (today), then extrapolated (dashed) for the rest of the range using the
+ * average daily rate observed in the real days elapsed so far — same
+ * actual/projected convention as the units-based chart, just walking
+ * dates instead of quantities. Uses the same blended per-unit rate
+ * unitCostForCompany derives (real sales-mix weighted).
+ */
+export function breakEvenOverTime(workOrders, orders, variantsById, productsById, companyFixedCost, rangeFrom, rangeTo, channelCostPerUnit = 0, referenceDate = new Date()) {
+  const blend = unitCostForCompany(workOrders, orders, variantsById, productsById, companyFixedCost, channelCostPerUnit);
+  if (!blend || !rangeFrom || !rangeTo) return null;
+
+  const todayKey = toDateKey(referenceDate);
+  const dailyRevenue = new Map();
+  const dailyUnits = new Map();
+  (orders ?? [])
+    .filter((order) => order.status !== 'cancelled')
+    .forEach((order) => {
+      const dateKey = toDateKey(order.orderDate);
+      if (!dateKey || dateKey < rangeFrom || dateKey > rangeTo) return;
+      const qty = (order.items ?? []).reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
+      dailyRevenue.set(dateKey, (dailyRevenue.get(dateKey) ?? 0) + Number(order.total ?? 0));
+      dailyUnits.set(dateKey, (dailyUnits.get(dateKey) ?? 0) + qty);
+    });
+
+  const days = [];
+  for (let d = new Date(rangeFrom); toDateKey(d) <= rangeTo; d.setDate(d.getDate() + 1)) {
+    days.push(toDateKey(d));
+  }
+
+  // Pass 1: real cumulative totals through the last day <= today (or the
+  // whole range, if today is past the range end — a closed prior period).
+  let cumRevenue = 0;
+  let cumUnits = 0;
+  let daysElapsed = 0;
+  const boundaryKey = days.find((day) => day > todayKey) ? todayKey : days[days.length - 1];
+  days.forEach((day) => {
+    if (day > boundaryKey) return;
+    cumRevenue += dailyRevenue.get(day) ?? 0;
+    cumUnits += dailyUnits.get(day) ?? 0;
+    daysElapsed += 1;
+  });
+  const avgDailyRevenue = daysElapsed > 0 ? cumRevenue / daysElapsed : 0;
+  const avgDailyUnits = daysElapsed > 0 ? cumUnits / daysElapsed : 0;
+
+  // Pass 2: walk the full range building both series, carrying real
+  // cumulative totals through the boundary day then switching to the
+  // extrapolated rate — both series carry the boundary point so the solid
+  // and dashed segments visually connect.
+  let runningRevenue = 0;
+  let runningUnits = 0;
+  let boundaryRevenue = 0;
+  let boundaryUnits = 0;
+  const points = days.map((day) => {
+    const isPast = day <= boundaryKey;
+    if (isPast) {
+      runningRevenue += dailyRevenue.get(day) ?? 0;
+      runningUnits += dailyUnits.get(day) ?? 0;
+      if (day === boundaryKey) {
+        boundaryRevenue = runningRevenue;
+        boundaryUnits = runningUnits;
+      }
+    } else {
+      runningRevenue = boundaryRevenue + avgDailyRevenue * (days.indexOf(day) - days.indexOf(boundaryKey));
+      runningUnits = boundaryUnits + avgDailyUnits * (days.indexOf(day) - days.indexOf(boundaryKey));
+    }
+    const cost = companyFixedCost + blend.variableCostPerUnit * runningUnits;
+    return {
+      date: day,
+      revenueActual: isPast ? runningRevenue : null,
+      revenueProjected: day >= boundaryKey ? runningRevenue : null,
+      costActual: isPast ? cost : null,
+      costProjected: day >= boundaryKey ? cost : null,
+    };
+  });
+
+  const crossing = points.find((p) => (p.revenueActual ?? p.revenueProjected) >= (p.costActual ?? p.costProjected));
+
+  return {
+    fixedCost: companyFixedCost,
+    variableCostPerUnit: blend.variableCostPerUnit,
+    sellingPrice: blend.sellingPrice,
+    todayKey: boundaryKey,
+    currentRevenue: cumRevenue,
+    currentCost: companyFixedCost + blend.variableCostPerUnit * cumUnits,
+    hasReachedBreakEven: cumRevenue >= companyFixedCost + blend.variableCostPerUnit * cumUnits,
+    breakEvenDate: crossing?.date ?? null,
+    isProjectedCrossing: crossing ? crossing.date > boundaryKey : false,
+    points,
+  };
 }

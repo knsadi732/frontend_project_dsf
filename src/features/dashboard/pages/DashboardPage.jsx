@@ -565,7 +565,7 @@ export function DashboardPage() {
         <ChartCard
           title="Break-even analysis"
           tone="sky"
-          subtitle="Fixed cost (salary + machine + overhead) vs. Total Cost vs. Revenue, by quantity — where Total Cost and Revenue cross is the no-loss-no-profit point for the selected SKU."
+          subtitle="Fixed cost (rent + depreciation + overhead) vs. Total Cost vs. Revenue — where Total Cost and Revenue cross is the no-loss-no-profit point, by units sold or by date."
         >
           <BreakEvenChart
             products={breakEvenProducts}
@@ -574,6 +574,9 @@ export function DashboardPage() {
             variantsById={variantsById}
             productsById={productsById}
             companyFixedCost={overheadData?.totalOverhead ?? 0}
+            channelCostPerUnit={activeMarketplaceChannel?.defaultCostPerUnit ?? 0}
+            rangeFrom={periodSelector.range.from}
+            rangeTo={periodSelector.range.to}
             height={220}
           />
         </ChartCard>
