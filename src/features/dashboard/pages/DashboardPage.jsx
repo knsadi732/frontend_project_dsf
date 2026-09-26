@@ -34,6 +34,7 @@ import { ExecutiveOverview } from '@/features/dashboard/components/ExecutiveOver
 import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
 import { KpiComparisonTable } from '@/features/dashboard/components/KpiComparisonTable';
 import { usePnlReportQuery } from '@/features/compliance/queries/usePnlReportQuery';
+import { useGstr3bReportQuery } from '@/features/compliance/queries/useGstr3bReportQuery';
 import { usePeriodSelector } from '@/features/compliance/utils/usePeriodSelector';
 import { previousPeriodRange, currentPeriodLabel, previousPeriodLabel } from '@/features/compliance/utils/reportPeriod';
 import { ChartCard } from '@/features/dashboard/components/ChartCard';
@@ -106,6 +107,8 @@ export function DashboardPage() {
   );
   const { data: pnlCurrent } = usePnlReportQuery(periodSelector.range);
   const { data: pnlPrevious } = usePnlReportQuery(previousRange);
+  const { data: gstCurrent } = useGstr3bReportQuery(periodSelector.range);
+  const { data: gstPrevious } = useGstr3bReportQuery(previousRange);
 
   // Called unconditionally (Rules of Hooks) regardless of canViewSales/
   // canViewInventory — cheap read-only fetches, only their *results* are
@@ -358,7 +361,11 @@ export function DashboardPage() {
               ...(canViewSales ? [{ label: 'Sales', unit: 'currency', current: salesCurrent.total, previous: salesPrevious.total }] : []),
               { label: 'Production', unit: 'units', current: productionCurrent, previous: productionPrevious },
               ...(canViewFinance
-                ? [{ label: 'Revenue', unit: 'currency', current: pnlCurrent?.totalSales ?? 0, previous: pnlPrevious?.totalSales ?? 0 }]
+                ? [
+                    { label: 'Revenue', unit: 'currency', current: pnlCurrent?.totalSales ?? 0, previous: pnlPrevious?.totalSales ?? 0 },
+                    { label: 'Net Profit (P&L)', unit: 'currency', current: pnlCurrent?.netProfit ?? 0, previous: pnlPrevious?.netProfit ?? 0 },
+                    { label: 'GST Payable (cash)', unit: 'currency', current: gstCurrent?.netTaxPayable ?? 0, previous: gstPrevious?.netTaxPayable ?? 0 },
+                  ]
                 : []),
             ]}
           />
