@@ -30,10 +30,21 @@ function formatQty(value) {
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
+  // Actual/projected are two series sharing one legend name (see the Line
+  // pairs below) — at the exact boundary point both have the same value, so
+  // dedupe by name/value instead of showing it twice.
+  const seen = new Set();
+  const rows = payload.filter((entry) => {
+    if (entry.value == null) return false;
+    const key = `${entry.name}:${entry.value}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   return (
     <div className="rounded-md border border-border bg-surface px-3 py-2 text-xs shadow-lg">
       <p className="font-medium text-text">{formatQty(label)} units</p>
-      {payload.map((entry) => (
+      {rows.map((entry) => (
         <p key={entry.dataKey} className="text-text-muted">
           {entry.name}: <span className="text-text">{formatMoney(entry.value)}</span>
         </p>
@@ -126,8 +137,13 @@ export function BreakEvenChart({ products, workOrders, orders, variantsById, pro
               <Tooltip content={<ChartTooltip />} />
               <Legend iconType="plainline" wrapperStyle={{ fontSize: 12, color: 'var(--color-text-muted)' }} />
               <ReferenceLine y={analysis.fixedCost} stroke="var(--color-text-muted)" strokeWidth={2} strokeDasharray="4 4" label={{ value: `Fixed cost (${formatMoney(analysis.fixedCost)})`, position: 'insideTopLeft', fill: 'var(--color-text-muted)', fontSize: 11 }} />
-              <Line type="monotone" dataKey="totalCost" name="Total Cost (Fixed + Variable)" stroke={costColor} strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="revenue" name="Revenue (Sales)" stroke={revenueColor} strokeWidth={2} dot={false} />
+              {/* Solid = real (qty already sold this period); dashed = projection past
+                  today's real data — each pair shares one legend entry via the same
+                  `name`, Recharts folds matching names into a single legend row. */}
+              <Line type="monotone" dataKey="totalCostActual" name="Total Cost (Fixed + Variable)" stroke={costColor} strokeWidth={2} dot={false} legendType="plainline" />
+              <Line type="monotone" dataKey="totalCostProjected" name="Total Cost (Fixed + Variable)" stroke={costColor} strokeWidth={2} strokeDasharray="5 4" dot={false} legendType="none" />
+              <Line type="monotone" dataKey="revenueActual" name="Revenue (Sales)" stroke={revenueColor} strokeWidth={2} dot={false} legendType="plainline" />
+              <Line type="monotone" dataKey="revenueProjected" name="Revenue (Sales)" stroke={revenueColor} strokeWidth={2} strokeDasharray="5 4" dot={false} legendType="none" />
               {analysis.breakEvenQty != null && (
                 <ReferenceDot
                   x={Math.round(analysis.breakEvenQty)}

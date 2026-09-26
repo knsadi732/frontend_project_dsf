@@ -154,9 +154,33 @@ function computeBreakEven({ name, fixedCost, variableCostPerUnit, sellingPrice, 
   // floor keeps the chart legible even when there's nothing to scale off yet.
   const maxQty = Math.max(breakEvenQty ?? 0, quantity, 30) * 1.5;
   const stepSize = maxQty / steps;
-  const points = Array.from({ length: steps + 1 }, (_, i) => {
-    const qty = Math.round(stepSize * i);
-    return { qty, totalCost: fixedCost + variableCostPerUnit * qty, revenue: sellingPrice * qty };
+  const rawQtys = Array.from({ length: steps + 1 }, (_, i) => Math.round(stepSize * i));
+  // Inject the exact current-quantity point (real data ends here) so the
+  // actual/projected split below lands precisely instead of snapping to the
+  // nearest sampled step — a plain rounded step could sit short of or past
+  // it, either clipping real data off early or bleeding projection into it.
+  const qtys = Array.from(new Set([...rawQtys, quantity])).sort((a, b) => a - b);
+
+  // Engineering convention: a line is only solid where it reflects real,
+  // already-happened data (qty <= actual units sold this period) — beyond
+  // that it's a hypothetical projection and must read as one, so it's drawn
+  // dashed via a separate series. Both series carry the boundary point
+  // (qty === quantity) so the solid and dashed segments visually connect
+  // with no gap.
+  const points = qtys.map((qty) => {
+    const totalCost = fixedCost + variableCostPerUnit * qty;
+    const revenue = sellingPrice * qty;
+    const isActual = qty <= quantity;
+    const isProjected = qty >= quantity;
+    return {
+      qty,
+      totalCost,
+      revenue,
+      totalCostActual: isActual ? totalCost : null,
+      totalCostProjected: isProjected ? totalCost : null,
+      revenueActual: isActual ? revenue : null,
+      revenueProjected: isProjected ? revenue : null,
+    };
   });
 
   return {
