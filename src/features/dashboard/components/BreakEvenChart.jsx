@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { CartesianGrid, Legend, Line, LineChart, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useThemeStore } from '@/store/themeStore';
+import { cn } from '@/utils/cn';
 import { AppComboSelect } from '@/components/ui/AppComboSelect';
 import { breakEvenAnalysisByProduct, breakEvenAnalysisForCompany } from '@/features/production/utils/unitCost';
 
@@ -63,7 +65,14 @@ export function BreakEvenChart({ products, workOrders, orders, variantsById, pro
   const analysis =
     activeProductId === COMPANY_OPTION_ID
       ? breakEvenAnalysisForCompany(workOrders, orders, variantsById, productsById, companyFixedCost)
-      : breakEvenAnalysisByProduct(workOrders, variantsById, productsById, activeProductId);
+      : breakEvenAnalysisByProduct(workOrders, orders, variantsById, productsById, activeProductId);
+
+  // "Have we actually reached it" — the chart's crossing point alone answers
+  // "how many units", not "are we there today"; this compares that target
+  // against real units sold so far this period.
+  const currentRevenue = analysis ? analysis.sellingPrice * analysis.currentQuantity : 0;
+  const hasReachedBreakEven = analysis?.breakEvenQty != null && analysis.currentQuantity >= analysis.breakEvenQty;
+  const unitsShort = analysis?.breakEvenQty != null ? Math.max(Math.ceil(analysis.breakEvenQty) - analysis.currentQuantity, 0) : null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -77,6 +86,24 @@ export function BreakEvenChart({ products, workOrders, orders, variantsById, pro
 
       {analysis && (
         <>
+          {analysis.breakEvenQty != null && (
+            <div
+              className={cn(
+                'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold',
+                hasReachedBreakEven ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger',
+              )}
+            >
+              {hasReachedBreakEven ? <CheckCircle2 className="size-4 shrink-0" /> : <XCircle className="size-4 shrink-0" />}
+              {hasReachedBreakEven ? (
+                <span>Break-even reached — {formatQty(analysis.currentQuantity)} of {formatQty(Math.ceil(analysis.breakEvenQty))} units sold this period.</span>
+              ) : (
+                <span>
+                  Not yet at break-even — {formatQty(analysis.currentQuantity)} of {formatQty(Math.ceil(analysis.breakEvenQty))} units sold,{' '}
+                  <span className="underline">{formatQty(unitsShort)} more needed</span>.
+                </span>
+              )}
+            </div>
+          )}
           <p className="text-xs text-text-muted">
             Fixed cost {formatMoney(analysis.fixedCost)} · Variable cost/unit {formatMoney(analysis.variableCostPerUnit)} · Selling price {formatMoney(analysis.sellingPrice)}
             {analysis.breakEvenQty != null ? (
@@ -109,6 +136,18 @@ export function BreakEvenChart({ products, workOrders, orders, variantsById, pro
                   fill="var(--color-text)"
                   stroke="var(--color-surface)"
                   strokeWidth={2}
+                  label={{ value: 'Break-even', position: 'top', fill: 'var(--color-text-muted)', fontSize: 11 }}
+                />
+              )}
+              {analysis.currentQuantity > 0 && (
+                <ReferenceDot
+                  x={analysis.currentQuantity}
+                  y={currentRevenue}
+                  r={5}
+                  fill={hasReachedBreakEven ? 'var(--color-success)' : 'var(--color-danger)'}
+                  stroke="var(--color-surface)"
+                  strokeWidth={2}
+                  label={{ value: `You are here (${formatQty(analysis.currentQuantity)})`, position: 'bottom', fill: hasReachedBreakEven ? 'var(--color-success)' : 'var(--color-danger)', fontSize: 11 }}
                 />
               )}
             </LineChart>

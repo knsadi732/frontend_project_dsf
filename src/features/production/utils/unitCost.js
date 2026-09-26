@@ -236,10 +236,14 @@ export function breakEvenEligibleProducts(workOrders, variantsById, productsById
     .map((entry) => ({ id: entry.productId, name: entry.name, quantity: entry.quantity }));
 }
 
-export function breakEvenAnalysisByProduct(workOrders, variantsById, productsById, productId, steps = 20) {
+export function breakEvenAnalysisByProduct(workOrders, orders, variantsById, productsById, productId, steps = 20) {
   const entry = unitCostByProduct(workOrders, variantsById, productsById).find((row) => row.productId === productId);
   if (!entry) return null;
-  return computeBreakEven({ name: entry.name, fixedCost: entry.fixedCost, variableCostPerUnit: entry.variableCostPerUnit, sellingPrice: entry.sellingPrice, quantity: entry.quantity }, steps);
+  // Real units sold (order history), not production quantity — same reason
+  // unitCostForCompany uses it: work orders are empty, so "how close to
+  // break-even" has to mean "given what's actually sold" to mean anything.
+  const realSoldQuantity = realSalesQuantityByProduct(orders, variantsById).get(productId) ?? 0;
+  return computeBreakEven({ name: entry.name, fixedCost: entry.fixedCost, variableCostPerUnit: entry.variableCostPerUnit, sellingPrice: entry.sellingPrice, quantity: realSoldQuantity }, steps);
 }
 
 // Real units sold per product, from actual order history (order_items'
@@ -296,11 +300,11 @@ export function unitCostForCompany(workOrders, orders, variantsById, productsByI
   let totalWeight = 0;
   let weightedSellingPrice = 0;
   let weightedContribution = 0;
-  let totalQuantity = 0;
+  let realSoldQuantity = 0;
   products.forEach((entry) => {
     const realQty = salesQtyByProduct.get(entry.productId) ?? 0;
     const weight = hasAnySalesHistory ? realQty : 1;
-    totalQuantity += entry.quantity;
+    realSoldQuantity += realQty;
     if (weight <= 0) return;
     totalWeight += weight;
     weightedSellingPrice += entry.sellingPrice * weight;
@@ -326,7 +330,11 @@ export function unitCostForCompany(workOrders, orders, variantsById, productsByI
 
   return {
     name: 'Overall (Company)',
-    quantity: totalQuantity,
+    // Real units actually SOLD this period (order history), not production
+    // quantity — work orders are empty right now, so "quantity" has to mean
+    // "how close are we to break-even given real sales" for this to be
+    // useful at all (see breakEvenAnalysisForCompany's "you are here" marker).
+    quantity: realSoldQuantity,
     fixedCost: companyFixedCost,
     variableCostPerUnit,
     sellingPrice,
