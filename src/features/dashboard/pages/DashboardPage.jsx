@@ -140,6 +140,14 @@ export function DashboardPage() {
   const [salesUnitsTargetDraft, setSalesUnitsTargetDraft] = useState(null);
 
   const orders = useMemo(() => salesOrdersData?.data ?? [], [salesOrdersData]);
+  // Scoped to the same period Fixed Cost now uses (periodSelector.range) —
+  // without this, Break-even's Variable Cost/unit and "units sold" stayed
+  // all-time regardless of Monthly/Quarterly/Yearly/YTD, inconsistent with
+  // Fixed Cost actually changing per period.
+  const ordersInSelectedPeriod = useMemo(
+    () => orders.filter((order) => order.orderDate >= periodSelector.range.from && order.orderDate <= periodSelector.range.to),
+    [orders, periodSelector.range.from, periodSelector.range.to],
+  );
   const salesTrend = useMemo(() => salesTrendByDate(orders), [orders]);
   const salesMix = useMemo(() => productMix(orders), [orders]);
   const productsById = useMemo(() => new Map((productsData?.data ?? []).map((p) => [p.id, p])), [productsData]);
@@ -570,7 +578,7 @@ export function DashboardPage() {
           <BreakEvenChart
             products={breakEvenProducts}
             workOrders={workOrders}
-            orders={orders}
+            orders={ordersInSelectedPeriod}
             variantsById={variantsById}
             productsById={productsById}
             companyFixedCost={overheadData?.totalOverhead ?? 0}
