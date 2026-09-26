@@ -132,7 +132,7 @@ export function DashboardPage() {
   const { data: forecastData, isLoading: isForecastLoading } = useSalesForecastQuery(canViewForecast);
   const { data: channelForecastData } = useChannelForecastQuery(canViewForecast);
   const { data: marketplaceChannelsData } = useMarketplaceChannelsQuery();
-  const { data: overheadData } = useOverheadPerUnitQuery();
+  const { data: overheadData } = useOverheadPerUnitQuery(periodSelector.range);
   const updateSettings = useUpdateSettings();
   const upsertSalesTarget = useUpsertSalesTarget();
   const [salesTargetDraft, setSalesTargetDraft] = useState(null);
