@@ -156,7 +156,12 @@ export function breakEvenAnalysis(workOrders, variantsById, variantId, steps = 2
   // no break-even quantity, it's a structural loss regardless of volume.
   const breakEvenQty = contributionPerUnit > 0 ? fixedCost / contributionPerUnit : null;
 
-  const maxQty = Math.max(breakEvenQty ?? 0, quantity, 1) * 1.5;
+  // A floor of 1 unit collapsed the x-axis to ~1-2 units whenever both
+  // breakEvenQty and quantity were 0 (e.g. fixed cost ₹0 this month, no
+  // production logged yet) — stepSize then rounded to the same 2-3 integers
+  // repeatedly, drawing a meaningless staircase instead of a line. A 30-unit
+  // floor keeps the chart legible even when there's nothing to scale off yet.
+  const maxQty = Math.max(breakEvenQty ?? 0, quantity, 30) * 1.5;
   const stepSize = maxQty / steps;
   const points = Array.from({ length: steps + 1 }, (_, i) => {
     const qty = Math.round(stepSize * i);
