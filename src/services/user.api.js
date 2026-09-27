@@ -5,17 +5,22 @@ import { getEmployeeFullName } from '@/utils/employeeName';
 
 const baseApi = createCrudApi('users');
 
-// Backend's user.validator.js only knows {branchId, warehouseId, roleId,
+// Backend's user.validator.js knows {branchId, warehouseId, roleId,
 // additionalRoleIds, employeeId, fullName, email, phone, password,
-// department, jobTitle, status} — a much leaner model than the UI's rich
-// employee record. `roleId`/`additionalRoleIds` need real role GUIDs, and
-// ApiList.md exposes no /roles lookup to resolve a role key (e.g. "SALES")
-// into one — so the UI's role key is sent through as-is and the backend
-// rejects it; that failure surfaces via the normal apiClient error toast
-// rather than being faked here. Personal/HR fields (DOB, Aadhaar, bank
-// details, documents, etc.) have no backend column at all — see
+// department, jobTitle, status, dateOfJoining} — a much leaner model than
+// the UI's rich employee record. `roleId`/`additionalRoleIds` need real role
+// GUIDs, and ApiList.md exposes no /roles lookup to resolve a role key (e.g.
+// "SALES") into one — so the UI's role key is sent through as-is and the
+// backend rejects it; that failure surfaces via the normal apiClient error
+// toast rather than being faked here. Every OTHER personal/HR field (DOB,
+// Aadhaar, bank details, documents, etc.) still has no backend column — see
 // fromBackendUser, which echoes back whatever was submitted so the
 // form/table keep showing them, even though they never persist server-side.
+// joiningDate is the one exception (date_of_joining is a real column) — it
+// used to be lumped in with the others and silently dropped here even
+// though the backend had a column and repository support for it the whole
+// time (fixed on the backend too: user.repository.js's create/update never
+// referenced date_of_joining in their SQL at all).
 function toBackendPayload(payload) {
   return {
     branchId: payload.branchId || null,
@@ -30,6 +35,7 @@ function toBackendPayload(payload) {
     department: payload.departmentId,
     jobTitle: payload.designationId,
     status: payload.employmentStatus,
+    dateOfJoining: payload.joiningDate || null,
   };
 }
 
