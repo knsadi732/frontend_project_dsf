@@ -202,6 +202,13 @@ export function DashboardPage() {
     () => receivablesByBucket(receivableAging(invoicesData?.data ?? [])),
     [invoicesData],
   );
+  // Total unpaid — sums real time as invoicesData refetches, so a bill
+  // marked 'paid' (balanceDue -> 0) drops out of this total on its own,
+  // no separate tracking needed.
+  const receivableTotal = useMemo(
+    () => (invoicesData?.data ?? []).reduce((sum, inv) => sum + Math.max(Number(inv.balanceDue ?? 0), 0), 0),
+    [invoicesData],
+  );
   const activeUserCount = (usersData?.data ?? []).filter((u) => u.employmentStatus === 'active').length;
   const attendanceTodayCount = useMemo(
     () => new Set((attendanceTodayData?.data ?? []).map((a) => a.employeeId)).size,
@@ -342,6 +349,7 @@ export function DashboardPage() {
           cashBalance={ledgerBalance}
           inventoryOnHand={inventoryStatus?.data?.total_on_hand}
           payableTotal={payableTotal}
+          receivableTotal={receivableTotal}
           opsStats={[
             { label: 'Work In Progress', value: wip.toLocaleString('en-IN'), icon: Boxes, tone: 'navy' },
             { label: 'Pending Approvals', value: String(pendingApprovalsCount), icon: ClipboardCheck, tone: 'sky' },

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Factory, TrendingUp, Landmark, PackageCheck, ScrollText } from 'lucide-react';
+import { ShoppingCart, Factory, TrendingUp, Landmark, PackageCheck, ScrollText, Receipt } from 'lucide-react';
 import { StatCard } from '@/features/dashboard/components/StatCard';
 import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
 import { formatDisplayDate } from '@/features/compliance/utils/reportPeriod';
@@ -37,6 +37,7 @@ export function ExecutiveOverview({
   cashBalance,
   inventoryOnHand,
   payableTotal,
+  receivableTotal,
   opsStats = [],
   hideHeader = false,
 }) {
@@ -131,6 +132,18 @@ export function ExecutiveOverview({
               icon={ScrollText}
               tone="charcoal"
               onClick={() => navigate('/finance?tab=payables')}
+            />
+          </div>
+        )}
+        {canViewFinance && (
+          <div>
+            <StatCard
+              label="Receivable"
+              value={fmtCurrency(receivableTotal)}
+              subtitle="unpaid invoices — outstanding in market"
+              icon={Receipt}
+              tone="sky"
+              onClick={() => navigate('/finance?tab=invoices')}
             />
           </div>
         )}
