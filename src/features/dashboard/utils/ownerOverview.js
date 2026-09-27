@@ -23,10 +23,17 @@ export function receivablesByBucket(agedInvoices) {
 
 // Average actual cost-per-pair across every variant with real production
 // history — the CPP figure an owner checks against the selling price.
+// Weighted by real quantity produced (Σ totalCost / Σ quantity), NOT a
+// simple average of each SKU's own unit cost — an unweighted average lets
+// a SKU with 1 pair produced pull the figure exactly as hard as one with
+// 24 pairs, which isn't what "average cost per pair" means once volumes
+// differ across SKUs.
 export function avgCostPerPair(workOrders) {
   const rows = unitCostByVariant(workOrders).filter((row) => row.productVariantId && row.quantity > 0);
-  if (!rows.length) return 0;
-  return rows.reduce((sum, row) => sum + row.unitPrice, 0) / rows.length;
+  const totalQuantity = rows.reduce((sum, row) => sum + row.quantity, 0);
+  if (totalQuantity <= 0) return 0;
+  const totalCost = rows.reduce((sum, row) => sum + row.totalCost, 0);
+  return totalCost / totalQuantity;
 }
 
 // OTIF (On Time In Full) — % of dispatched orders that shipped by their
