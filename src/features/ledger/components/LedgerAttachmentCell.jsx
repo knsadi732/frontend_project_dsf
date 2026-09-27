@@ -47,6 +47,12 @@ export function LedgerAttachmentCell({ transactionId, entityType, document, labe
       .then(() => {
         pushToast('success', `${label} uploaded`);
         queryClient.invalidateQueries({ queryKey: queryKeys.documents.list({ entityType }) });
+        // An invoice upload may have auto-filled this row's Invoice No
+        // (documentText.service.js, backend) — refetch the ledger list too
+        // so that shows up without a manual page refresh.
+        if (entityType === 'invoice') {
+          queryClient.invalidateQueries({ queryKey: queryKeys.ledger.all });
+        }
       })
       .catch(() => pushToast('error', `Failed to upload ${label.toLowerCase()}`))
       .finally(() => setUploading(false));
