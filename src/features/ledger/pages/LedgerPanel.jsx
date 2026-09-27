@@ -39,10 +39,11 @@ export function LedgerPanel() {
   // The header "Balance" must reflect actual company cash, not the CA/compliance
   // summary endpoint's full P&L total (which intentionally includes amounts a
   // funding source paid a vendor directly, never touching DS Footwear's own
-  // bank/cash — see affectsCompanyCash). The per-row running `balance` (oldest
-  // first, from ledger.api.js) already excludes those, so its last entry is the
-  // correct current cash position.
-  const balance = allEntries.length > 0 ? allEntries[allEntries.length - 1].balance : 0;
+  // bank/cash — see affectsCompanyCash). The per-row running `balance` already
+  // excludes those. The backend now returns rows NEWEST first (so the ledger
+  // page itself reads current-first), so the current cash position is the
+  // FIRST entry's balance, not the last — the last is now the oldest row.
+  const balance = allEntries.length > 0 ? allEntries[0].balance : 0;
 
   // One shared fetch per attachment type (not per-row) — LedgerAttachmentCell
   // just looks up its own transaction id in the resulting map.
