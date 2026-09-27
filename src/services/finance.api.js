@@ -30,6 +30,8 @@ export const financeApi = {
           status: params.status,
           date_from: params.dateFrom,
           date_to: params.dateTo,
+          channel_type: params.channelType,
+          order_number: params.orderNumber,
           page: params.page,
           limit: params.pageSize,
         },

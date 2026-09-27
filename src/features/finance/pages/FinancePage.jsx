@@ -26,17 +26,12 @@ import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DownloadButton, EditButton } from '@/components/ui/ActionButtons';
-import { MultiFilter } from '@/components/ui/MultiFilter';
-import { AppInput } from '@/components/ui/AppInput';
+import { InvoiceFilterPanel } from '@/features/finance/components/InvoiceFilterPanel';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
-import { PAYMENT_STATUS, toStatusOptions } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
-
-const STATUS_OPTIONS = toStatusOptions(PAYMENT_STATUS);
 
 // An invoice IS the linked order (finance.service.js createBillForOrder) —
 // reuse the exact same Tax Invoice template Sales Orders download (just
@@ -67,8 +62,7 @@ async function downloadInvoicePdf(row, customersById, productsById, variantsById
 export function FinancePage() {
   const [activeTab] = useTabParam('invoices');
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
-  const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
+  const [invoiceFilters, setInvoiceFilters] = useState({ status: '', channelType: '', orderNumber: '', dateFrom: '', dateTo: '' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, invoice: null });
@@ -77,13 +71,11 @@ export function FinancePage() {
   const filters = useMemo(
     () => ({
       search: debouncedSearch,
-      status,
-      dateFrom: appliedDateFrom,
-      dateTo: appliedDateTo,
+      ...invoiceFilters,
       page,
       pageSize,
     }),
-    [debouncedSearch, status, appliedDateFrom, appliedDateTo, page, pageSize],
+    [debouncedSearch, invoiceFilters, page, pageSize],
   );
 
   const { data, isLoading, isFetching, refetch } = useInvoicesQuery(filters);
@@ -171,37 +163,12 @@ export function FinancePage() {
           placeholder="Search invoices…"
           className="w-72"
         />
-        <MultiFilter
-          filters={[{ key: 'status', label: 'Status', options: STATUS_OPTIONS }]}
-          values={{ status }}
-          onChange={(key, value) => {
-            setStatus(value);
+        <InvoiceFilterPanel
+          values={invoiceFilters}
+          onApply={(next) => {
+            setInvoiceFilters(next);
             setPage(1);
           }}
-          onClear={() => {
-            setStatus('');
-            setPage(1);
-          }}
-        />
-        <AppInput
-          type="date"
-          value={dateFrom}
-          onChange={(event) => {
-            setDateFrom(event.target.value);
-            setPage(1);
-          }}
-          className="w-36"
-          aria-label="Due date from"
-        />
-        <AppInput
-          type="date"
-          value={dateTo}
-          onChange={(event) => {
-            setDateTo(event.target.value);
-            setPage(1);
-          }}
-          className="w-36"
-          aria-label="Due date to"
         />
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
