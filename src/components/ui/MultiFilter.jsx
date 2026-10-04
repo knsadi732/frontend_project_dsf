@@ -41,7 +41,12 @@ export function MultiFilter({ filters = [], values = {}, onChange, onClear, clas
       </AppButton>
 
       {open && (
-        <div className="absolute right-0 z-20 mt-1 w-72 rounded-lg border border-border bg-surface p-3 shadow-lg">
+        // Anchored to the button's left edge (opens rightward, into the
+        // content area) rather than its right edge — a right-anchored
+        // popover opens *leftward*, and when this button sits near the
+        // left edge of the page (e.g. right under the sidebar, as on the
+        // Variants panel) that pushes the popover under the sidebar itself.
+        <div className="absolute left-0 z-30 mt-1 w-72 rounded-lg border border-border bg-surface p-3 shadow-lg">
           <div className="flex items-center justify-between pb-2">
             <span className="text-sm font-medium text-text">Filters</span>
             {activeCount > 0 && (
