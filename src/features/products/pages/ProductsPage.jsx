@@ -48,6 +48,7 @@ export function ProductsPage() {
   const [activeTab] = useTabParam('products');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, product: null });
@@ -65,8 +66,12 @@ export function ProductsPage() {
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
-    () => ({ search: debouncedSearch, status, page, pageSize }),
-    [debouncedSearch, status, page, pageSize],
+    // Backend reads this one as `category_id` (product.controller.js), not
+    // the camelCase every other write/response field uses — createCrudApi's
+    // list() just spreads filter keys straight into the query string, so
+    // the key here has to already match what the controller looks for.
+    () => ({ search: debouncedSearch, status, category_id: categoryId || undefined, page, pageSize }),
+    [debouncedSearch, status, categoryId, page, pageSize],
   );
 
   const { data, isLoading, isFetching, refetch } = useProductsQuery(filters);
@@ -142,14 +147,19 @@ export function ProductsPage() {
               className="w-72"
             />
             <MultiFilter
-              filters={[{ key: 'status', label: 'Status', options: STATUS_OPTIONS }]}
-              values={{ status }}
+              filters={[
+                { key: 'status', label: 'Status', options: STATUS_OPTIONS },
+                { key: 'category', label: 'Category', options: categoryOptions },
+              ]}
+              values={{ status, category: categoryId }}
               onChange={(key, value) => {
-                setStatus(value);
+                if (key === 'category') setCategoryId(value);
+                else setStatus(value);
                 setPage(1);
               }}
               onClear={() => {
                 setStatus('');
+                setCategoryId('');
                 setPage(1);
               }}
             />
