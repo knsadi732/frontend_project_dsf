@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { Image as ImageIcon } from 'lucide-react';
+import { ProductImagesModal } from '@/features/products/components/ProductImagesModal';
 import { useTabParam } from '@/hooks/useTabParam';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useCreateProduct } from '@/features/products/mutations/useCreateProduct';
@@ -52,6 +54,7 @@ export function ProductsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, product: null });
+  const [imagesProduct, setImagesProduct] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const { data: categoriesData } = useCategoriesQuery({ pageSize: 100 });
@@ -109,6 +112,18 @@ export function ProductsPage() {
               downloadProductPdf(row, categoriesById, brandsById);
             }}
           />
+          <AppButton
+            variant="ghost"
+            size="sm"
+            title="Manage images"
+            aria-label={`Manage images for ${row.name}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              setImagesProduct(row);
+            }}
+          >
+            <ImageIcon className="size-4" />
+          </AppButton>
           <Can module={MODULES.PRODUCTS} action={ACTIONS.EDIT}>
             <EditButton label={`Edit ${row.name}`} onClick={(event) => { event.stopPropagation(); setFormState({ open: true, product: row }); }} />
           </Can>
@@ -175,6 +190,12 @@ export function ProductsPage() {
             }}
             onRowClick={(product) => setFormState({ open: true, product })}
             emptyMessage="No products yet"
+          />
+
+          <ProductImagesModal
+            product={imagesProduct}
+            open={Boolean(imagesProduct)}
+            onClose={() => setImagesProduct(null)}
           />
 
           <ProductFormModal

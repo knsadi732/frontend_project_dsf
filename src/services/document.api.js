@@ -13,7 +13,7 @@ export const documentApi = {
   get: (id) => apiClient.get(`/documents/${id}`).then((res) => res.data.data),
   // `entityType` is required by document.validator.js:
   // product | vendor | employee | invoice | gst_certificate
-  upload: ({ file, entityType, entityId, branchId, warehouseId, isPublic }) => {
+  upload: ({ file, entityType, entityId, branchId, warehouseId, isPublic, color, imageRole }) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('entityType', entityType);
@@ -21,6 +21,8 @@ export const documentApi = {
     if (branchId) formData.append('branchId', branchId);
     if (warehouseId) formData.append('warehouseId', warehouseId);
     if (isPublic !== undefined) formData.append('isPublic', isPublic);
+    if (color) formData.append('color', color);
+    if (imageRole) formData.append('imageRole', imageRole);
     return apiClient.post('/documents', formData).then((res) => res.data.data);
   },
   getDownloadUrl: (id) => apiClient.get(`/documents/${id}/download-url`).then((res) => res.data.data),
