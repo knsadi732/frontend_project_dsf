@@ -22,13 +22,13 @@ import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DownloadButton, EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
-import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { WORK_ORDER_STAGE_OPTIONS } from '@/constants/statusEnums';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
+import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
+import { usePeriodSelector } from '@/features/compliance/utils/usePeriodSelector';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 import { generateRecordPdf } from '@/utils/generateRecordPdf';
 
@@ -73,7 +73,7 @@ export function ProductionPage() {
   const [activeTab] = useTabParam('workOrders');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
-  const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
+  const periodSelector = usePeriodSelector({ defaultType: 'custom' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, workOrder: null });
@@ -85,12 +85,12 @@ export function ProductionPage() {
     () => ({
       search: debouncedSearch,
       status,
-      dateFrom: appliedDateFrom,
-      dateTo: appliedDateTo,
+      dateFrom: periodSelector.range.from,
+      dateTo: periodSelector.range.to,
       page,
       pageSize,
     }),
-    [debouncedSearch, status, appliedDateFrom, appliedDateTo, page, pageSize],
+    [debouncedSearch, status, periodSelector.range, page, pageSize],
   );
 
   const { data, isLoading, isFetching, refetch } = useWorkOrdersQuery(filters);
@@ -242,28 +242,10 @@ export function ProductionPage() {
             setPage(1);
           }}
         />
-        <AppInput
-          type="date"
-          value={dateFrom}
-          onChange={(event) => {
-            setDateFrom(event.target.value);
-            setPage(1);
-          }}
-          className="w-36"
-          aria-label="Due date from"
-        />
-        <AppInput
-          type="date"
-          value={dateTo}
-          onChange={(event) => {
-            setDateTo(event.target.value);
-            setPage(1);
-          }}
-          className="w-36"
-          aria-label="Due date to"
-        />
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
+
+      <PeriodSelectorBar state={periodSelector} showRangeLabel={false} />
 
       <AppTable
         columns={columns}

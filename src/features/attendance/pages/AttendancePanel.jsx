@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useAttendanceQuery } from '@/features/attendance/queries/useAttendanceQuery';
 import { AppSelect } from '@/components/ui/AppSelect';
-import { AppInput } from '@/components/ui/AppInput';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
+import { usePeriodSelector } from '@/features/compliance/utils/usePeriodSelector';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 import { getEmployeeFullName } from '@/utils/employeeName';
 
@@ -18,15 +19,14 @@ export function AttendancePanel({ employeesById, employeeOptions }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [employeeId, setEmployeeId] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const periodSelector = usePeriodSelector({ defaultType: 'custom' });
 
   const { data, isLoading, isFetching, refetch } = useAttendanceQuery({
     page,
     pageSize,
     employeeId: employeeId || undefined,
-    dateFrom: dateFrom || undefined,
-    dateTo: dateTo || undefined,
+    dateFrom: periodSelector.range.from,
+    dateTo: periodSelector.range.to,
   });
 
   const columns = [
@@ -64,25 +64,9 @@ export function AttendancePanel({ employeesById, employeeOptions }) {
             setPage(1);
           }}
         />
-        <AppInput
-          label="From"
-          type="date"
-          value={dateFrom}
-          onChange={(e) => {
-            setDateFrom(e.target.value);
-            setPage(1);
-          }}
-        />
-        <AppInput
-          label="To"
-          type="date"
-          value={dateTo}
-          onChange={(e) => {
-            setDateTo(e.target.value);
-            setPage(1);
-          }}
-        />
       </div>
+
+      <PeriodSelectorBar state={periodSelector} showRangeLabel={false} />
 
       <AppTable
         columns={columns}

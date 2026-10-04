@@ -20,7 +20,6 @@ import { PURCHASE_ORDER_STATUS_PIPELINE, PURCHASE_ORDER_CANCELLED } from '@/feat
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { MultiFilter } from '@/components/ui/MultiFilter';
-import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
@@ -29,7 +28,8 @@ import { DownloadButton, EditButton, CancelButton } from '@/components/ui/Action
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
+import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
+import { usePeriodSelector } from '@/features/compliance/utils/usePeriodSelector';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 // Real PO status pipeline (see purchase.schema.js) — not the generic
@@ -112,7 +112,7 @@ export function PurchasesPage() {
   const [activeTab, setActiveTab] = useTabParam('purchases');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
-  const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
+  const periodSelector = usePeriodSelector({ defaultType: 'custom' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, purchase: null });
@@ -122,12 +122,12 @@ export function PurchasesPage() {
     () => ({
       search: debouncedSearch,
       status,
-      dateFrom: appliedDateFrom,
-      dateTo: appliedDateTo,
+      dateFrom: periodSelector.range.from,
+      dateTo: periodSelector.range.to,
       page,
       pageSize,
     }),
-    [debouncedSearch, status, appliedDateFrom, appliedDateTo, page, pageSize],
+    [debouncedSearch, status, periodSelector.range, page, pageSize],
   );
 
   const { data, isLoading, isFetching, refetch } = usePurchasesQuery(filters);
@@ -308,28 +308,10 @@ export function PurchasesPage() {
                 setPage(1);
               }}
             />
-            <AppInput
-              type="date"
-              value={dateFrom}
-              onChange={(event) => {
-                setDateFrom(event.target.value);
-                setPage(1);
-              }}
-              className="w-36"
-              aria-label="Order date from"
-            />
-            <AppInput
-              type="date"
-              value={dateTo}
-              onChange={(event) => {
-                setDateTo(event.target.value);
-                setPage(1);
-              }}
-              className="w-36"
-              aria-label="Order date to"
-            />
             <RefreshButton onClick={refetch} isFetching={isFetching} />
           </FilterBar>
+
+          <PeriodSelectorBar state={periodSelector} showRangeLabel={false} />
 
           <AppTable
             columns={columns}

@@ -20,12 +20,12 @@ import { AppButton } from '@/components/ui/AppButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DownloadButton, EditButton, CreateButton } from '@/components/ui/ActionButtons';
 import { MultiFilter } from '@/components/ui/MultiFilter';
-import { AppInput } from '@/components/ui/AppInput';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
+import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
+import { usePeriodSelector } from '@/features/compliance/utils/usePeriodSelector';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 const STATUS_OPTIONS = ORDER_STATUS_PIPELINE.map((value) => ({ value, label: value.replace(/\b\w/g, (c) => c.toUpperCase()) }));
@@ -88,7 +88,7 @@ async function downloadSalesOrderPdf(row, customersById, productsById, variantsB
 export function SalesPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
-  const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
+  const periodSelector = usePeriodSelector({ defaultType: 'custom' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, salesOrder: null });
@@ -99,12 +99,12 @@ export function SalesPage() {
     () => ({
       search: debouncedSearch,
       status,
-      dateFrom: appliedDateFrom,
-      dateTo: appliedDateTo,
+      dateFrom: periodSelector.range.from,
+      dateTo: periodSelector.range.to,
       page,
       pageSize,
     }),
-    [debouncedSearch, status, appliedDateFrom, appliedDateTo, page, pageSize],
+    [debouncedSearch, status, periodSelector.range, page, pageSize],
   );
 
   const { data, isLoading, isFetching, refetch } = useSalesOrdersQuery(filters);
@@ -257,28 +257,10 @@ export function SalesPage() {
             setPage(1);
           }}
         />
-        <AppInput
-          type="date"
-          value={dateFrom}
-          onChange={(event) => {
-            setDateFrom(event.target.value);
-            setPage(1);
-          }}
-          className="w-36"
-          aria-label="Order date from"
-        />
-        <AppInput
-          type="date"
-          value={dateTo}
-          onChange={(event) => {
-            setDateTo(event.target.value);
-            setPage(1);
-          }}
-          className="w-36"
-          aria-label="Order date to"
-        />
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
+
+      <PeriodSelectorBar state={periodSelector} showRangeLabel={false} />
 
       <AppTable
         columns={columns}

@@ -22,8 +22,9 @@ import { ApprovalRequestsPanel } from '@/features/approvalRequests';
 import { LedgerPanel, FundingSourcesPanel } from '@/features/ledger';
 import { CompliancePanel } from '@/features/compliance';
 import { SearchInput } from '@/components/ui/SearchInput';
-import { AppInput } from '@/components/ui/AppInput';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
+import { usePeriodSelector } from '@/features/compliance/utils/usePeriodSelector';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -64,7 +65,8 @@ async function downloadInvoicePdf(row, customersById, productsById, variantsById
 export function FinancePage() {
   const [activeTab] = useTabParam('invoices');
   const [search, setSearch] = useState('');
-  const [invoiceFilters, setInvoiceFilters] = useState({ status: '', channelType: '', orderNumber: '', dateFrom: '', dateTo: '' });
+  const [invoiceFilters, setInvoiceFilters] = useState({ status: '', channelType: '', orderNumber: '' });
+  const periodSelector = usePeriodSelector({ defaultType: 'custom' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, invoice: null });
@@ -74,10 +76,12 @@ export function FinancePage() {
     () => ({
       search: debouncedSearch,
       ...invoiceFilters,
+      dateFrom: periodSelector.range.from,
+      dateTo: periodSelector.range.to,
       page,
       pageSize,
     }),
-    [debouncedSearch, invoiceFilters, page, pageSize],
+    [debouncedSearch, invoiceFilters, periodSelector.range, page, pageSize],
   );
 
   const { data, isLoading, isFetching, refetch } = useInvoicesQuery(filters);
@@ -193,28 +197,10 @@ export function FinancePage() {
             setPage(1);
           }}
         />
-        <AppInput
-          type="date"
-          value={invoiceFilters.dateFrom ?? ''}
-          onChange={(event) => {
-            setInvoiceFilters((prev) => ({ ...prev, dateFrom: event.target.value }));
-            setPage(1);
-          }}
-          className="w-40"
-          aria-label="From date"
-        />
-        <AppInput
-          type="date"
-          value={invoiceFilters.dateTo ?? ''}
-          onChange={(event) => {
-            setInvoiceFilters((prev) => ({ ...prev, dateTo: event.target.value }));
-            setPage(1);
-          }}
-          className="w-40"
-          aria-label="To date"
-        />
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
+
+      <PeriodSelectorBar state={periodSelector} showRangeLabel={false} />
 
       <AppTable
         columns={columns}

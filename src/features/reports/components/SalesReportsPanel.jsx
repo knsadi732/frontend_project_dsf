@@ -5,12 +5,12 @@ import { useProductVariantsQuery } from '@/features/productVariants/queries/useP
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { ReportSection } from '@/features/reports/components/ReportSection';
 import { productWiseSales, customerSalesSummary } from '@/features/reports/utils/reportAggregations';
-import { AppInput } from '@/components/ui/AppInput';
-import { useDateRangeFilter } from '@/hooks/useDateRangeFilter';
+import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
+import { usePeriodSelector } from '@/features/compliance/utils/usePeriodSelector';
 
 export function SalesReportsPanel() {
-  const { dateFrom, dateTo, setDateFrom, setDateTo, appliedDateFrom, appliedDateTo } = useDateRangeFilter();
-  const { data: salesData } = useSalesOrdersQuery({ pageSize: 500, dateFrom: appliedDateFrom, dateTo: appliedDateTo });
+  const periodSelector = usePeriodSelector({ defaultType: 'custom' });
+  const { data: salesData } = useSalesOrdersQuery({ pageSize: 500, dateFrom: periodSelector.range.from, dateTo: periodSelector.range.to });
   const { data: productsData } = useProductsQuery({ pageSize: 200 });
   const { data: variantsData } = useProductVariantsQuery({ pageSize: 500 });
   const { data: customersData } = useCustomersQuery({ pageSize: 200 });
@@ -34,10 +34,7 @@ export function SalesReportsPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-3">
-        <AppInput label="Order date from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40" />
-        <AppInput label="Order date to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" />
-      </div>
+      <PeriodSelectorBar state={periodSelector} showRangeLabel={false} />
 
       <ReportSection
         title="Sales Register"
