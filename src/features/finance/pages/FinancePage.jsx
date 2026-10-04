@@ -7,6 +7,7 @@ import { useCompanyQuery } from '@/features/company/queries/useCompanyQuery';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
+import { useSalesOrdersQuery } from '@/features/sales/queries/useSalesOrdersQuery';
 import { salesApi } from '@/services/sales.api';
 import { generateSalesOrderPdf } from '@/features/sales/utils/generateSalesOrderPdf';
 import { PaymentsPanel } from '@/features/payments';
@@ -21,6 +22,7 @@ import { ApprovalRequestsPanel } from '@/features/approvalRequests';
 import { LedgerPanel, FundingSourcesPanel } from '@/features/ledger';
 import { CompliancePanel } from '@/features/compliance';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { AppInput } from '@/components/ui/AppInput';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
@@ -97,6 +99,23 @@ export function FinancePage() {
     () => Object.fromEntries((variantsData?.data ?? []).map((variant) => [variant.id, variant])),
     [variantsData],
   );
+  // Real order numbers to pick from in the Order No filter, instead of a
+  // free-text box the user had to already know the exact number for. A
+  // marketplace order's real ID is its channel_order_number (what's
+  // actually printed on the invoice, e.g. Amazon's "407-5953259-1285969")
+  // — our own internally-generated ORD-... code is never shown to the
+  // customer and isn't what anyone will be searching for; it's only used
+  // as a fallback for direct (non-marketplace) orders that have no
+  // channel number at all.
+  const { data: ordersData } = useSalesOrdersQuery({ pageSize: 200 });
+  const orderOptions = useMemo(
+    () =>
+      (ordersData?.data ?? []).map((order) => {
+        const realId = order.channelOrderNumber || order.orderNumber;
+        return { value: realId, label: realId };
+      }),
+    [ordersData],
+  );
 
   const handleSubmit = (payload) => {
     updateInvoice.mutateAsync({ id: formState.invoice.id, payload }).then(() => setFormState({ open: false, invoice: null }));
@@ -165,10 +184,31 @@ export function FinancePage() {
         />
         <InvoiceFilterPanel
           values={invoiceFilters}
+          orderOptions={orderOptions}
           onApply={(next) => {
-            setInvoiceFilters(next);
+            setInvoiceFilters((prev) => ({ ...prev, ...next }));
             setPage(1);
           }}
+        />
+        <AppInput
+          type="date"
+          value={invoiceFilters.dateFrom ?? ''}
+          onChange={(event) => {
+            setInvoiceFilters((prev) => ({ ...prev, dateFrom: event.target.value }));
+            setPage(1);
+          }}
+          className="w-40"
+          aria-label="From date"
+        />
+        <AppInput
+          type="date"
+          value={invoiceFilters.dateTo ?? ''}
+          onChange={(event) => {
+            setInvoiceFilters((prev) => ({ ...prev, dateTo: event.target.value }));
+            setPage(1);
+          }}
+          className="w-40"
+          aria-label="To date"
         />
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
