@@ -7,6 +7,7 @@ import { useDeleteProductVariant } from '@/features/productVariants/mutations/us
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { ProductVariantFormModal } from '@/features/productVariants/components/ProductVariantFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { SearchInput } from '@/components/ui/SearchInput';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -23,18 +24,38 @@ export function ProductVariantsPanel() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [productId, setProductId] = useState('');
+  const [search, setSearch] = useState('');
   const [formState, setFormState] = useState({ open: false, variant: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [pricingVariant, setPricingVariant] = useState(null);
 
+  // Searches client-side, so the whole list has to actually be in hand
+  // first — a per-page backend fetch (pageSize: 10) would only ever search
+  // whatever 10 rows happened to be on the current page. The variant count
+  // here is small (tens, not thousands), so pulling it all in one request
+  // (same pageSize: 100 pattern as the Products/Categories/Brands pickers
+  // elsewhere on this page) costs nothing and searches everything at once.
   // Backend reads this as `product_id` (productVariant.controller.js), not
   // camelCase — createCrudApi's list() spreads filter keys straight into
   // the query string as given.
-  const { data, isLoading, isFetching, refetch } = useProductVariantsQuery({ page, pageSize, product_id: productId || undefined });
+  const { data, isLoading, isFetching, refetch } = useProductVariantsQuery({ pageSize: 100, product_id: productId || undefined });
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
   const products = productsData?.data ?? [];
   const productsById = Object.fromEntries(products.map((product) => [product.id, product]));
   const productOptions = products.map((product) => ({ value: product.id, label: product.name }));
+
+  const allVariants = data?.data ?? [];
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredVariants = normalizedSearch
+    ? allVariants.filter((variant) => {
+        const haystack = [variant.sku, variant.barcode, variant.size, variant.color, productsById[variant.productId]?.name]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(normalizedSearch);
+      })
+    : allVariants;
+  const pagedVariants = filteredVariants.slice((page - 1) * pageSize, page * pageSize);
 
   const createVariant = useCreateProductVariant();
   const updateVariant = useUpdateProductVariant();
@@ -100,6 +121,15 @@ export function ProductVariantsPanel() {
       </div>
 
       <FilterBar>
+        <SearchInput
+          value={search}
+          onChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          placeholder="Search SKU, barcode, size, color, product…"
+          className="w-72"
+        />
         <CategorizedFilterPanel
           categories={[{ key: 'product', label: 'Product', options: [{ value: '', label: 'All' }, ...productOptions] }]}
           values={{ product: productId }}
@@ -112,8 +142,8 @@ export function ProductVariantsPanel() {
 
       <AppTable
         columns={columns}
-        data={data?.data ?? []}
-        total={data?.total ?? 0}
+        data={pagedVariants}
+        total={filteredVariants.length}
         page={page}
         pageSize={pageSize}
         isLoading={isLoading}
