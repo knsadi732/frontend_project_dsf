@@ -11,6 +11,7 @@ function fromBackendBill(bill) {
     invoiceNumber: bill.bill_number,
     orderId: bill.order_id,
     salesOrderNumber: bill.sales_order_number,
+    channelOrderNumber: bill.channel_order_number,
     party: bill.party,
     amount: Number(bill.total_amount),
     gstAmount: Number(bill.gst_amount),

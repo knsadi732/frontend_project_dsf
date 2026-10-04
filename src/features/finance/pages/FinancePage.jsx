@@ -140,12 +140,15 @@ export function FinancePage() {
     {
       key: 'linkedSo',
       header: 'Linked SO',
-      render: (row) =>
-        row.salesOrderNumber ? (
-          <BaseBadge variant="info">{row.salesOrderNumber}</BaseBadge>
-        ) : (
-          <span className="text-xs text-text-muted">—</span>
-        ),
+      // A marketplace order's real ID is its channel_order_number (what's
+      // actually printed on the invoice) — our internal order_number is
+      // never shown to the customer and isn't the number anyone's looking
+      // for here. Only falls back to it for a direct (non-marketplace)
+      // order, which has no channel number at all.
+      render: (row) => {
+        const realId = row.channelOrderNumber || row.salesOrderNumber;
+        return realId ? <BaseBadge variant="info">{realId}</BaseBadge> : <span className="text-xs text-text-muted">—</span>;
+      },
     },
     {
       key: 'actions',
