@@ -6,6 +6,7 @@ import { useDeleteWarehouse } from '@/features/warehouses/mutations/useDeleteWar
 import { useBranchesQuery } from '@/features/branches/queries/useBranchesQuery';
 import { WarehouseFormModal } from '@/features/warehouses/components/WarehouseFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -20,7 +21,7 @@ export function WarehousesPanel() {
   const [formState, setFormState] = useState({ open: false, warehouse: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useWarehousesQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useWarehousesQuery({ page, pageSize });
   const { data: branchesData } = useBranchesQuery({ pageSize: 100 });
   const branches = branchesData?.data ?? [];
   const branchesById = Object.fromEntries(branches.map((branch) => [branch.id, branch]));
@@ -66,9 +67,12 @@ export function WarehousesPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Warehouses store inventory and belong to a branch.</p>
-        <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, warehouse: null })}>New warehouse</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormState({ open: true, warehouse: null })}>New warehouse</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

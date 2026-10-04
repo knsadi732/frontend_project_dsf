@@ -11,6 +11,7 @@ import { PurchaseRequestFormModal } from '@/features/purchaseRequests/components
 import { RfqFormModal } from '@/features/rfqs';
 import { useCreateRfq } from '@/features/rfqs/mutations/useCreateRfq';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { ApproveButton, RejectButton, CreateButton } from '@/components/ui/ActionButtons';
@@ -34,7 +35,7 @@ export function PurchaseRequestsPanel() {
   const [formOpen, setFormOpen] = useState(false);
   const [rfqFormState, setRfqFormState] = useState({ open: false, purchaseRequest: null });
 
-  const { data, isLoading } = usePurchaseRequestsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = usePurchaseRequestsQuery({ page, pageSize });
   const { data: departmentsData } = useDepartmentsQuery({ pageSize: 100 });
   const { data: warehousesData } = useWarehousesQuery({ pageSize: 100 });
   const { data: branchesData } = useBranchesQuery({ pageSize: 100 });
@@ -111,9 +112,12 @@ export function PurchaseRequestsPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Internal requests for materials — approve, then raise an RFQ to compare vendors before ordering.</p>
-        <Can module={MODULES.PURCHASES} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormOpen(true)}>New purchase request</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.PURCHASES} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormOpen(true)}>New purchase request</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

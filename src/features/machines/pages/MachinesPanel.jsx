@@ -6,6 +6,7 @@ import { useReportMachineDown } from '@/features/machines/mutations/useReportMac
 import { useResolveMachineDowntime } from '@/features/machines/mutations/useResolveMachineDowntime';
 import { MachineFormModal } from '@/features/machines/components/MachineFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { CreateButton } from '@/components/ui/ActionButtons';
@@ -22,7 +23,7 @@ export function MachinesPanel() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
 
-  const { data, isLoading } = useMachinesQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useMachinesQuery({ page, pageSize });
   const createMachine = useCreateMachine();
   const reportDown = useReportMachineDown();
   const resolveDowntime = useResolveMachineDowntime();
@@ -75,9 +76,12 @@ export function MachinesPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Shop-floor equipment — flag downtime the moment a major machine stops.</p>
-        <Can module={MODULES.PRODUCTION} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormOpen(true)}>New machine</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.PRODUCTION} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormOpen(true)}>New machine</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

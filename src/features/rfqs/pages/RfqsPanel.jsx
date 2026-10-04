@@ -3,6 +3,7 @@ import { useRfqsQuery } from '@/features/rfqs/queries/useRfqsQuery';
 import { RfqDetailModal } from '@/features/rfqs/components/RfqDetailModal';
 import { AppTable } from '@/components/ui/AppTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
 const RFQ_STATUS_VARIANT = {
@@ -24,7 +25,7 @@ export function RfqsPanel({ onCreatePo }) {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [selectedRfqId, setSelectedRfqId] = useState(null);
 
-  const { data, isLoading } = useRfqsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useRfqsQuery({ page, pageSize });
 
   // The list endpoint only joins PR/branch names (rfq.repository.js
   // SELECT_WITH_NAMES) — vendors/materialItems/quotations are attached by
@@ -39,7 +40,10 @@ export function RfqsPanel({ onCreatePo }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-text-muted">Request for Quotations — sent to vendors from an approved purchase request, compared, then a vendor is selected.</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-text-muted">Request for Quotations — sent to vendors from an approved purchase request, compared, then a vendor is selected.</p>
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
+      </div>
 
       <AppTable
         columns={columns}

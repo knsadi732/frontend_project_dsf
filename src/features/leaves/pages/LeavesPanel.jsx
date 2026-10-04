@@ -5,6 +5,7 @@ import { useUpdateLeave } from '@/features/leaves/mutations/useUpdateLeave';
 import { useDeleteLeave } from '@/features/leaves/mutations/useDeleteLeave';
 import { LeaveFormModal } from '@/features/leaves/components/LeaveFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -22,7 +23,7 @@ export function LeavesPanel({ employeesById, employeeOptions }) {
   const [formState, setFormState] = useState({ open: false, leave: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useLeavesQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useLeavesQuery({ page, pageSize });
   const createLeave = useCreateLeave();
   const updateLeave = useUpdateLeave();
   const deleteLeave = useDeleteLeave();
@@ -72,9 +73,12 @@ export function LeavesPanel({ employeesById, employeeOptions }) {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Leave requests and approvals.</p>
-        <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, leave: null })}>New leave request</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormState({ open: true, leave: null })}>New leave request</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

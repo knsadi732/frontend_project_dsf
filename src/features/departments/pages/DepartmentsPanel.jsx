@@ -5,6 +5,7 @@ import { useUpdateDepartment } from '@/features/departments/mutations/useUpdateD
 import { useDeleteDepartment } from '@/features/departments/mutations/useDeleteDepartment';
 import { DepartmentFormModal } from '@/features/departments/components/DepartmentFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -19,7 +20,7 @@ export function DepartmentsPanel() {
   const [formState, setFormState] = useState({ open: false, department: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useDepartmentsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useDepartmentsQuery({ page, pageSize });
   const createDepartment = useCreateDepartment();
   const updateDepartment = useUpdateDepartment();
   const deleteDepartment = useDeleteDepartment();
@@ -59,9 +60,12 @@ export function DepartmentsPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Departments group users for reporting and org structure.</p>
-        <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, department: null })}>New department</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormState({ open: true, department: null })}>New department</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

@@ -6,6 +6,7 @@ import { useDeleteShelf } from '@/features/shelves/mutations/useDeleteShelf';
 import { useRacksQuery } from '@/features/racks/queries/useRacksQuery';
 import { ShelfFormModal } from '@/features/shelves/components/ShelfFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -20,7 +21,7 @@ export function ShelvesPanel() {
   const [formState, setFormState] = useState({ open: false, shelf: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useShelvesQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useShelvesQuery({ page, pageSize });
   const { data: racksData } = useRacksQuery({ pageSize: 100 });
   const racks = racksData?.data ?? [];
   const racksById = Object.fromEntries(racks.map((r) => [r.id, r]));
@@ -67,9 +68,12 @@ export function ShelvesPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Shelves belong to a rack.</p>
-        <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, shelf: null })}>New shelf</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormState({ open: true, shelf: null })}>New shelf</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

@@ -5,6 +5,7 @@ import { useUpdateDesignation } from '@/features/designations/mutations/useUpdat
 import { useDeleteDesignation } from '@/features/designations/mutations/useDeleteDesignation';
 import { DesignationFormModal } from '@/features/designations/components/DesignationFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -19,7 +20,7 @@ export function DesignationsPanel() {
   const [formState, setFormState] = useState({ open: false, designation: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useDesignationsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useDesignationsQuery({ page, pageSize });
   const createDesignation = useCreateDesignation();
   const updateDesignation = useUpdateDesignation();
   const deleteDesignation = useDeleteDesignation();
@@ -59,9 +60,12 @@ export function DesignationsPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Designations are company-wide job titles.</p>
-        <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, designation: null })}>New designation</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormState({ open: true, designation: null })}>New designation</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

@@ -9,6 +9,7 @@ import { ReturnFormModal } from '@/features/returns/components/ReturnFormModal';
 import { StatCard } from '@/features/dashboard/components/StatCard';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -38,7 +39,7 @@ export function ReturnsPage() {
     [debouncedSearch, page, pageSize],
   );
 
-  const { data, isLoading } = useReturnsQuery(filters);
+  const { data, isLoading, isFetching, refetch } = useReturnsQuery(filters);
   const { data: summary } = useReturnsSummaryQuery();
   const { data: byProduct = [] } = useReturnsSummaryByProductQuery();
   const createReturn = useCreateReturn();
@@ -137,6 +138,7 @@ export function ReturnsPage() {
 
       <FilterBar>
         <SearchInput value={search} onChange={setSearch} placeholder="Search returns…" className="w-72" />
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
 
       <AppTable

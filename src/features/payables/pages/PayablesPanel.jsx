@@ -4,6 +4,7 @@ import { useCreatePayable } from '@/features/payables/mutations/useCreatePayable
 import { PayableFormModal } from '@/features/payables/components/PayableFormModal';
 import { PayableDetailModal } from '@/features/payables/components/PayableDetailModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { CreateButton } from '@/components/ui/ActionButtons';
@@ -21,7 +22,7 @@ export function PayablesPanel() {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedPayableId, setSelectedPayableId] = useState(null);
 
-  const { data, isLoading } = usePayablesQuery({ page, pageSize, status: status || undefined });
+  const { data, isLoading, isFetching, refetch } = usePayablesQuery({ page, pageSize, status: status || undefined });
   const createPayable = useCreatePayable();
 
   const handleSubmit = (values) => {
@@ -45,9 +46,12 @@ export function PayablesPanel() {
           Dues owed to any party outside a vendor Purchase Order — e.g. a rent deposit paid off over time via monthly
           rent adjustments instead of up front.
         </p>
-        <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormOpen(true)}>New payable</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormOpen(true)}>New payable</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppSelect

@@ -4,6 +4,7 @@ import { useCreatePayment } from '@/features/payments/mutations/useCreatePayment
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { PaymentFormModal } from '@/features/payments/components/PaymentFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
@@ -15,7 +16,7 @@ export function PaymentsPanel() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
 
-  const { data, isLoading } = usePaymentsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = usePaymentsQuery({ page, pageSize });
   const { data: customersData } = useCustomersQuery({ pageSize: 100 });
   const customers = customersData?.data ?? [];
   const customersById = Object.fromEntries(customers.map((c) => [c.id, c]));
@@ -42,9 +43,12 @@ export function PaymentsPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Customer payments recorded (Accounts Receivable / collections).</p>
-        <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormOpen(true)}>Record payment</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormOpen(true)}>Record payment</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

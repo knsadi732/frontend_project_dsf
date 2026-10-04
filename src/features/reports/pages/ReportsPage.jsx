@@ -16,6 +16,7 @@ import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DownloadButton, CreateButton } from '@/components/ui/ActionButtons';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -31,7 +32,7 @@ export function ReportsPage() {
   const [downloadingId, setDownloadingId] = useState(null);
 
   const filters = { page, pageSize };
-  const { data, isLoading } = useReportsQuery(filters);
+  const { data, isLoading, isFetching, refetch } = useReportsQuery(filters);
   const generateReport = useGenerateReport();
 
   const handleSubmit = (values) => {
@@ -80,9 +81,12 @@ export function ReportsPage() {
           <p className="text-sm text-text-muted">Operational, financial and analytical reports across every module.</p>
         </div>
         {activeTab === 'overview' && (
-          <Can module={MODULES.REPORTS} action={ACTIONS.CREATE}>
-            <CreateButton onClick={() => setModalOpen(true)}>Generate report</CreateButton>
-          </Can>
+          <div className="flex items-center gap-2">
+            <RefreshButton onClick={refetch} isFetching={isFetching} />
+            <Can module={MODULES.REPORTS} action={ACTIONS.CREATE}>
+              <CreateButton onClick={() => setModalOpen(true)}>Generate report</CreateButton>
+            </Can>
+          </div>
         )}
       </div>
 

@@ -5,6 +5,7 @@ import { LoanEsignRequestFormModal } from '@/features/loanEsignRequests/componen
 import { LoanEsignLinkModal } from '@/features/loanEsignRequests/components/LoanEsignLinkModal';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -29,7 +30,7 @@ export function LoanEsignRequestsPanel() {
   const [formOpen, setFormOpen] = useState(false);
   const [activeRequest, setActiveRequest] = useState(null);
 
-  const { data, isLoading } = useLoanEsignRequestsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useLoanEsignRequestsQuery({ page, pageSize });
   const createRequest = useCreateLoanEsignRequest();
 
   const handleSubmit = (values) => {
@@ -63,9 +64,12 @@ export function LoanEsignRequestsPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Loan agreements sent for e-signature — pending until the counter-party signs.</p>
-        <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormOpen(true)}>New loan request</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormOpen(true)}>New loan request</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

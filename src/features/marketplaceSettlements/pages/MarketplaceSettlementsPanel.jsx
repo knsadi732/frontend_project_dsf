@@ -5,6 +5,7 @@ import { useMonthlyProductCostQuery } from '@/features/marketplaceSettlements/qu
 import { useCreateMarketplaceSettlement } from '@/features/marketplaceSettlements/mutations/useCreateMarketplaceSettlement';
 import { MarketplaceSettlementFormModal } from '@/features/marketplaceSettlements/components/MarketplaceSettlementFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { Can } from '@/routes/PermissionGuard';
@@ -18,7 +19,7 @@ export function MarketplaceSettlementsPanel() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
 
-  const { data, isLoading } = useMarketplaceSettlementsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useMarketplaceSettlementsQuery({ page, pageSize });
   const { data: monthlyCost = [] } = useMonthlyChannelCostQuery();
   const { data: monthlyProductCost = [] } = useMonthlyProductCostQuery();
   const createSettlement = useCreateMarketplaceSettlement();
@@ -61,9 +62,12 @@ export function MarketplaceSettlementsPanel() {
           return, ads, TCS, TDS). Once enough of these accumulate, "Actual Cost/Pair" below replaces the channel's
           default cost assumption in the Pricing Calculator.
         </p>
-        <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormOpen(true)}>New settlement</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormOpen(true)}>New settlement</CreateButton>
+          </Can>
+        </div>
       </div>
 
       {monthlyCost.length > 0 && (

@@ -5,6 +5,7 @@ import { useFundingSourcesQuery } from '@/features/ledger/queries/useFundingSour
 import { LoanFormModal } from '@/features/loans/components/LoanFormModal';
 import { LoanDetailModal } from '@/features/loans/components/LoanDetailModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AppSelect } from '@/components/ui/AppSelect';
 import { CancelButton, CreateButton } from '@/components/ui/ActionButtons';
@@ -38,7 +39,7 @@ export function LoansPanel() {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedLoanId, setSelectedLoanId] = useState(null);
 
-  const { data, isLoading } = useLoansQuery({ page, pageSize, status: status || undefined });
+  const { data, isLoading, isFetching, refetch } = useLoansQuery({ page, pageSize, status: status || undefined });
   const { data: fundingSourcesData } = useFundingSourcesQuery();
   const createLoan = useCreateLoan();
 
@@ -91,9 +92,12 @@ export function LoansPanel() {
           Money borrowed by the company — formal loans (bank/vendor) plus informal debt from owner/family/friends
           tagged as 'loan' in Funding Sources.
         </p>
-        <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormOpen(true)}>New loan</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormOpen(true)}>New loan</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppSelect

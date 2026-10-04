@@ -6,6 +6,7 @@ import { useDeleteBin } from '@/features/bins/mutations/useDeleteBin';
 import { useShelvesQuery } from '@/features/shelves/queries/useShelvesQuery';
 import { BinFormModal } from '@/features/bins/components/BinFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -20,7 +21,7 @@ export function BinsPanel() {
   const [formState, setFormState] = useState({ open: false, bin: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useBinsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useBinsQuery({ page, pageSize });
   const { data: shelvesData } = useShelvesQuery({ pageSize: 100 });
   const shelves = shelvesData?.data ?? [];
   const shelvesById = Object.fromEntries(shelves.map((s) => [s.id, s]));
@@ -68,9 +69,12 @@ export function BinsPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Bins are the smallest physical storage unit — every inventory movement references a bin.</p>
-        <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, bin: null })}>New bin</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormState({ open: true, bin: null })}>New bin</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

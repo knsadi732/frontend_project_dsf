@@ -4,11 +4,12 @@ import { useUpdateMarketplaceChannel } from '@/features/marketplaceChannels/muta
 import { MarketplaceChannelEditModal } from '@/features/marketplaceChannels/components/MarketplaceChannelEditModal';
 import { AppTable } from '@/components/ui/AppTable';
 import { EditButton } from '@/components/ui/ActionButtons';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 
 export function MarketplaceChannelsPanel() {
-  const { data = [], isLoading } = useMarketplaceChannelsQuery();
+  const { data = [], isLoading, isFetching, refetch } = useMarketplaceChannelsQuery();
   const updateChannel = useUpdateMarketplaceChannel();
   const [editingChannel, setEditingChannel] = useState(null);
 
@@ -37,11 +38,14 @@ export function MarketplaceChannelsPanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-text-muted">
-        Bootstrap-mode blended marketplace cost per channel (courier + return/RTO-weighted + ads + GST, all-in per pair
-        sold). Used by the Pricing Calculator until real Marketplace Settlements data replaces it with an actual
-        average.
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-text-muted">
+          Bootstrap-mode blended marketplace cost per channel (courier + return/RTO-weighted + ads + GST, all-in per pair
+          sold). Used by the Pricing Calculator until real Marketplace Settlements data replaces it with an actual
+          average.
+        </p>
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
+      </div>
 
       <AppTable columns={columns} data={data} isLoading={isLoading} emptyMessage="No channels configured yet" />
 

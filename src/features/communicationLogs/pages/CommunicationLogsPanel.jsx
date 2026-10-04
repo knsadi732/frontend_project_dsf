@@ -3,6 +3,7 @@ import { useCommunicationLogsQuery } from '@/features/communicationLogs/queries/
 import { useSalesOrdersQuery } from '@/features/sales/queries/useSalesOrdersQuery';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { getSalesOrderStage, getSalesOrderStageLabel, DELIVERY_STAGE_BADGE_VARIANT } from '@/features/sales/utils/salesOrderStage';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 
@@ -37,7 +38,7 @@ export function CommunicationLogsPanel() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-  const { data, isLoading } = useCommunicationLogsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useCommunicationLogsQuery({ page, pageSize });
   const { data: salesData } = useSalesOrdersQuery({ pageSize: 500 });
   const salesOrdersById = useMemo(
     () => Object.fromEntries((salesData?.data ?? []).map((so) => [so.id, so])),
@@ -65,9 +66,12 @@ export function CommunicationLogsPanel() {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-text-muted">
-        Every business event and its delivery — Sales Order events show the order's real fulfillment stage; other events show simulated in-app/email delivery.
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-text-muted">
+          Every business event and its delivery — Sales Order events show the order's real fulfillment stage; other events show simulated in-app/email delivery.
+        </p>
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
+      </div>
 
       <AppTable
         columns={columns}

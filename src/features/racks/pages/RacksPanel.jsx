@@ -6,6 +6,7 @@ import { useDeleteRack } from '@/features/racks/mutations/useDeleteRack';
 import { useWarehouseZonesQuery } from '@/features/warehouseZones/queries/useWarehouseZonesQuery';
 import { RackFormModal } from '@/features/racks/components/RackFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -20,7 +21,7 @@ export function RacksPanel() {
   const [formState, setFormState] = useState({ open: false, rack: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useRacksQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useRacksQuery({ page, pageSize });
   const { data: zonesData } = useWarehouseZonesQuery({ pageSize: 100 });
   const zones = zonesData?.data ?? [];
   const zonesById = Object.fromEntries(zones.map((z) => [z.id, z]));
@@ -67,9 +68,12 @@ export function RacksPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Racks belong to a zone.</p>
-        <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, rack: null })}>New rack</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.INVENTORY} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormState({ open: true, rack: null })}>New rack</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

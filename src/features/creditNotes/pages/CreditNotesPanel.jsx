@@ -5,6 +5,7 @@ import { useDeleteCreditNote } from '@/features/creditNotes/mutations/useDeleteC
 import { useInvoicesQuery } from '@/features/finance/queries/useInvoicesQuery';
 import { CreditNoteFormModal } from '@/features/creditNotes/components/CreditNoteFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
@@ -18,7 +19,7 @@ export function CreditNotesPanel() {
   const [formOpen, setFormOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useCreditNotesQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useCreditNotesQuery({ page, pageSize });
   const { data: invoicesData } = useInvoicesQuery({ pageSize: 100 });
   const invoiceOptions = (invoicesData?.data ?? []).map((inv) => ({ value: inv.id, label: inv.invoiceNumber }));
 
@@ -53,9 +54,12 @@ export function CreditNotesPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Credit notes issued for approved returns and refunds.</p>
-        <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormOpen(true)}>New credit note</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormOpen(true)}>New credit note</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

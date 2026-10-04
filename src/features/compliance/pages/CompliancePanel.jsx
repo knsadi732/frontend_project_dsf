@@ -18,6 +18,7 @@ import { Gstr1ReportSection } from '@/features/compliance/components/Gstr1Report
 import { Gstr2bProxySection } from '@/features/compliance/components/Gstr2bProxySection';
 import { AppTable } from '@/components/ui/AppTable';
 import { CreateButton } from '@/components/ui/ActionButtons';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -53,7 +54,7 @@ export function CompliancePanel({ section = 'overview' }) {
   const [formOpen, setFormOpen] = useState(false);
 
   const { data: gstProfile, isLoading: isGstLoading } = useGstProfileQuery();
-  const { data, isLoading } = useStatutoryAuditsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useStatutoryAuditsQuery({ page, pageSize });
   const createAudit = useCreateStatutoryAudit();
   const crossVerify = useCrossVerifyLedger();
 
@@ -83,9 +84,12 @@ export function CompliancePanel({ section = 'overview' }) {
 
           <div className="flex items-center justify-between">
             <p className="text-sm text-text-muted">Statutory audit records.</p>
-            <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
-              <CreateButton onClick={() => setFormOpen(true)}>Record audit</CreateButton>
-            </Can>
+            <div className="flex items-center gap-2">
+              <RefreshButton onClick={refetch} isFetching={isFetching} />
+              <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
+                <CreateButton onClick={() => setFormOpen(true)}>Record audit</CreateButton>
+              </Can>
+            </div>
           </div>
 
           <AppTable

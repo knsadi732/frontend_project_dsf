@@ -5,6 +5,7 @@ import { useUpdateBranch } from '@/features/branches/mutations/useUpdateBranch';
 import { useDeleteBranch } from '@/features/branches/mutations/useDeleteBranch';
 import { BranchFormModal } from '@/features/branches/components/BranchFormModal';
 import { AppTable } from '@/components/ui/AppTable';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -19,7 +20,7 @@ export function BranchesPanel() {
   const [formState, setFormState] = useState({ open: false, branch: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useBranchesQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useBranchesQuery({ page, pageSize });
   const createBranch = useCreateBranch();
   const updateBranch = useUpdateBranch();
   const deleteBranch = useDeleteBranch();
@@ -59,9 +60,12 @@ export function BranchesPanel() {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Branches represent physical or operational business locations.</p>
-        <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, branch: null })}>New branch</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormState({ open: true, branch: null })}>New branch</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable

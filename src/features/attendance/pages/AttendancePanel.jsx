@@ -4,6 +4,7 @@ import { AppSelect } from '@/components/ui/AppSelect';
 import { AppInput } from '@/components/ui/AppInput';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 import { getEmployeeFullName } from '@/utils/employeeName';
@@ -20,7 +21,7 @@ export function AttendancePanel({ employeesById, employeeOptions }) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  const { data, isLoading } = useAttendanceQuery({
+  const { data, isLoading, isFetching, refetch } = useAttendanceQuery({
     page,
     pageSize,
     employeeId: employeeId || undefined,
@@ -48,6 +49,10 @@ export function AttendancePanel({ employeesById, employeeOptions }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex justify-end">
+        <RefreshButton onClick={refetch} isFetching={isFetching} />
+      </div>
+
       <div className="grid grid-cols-3 gap-4">
         <AppSelect
           label="Employee"

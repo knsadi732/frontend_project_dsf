@@ -6,6 +6,7 @@ import { useDeleteAsset } from '@/features/assets/mutations/useDeleteAsset';
 import { AssetFormModal } from '@/features/assets/components/AssetFormModal';
 import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
+import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
@@ -20,7 +21,7 @@ export function AssetsPanel({ employeesById, employeeOptions }) {
   const [formState, setFormState] = useState({ open: false, asset: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { data, isLoading } = useAssetsQuery({ page, pageSize });
+  const { data, isLoading, isFetching, refetch } = useAssetsQuery({ page, pageSize });
   const createAsset = useCreateAsset();
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
@@ -68,9 +69,12 @@ export function AssetsPanel({ employeesById, employeeOptions }) {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Company assets assigned to employees.</p>
-        <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, asset: null })}>New assignment</CreateButton>
-        </Can>
+        <div className="flex items-center gap-2">
+          <RefreshButton onClick={refetch} isFetching={isFetching} />
+          <Can module={MODULES.USERS} action={ACTIONS.CREATE}>
+            <CreateButton onClick={() => setFormState({ open: true, asset: null })}>New assignment</CreateButton>
+          </Can>
+        </div>
       </div>
 
       <AppTable
