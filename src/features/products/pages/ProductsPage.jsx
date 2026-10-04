@@ -17,7 +17,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DownloadButton, EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
-import { MultiFilter } from '@/components/ui/MultiFilter';
+import { CategorizedFilterPanel } from '@/components/ui/CategorizedFilterPanel';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -146,20 +146,15 @@ export function ProductsPage() {
               placeholder="Search products…"
               className="w-72"
             />
-            <MultiFilter
-              filters={[
-                { key: 'status', label: 'Status', options: STATUS_OPTIONS },
-                { key: 'category', label: 'Category', options: categoryOptions },
+            <CategorizedFilterPanel
+              categories={[
+                { key: 'status', label: 'Status', options: [{ value: '', label: 'All' }, ...STATUS_OPTIONS] },
+                { key: 'category', label: 'Category', options: [{ value: '', label: 'All' }, ...categoryOptions] },
               ]}
               values={{ status, category: categoryId }}
-              onChange={(key, value) => {
-                if (key === 'category') setCategoryId(value);
-                else setStatus(value);
-                setPage(1);
-              }}
-              onClear={() => {
-                setStatus('');
-                setCategoryId('');
+              onApply={(draft) => {
+                setStatus(draft.status ?? '');
+                setCategoryId(draft.category ?? '');
                 setPage(1);
               }}
             />

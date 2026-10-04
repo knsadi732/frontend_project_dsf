@@ -14,7 +14,7 @@ import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionBu
 import { PricingCalculatorModal } from '@/features/pricingCalculator';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { FilterBar } from '@/components/ui/FilterBar';
-import { MultiFilter } from '@/components/ui/MultiFilter';
+import { CategorizedFilterPanel } from '@/components/ui/CategorizedFilterPanel';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -100,15 +100,11 @@ export function ProductVariantsPanel() {
       </div>
 
       <FilterBar>
-        <MultiFilter
-          filters={[{ key: 'product', label: 'Product', options: productOptions }]}
+        <CategorizedFilterPanel
+          categories={[{ key: 'product', label: 'Product', options: [{ value: '', label: 'All' }, ...productOptions] }]}
           values={{ product: productId }}
-          onChange={(_key, value) => {
-            setProductId(value);
-            setPage(1);
-          }}
-          onClear={() => {
-            setProductId('');
+          onApply={(draft) => {
+            setProductId(draft.product ?? '');
             setPage(1);
           }}
         />
