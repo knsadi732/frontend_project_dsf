@@ -26,10 +26,13 @@ export const NAV_ITEMS = [
     label: 'Products',
     to: '/products',
     icon: Package,
+    // Ordered to match the actual dependency chain (Chapter 7: Category ->
+    // Brand -> Product -> Variant) — each tab depends on the one before it
+    // existing first, so that's the order a new user should set them up in.
     children: [
-      { key: 'products', label: 'Products' },
       { key: 'categories', label: 'Categories' },
       { key: 'brands', label: 'Brands' },
+      { key: 'products', label: 'Products' },
       { key: 'variants', label: 'Variants' },
     ],
   },
