@@ -13,6 +13,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { CreateButton, EditButton, DeleteButton } from '@/components/ui/ActionButtons';
 import { PricingCalculatorModal } from '@/features/pricingCalculator';
 import { RefreshButton } from '@/components/ui/RefreshButton';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { MultiFilter } from '@/components/ui/MultiFilter';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
 import { DEFAULT_PAGE_SIZE } from '@/config/constants';
@@ -20,11 +22,15 @@ import { DEFAULT_PAGE_SIZE } from '@/config/constants';
 export function ProductVariantsPanel() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [productId, setProductId] = useState('');
   const [formState, setFormState] = useState({ open: false, variant: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [pricingVariant, setPricingVariant] = useState(null);
 
-  const { data, isLoading, isFetching, refetch } = useProductVariantsQuery({ page, pageSize });
+  // Backend reads this as `product_id` (productVariant.controller.js), not
+  // camelCase — createCrudApi's list() spreads filter keys straight into
+  // the query string as given.
+  const { data, isLoading, isFetching, refetch } = useProductVariantsQuery({ page, pageSize, product_id: productId || undefined });
   const { data: productsData } = useProductsQuery({ pageSize: 100 });
   const products = productsData?.data ?? [];
   const productsById = Object.fromEntries(products.map((product) => [product.id, product]));
@@ -92,6 +98,21 @@ export function ProductVariantsPanel() {
           </Can>
         </div>
       </div>
+
+      <FilterBar>
+        <MultiFilter
+          filters={[{ key: 'product', label: 'Product', options: productOptions }]}
+          values={{ product: productId }}
+          onChange={(_key, value) => {
+            setProductId(value);
+            setPage(1);
+          }}
+          onClear={() => {
+            setProductId('');
+            setPage(1);
+          }}
+        />
+      </FilterBar>
 
       <AppTable
         columns={columns}
