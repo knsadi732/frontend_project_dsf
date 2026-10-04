@@ -96,7 +96,13 @@ export function InvoiceFilterPanel({ values, onApply, className }) {
       </AppButton>
 
       {open && (
-        <div className="absolute right-0 z-20 mt-1 flex w-[26rem] overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+        // One positioned container with the two-pane row and the Clear/
+        // Apply footer stacked as normal flex children — not two separate
+        // absolutely-positioned siblings glued together with a guessed top
+        // offset, which drifts out of alignment (overlapping the options)
+        // the moment the active category's content height changes.
+        <div className="absolute right-0 z-20 mt-1 flex w-[26rem] flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+          <div className="flex">
           <div className="w-32 shrink-0 border-r border-border bg-surface-hover py-2">
             <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Filters</p>
             {CATEGORIES.map((category) => (
@@ -173,17 +179,16 @@ export function InvoiceFilterPanel({ values, onApply, className }) {
               </div>
             )}
           </div>
-        </div>
-      )}
+          </div>
 
-      {open && (
-        <div className="absolute right-0 top-full z-20 mt-[3.35rem] flex w-[26rem] items-center justify-between rounded-b-lg border border-t-0 border-border bg-surface px-3 py-2 shadow-lg">
-          <button type="button" onClick={clear} className="text-xs text-text-muted hover:text-danger">
-            Clear
-          </button>
-          <AppButton type="button" size="sm" onClick={apply}>
-            Apply
-          </AppButton>
+          <div className="flex items-center justify-between border-t border-border px-3 py-2">
+            <button type="button" onClick={clear} className="text-xs text-text-muted hover:text-danger">
+              Clear
+            </button>
+            <AppButton type="button" size="sm" onClick={apply}>
+              Apply
+            </AppButton>
+          </div>
         </div>
       )}
     </div>

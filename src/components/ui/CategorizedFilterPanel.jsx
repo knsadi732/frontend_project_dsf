@@ -64,50 +64,56 @@ export function CategorizedFilterPanel({ categories, values, onApply, className 
       </AppButton>
 
       {open && (
-        <div className="absolute left-0 z-30 mt-1 flex w-[26rem] overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
-          <div className="w-32 shrink-0 border-r border-border bg-surface-hover py-2">
-            <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Filters</p>
-            {categories.map((category) => (
-              <button
-                key={category.key}
-                type="button"
-                onClick={() => setActiveCategory(category.key)}
-                className={cn(
-                  'block w-full px-3 py-2 text-left text-sm',
-                  activeCategory === category.key ? 'bg-primary/10 font-medium text-primary' : 'text-text hover:bg-surface',
-                )}
-              >
-                {category.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex-1 p-3">
-            <div className="flex max-h-72 flex-col gap-1.5 overflow-y-auto">
-              {(active?.options ?? []).map((option) => (
-                <label key={option.value || 'all'} className="flex items-center gap-2 text-sm text-text">
-                  <input
-                    type="checkbox"
-                    checked={(draft[active.key] ?? '') === option.value}
-                    onChange={() => setDraft((prev) => ({ ...prev, [active.key]: option.value }))}
-                    className="size-4 rounded border-border"
-                  />
-                  {option.label}
-                </label>
+        // One positioned container with the two-pane row and the Clear/
+        // Apply footer stacked as normal flex children — not two separate
+        // absolutely-positioned siblings glued together with a guessed
+        // top offset, which drifts out of alignment (overlapping the
+        // options list) the moment the options list's height differs from
+        // whatever height that guess was tuned for.
+        <div className="absolute left-0 z-30 mt-1 flex w-[26rem] flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+          <div className="flex">
+            <div className="w-32 shrink-0 border-r border-border bg-surface-hover py-2">
+              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">Filters</p>
+              {categories.map((category) => (
+                <button
+                  key={category.key}
+                  type="button"
+                  onClick={() => setActiveCategory(category.key)}
+                  className={cn(
+                    'block w-full px-3 py-2 text-left text-sm',
+                    activeCategory === category.key ? 'bg-primary/10 font-medium text-primary' : 'text-text hover:bg-surface',
+                  )}
+                >
+                  {category.label}
+                </button>
               ))}
             </div>
-          </div>
-        </div>
-      )}
 
-      {open && (
-        <div className="absolute left-0 top-full z-30 mt-[3.35rem] flex w-[26rem] items-center justify-between rounded-b-lg border border-t-0 border-border bg-surface px-3 py-2 shadow-lg">
-          <button type="button" onClick={clear} className="text-xs text-text-muted hover:text-danger">
-            Clear
-          </button>
-          <AppButton type="button" size="sm" onClick={apply}>
-            Apply
-          </AppButton>
+            <div className="flex-1 p-3">
+              <div className="flex max-h-72 flex-col gap-1.5 overflow-y-auto">
+                {(active?.options ?? []).map((option) => (
+                  <label key={option.value || 'all'} className="flex items-center gap-2 text-sm text-text">
+                    <input
+                      type="checkbox"
+                      checked={(draft[active.key] ?? '') === option.value}
+                      onChange={() => setDraft((prev) => ({ ...prev, [active.key]: option.value }))}
+                      className="size-4 rounded border-border"
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-border px-3 py-2">
+            <button type="button" onClick={clear} className="text-xs text-text-muted hover:text-danger">
+              Clear
+            </button>
+            <AppButton type="button" size="sm" onClick={apply}>
+              Apply
+            </AppButton>
+          </div>
         </div>
       )}
     </div>
