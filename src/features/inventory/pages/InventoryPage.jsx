@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Download, Pencil, Trash2 } from 'lucide-react';
+import { productStockApi } from '@/services/inventory.api';
+import { downloadCsv } from '@/utils/downloadCsv';
 import { useTabParam } from '@/hooks/useTabParam';
 import { useProductStockQuery } from '@/features/inventory/queries/useProductStockQuery';
 import { useStockSummaryQuery } from '@/features/inventory/queries/useStockSummaryQuery';
@@ -103,6 +105,29 @@ export function InventoryPage() {
   const { data: binsData } = useBinsQuery({ pageSize: 100 });
   const bins = binsData?.data ?? [];
   const binOptions = bins.map((bin) => ({ value: bin.id, label: bin.code }));
+
+  // Exports every row matching the current warehouse/type filter, not just
+  // the page on screen — pulled in one request so the file is the full list.
+  const handleDownloadList = async () => {
+    const { data: allRows = [] } = await productStockApi.list({ warehouseId, inventoryCategory, page: 1, pageSize: 10000 });
+    downloadCsv(
+      'inventory.csv',
+      [
+        { key: 'sku', label: 'SKU' },
+        { key: 'productName', label: 'Product name' },
+        { key: 'variantSize', label: 'Size' },
+        { key: 'variantColor', label: 'Color' },
+        { key: 'categoryName', label: 'Category' },
+        { key: 'inventoryCategory', label: 'Type', format: (v) => INVENTORY_CATEGORY_LABEL[v] ?? v ?? '' },
+        { key: 'warehouseName', label: 'Warehouse' },
+        { key: 'quantityOnHand', label: 'On hand' },
+        { key: 'quantityReserved', label: 'Reserved' },
+        { key: 'available', label: 'Available', format: (_, row) => row.quantityOnHand - row.quantityReserved },
+        { key: 'status', label: 'Status' },
+      ],
+      allRows,
+    );
+  };
 
   const createInventoryItem = useCreateInventoryItem();
   const updateInventoryItem = useUpdateInventoryItem();
@@ -260,6 +285,10 @@ export function InventoryPage() {
                 setPage(1);
               }}
             />
+            <AppButton variant="secondary" onClick={handleDownloadList}>
+              <Download className="size-4" />
+              Download list
+            </AppButton>
             <RefreshButton onClick={refetch} isFetching={isFetching} />
           </FilterBar>
 
