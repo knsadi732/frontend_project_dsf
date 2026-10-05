@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Download, Pencil, Trash2 } from 'lucide-react';
 import { productStockApi } from '@/services/inventory.api';
-import { downloadCsv } from '@/utils/downloadCsv';
+import { downloadXlsx } from '@/utils/downloadXlsx';
 import { useTabParam } from '@/hooks/useTabParam';
 import { useProductStockQuery } from '@/features/inventory/queries/useProductStockQuery';
 import { useStockSummaryQuery } from '@/features/inventory/queries/useStockSummaryQuery';
@@ -110,8 +110,8 @@ export function InventoryPage() {
   // the page on screen — pulled in one request so the file is the full list.
   const handleDownloadList = async () => {
     const { data: allRows = [] } = await productStockApi.list({ warehouseId, inventoryCategory, page: 1, pageSize: 10000 });
-    downloadCsv(
-      'inventory.csv',
+    downloadXlsx(
+      'inventory.xlsx',
       [
         { key: 'sku', label: 'SKU' },
         { key: 'productName', label: 'Product name' },
