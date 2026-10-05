@@ -55,6 +55,7 @@ export function ProductImagesModal({ product, open, onClose }) {
         entityId: product.id,
         color,
         imageRole,
+        isPublic: true,
       }),
     onSuccess: () => {
       pushToast('success', 'Image uploaded');
