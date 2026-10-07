@@ -87,4 +87,15 @@ export const salesApi = {
       .then((res) => fromBackendOrder(res.data.data)),
   generateMarketplaceInvoiceNumber: () =>
     apiClient.get('/orders/marketplace-invoice-number').then((res) => res.data.data.invoiceNumber),
+  // Creates the order server-side from the marketplace invoice PDF (order ID,
+  // invoice number, customer and SKU lines are read off it) — see
+  // marketplaceInvoiceImport.service.js on the backend.
+  importMarketplaceInvoice: ({ warehouseId, file }) => {
+    const formData = new FormData();
+    formData.append('warehouseId', warehouseId);
+    formData.append('file', file);
+    return apiClient
+      .post('/orders/import-marketplace-invoice', formData)
+      .then((res) => fromBackendOrder(res.data.data));
+  },
 };

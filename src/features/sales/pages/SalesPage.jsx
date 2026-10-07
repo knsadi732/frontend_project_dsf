@@ -3,6 +3,8 @@ import { Check, PackageCheck, PackageOpen, Send } from 'lucide-react';
 import { useSalesOrdersQuery } from '@/features/sales/queries/useSalesOrdersQuery';
 import { useCreateSalesOrder } from '@/features/sales/mutations/useCreateSalesOrder';
 import { useUpdateSalesOrder } from '@/features/sales/mutations/useUpdateSalesOrder';
+import { useImportMarketplaceInvoice } from '@/features/sales/mutations/useImportMarketplaceInvoice';
+import { ImportMarketplaceInvoiceModal } from '@/features/sales/components/ImportMarketplaceInvoiceModal';
 import { useCustomersQuery } from '@/features/customers/queries/useCustomersQuery';
 import { useCompanyQuery } from '@/features/company/queries/useCompanyQuery';
 import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
@@ -93,6 +95,8 @@ export function SalesPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, salesOrder: null });
   const [marketplaceModal, setMarketplaceModal] = useState({ open: false });
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const importMarketplaceInvoice = useImportMarketplaceInvoice();
 
   const debouncedSearch = useDebounce(search);
   const filters = useMemo(
@@ -231,7 +235,12 @@ export function SalesPage() {
           <p className="text-sm text-text-muted">Manage your sales orders.</p>
         </div>
         <Can module={MODULES.SALES} action={ACTIONS.CREATE}>
-          <CreateButton onClick={() => setFormState({ open: true, salesOrder: null })}>New sales order</CreateButton>
+          <div className="flex gap-2">
+            <AppButton variant="secondary" onClick={() => setImportModalOpen(true)}>
+              Import marketplace invoice
+            </AppButton>
+            <CreateButton onClick={() => setFormState({ open: true, salesOrder: null })}>New sales order</CreateButton>
+          </div>
         </Can>
       </div>
 
@@ -284,6 +293,15 @@ export function SalesPage() {
         onClose={() => setFormState({ open: false, salesOrder: null })}
         onSubmit={handleSubmit}
         isSubmitting={createSalesOrder.isPending || updateSalesOrder.isPending}
+      />
+
+      <ImportMarketplaceInvoiceModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        isSubmitting={importMarketplaceInvoice.isPending}
+        onSubmit={(payload) =>
+          importMarketplaceInvoice.mutate(payload, { onSuccess: () => setImportModalOpen(false) })
+        }
       />
 
       <MarketplaceInvoiceDetailsModal
