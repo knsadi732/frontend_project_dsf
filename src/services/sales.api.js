@@ -49,6 +49,9 @@ function fromBackendOrder(order, submitted = {}) {
     dispatchedAt: order.dispatchedAt ?? order.dispatched_at ?? submitted.dispatchedAt ?? null,
     promisedDeliveryDate: order.promisedDeliveryDate ?? order.promised_delivery_date ?? submitted.promisedDeliveryDate ?? null,
     channelOrderNumber: order.channelOrderNumber ?? order.channel_order_number ?? submitted.channelOrderNumber ?? null,
+    deliveredAt: order.deliveredAt ?? order.delivered_at ?? submitted.deliveredAt ?? null,
+    // 'marketplace' | 'online' | 'offline' — only present on list rows (order.repository.js attachOrderSource).
+    orderSource: order.orderSource ?? order.order_source ?? submitted.orderSource ?? null,
     items:
       submitted.items ??
       (order.items ?? []).map((item) => ({
@@ -74,8 +77,9 @@ export const salesApi = {
   // No generic edit endpoint exists — status/payment-status transitions and
   // updateItems (rate/HSN correction on existing lines, not add/remove) are
   // the only ways to change an order after creation. There's no DELETE either.
-  transitionStatus: (id, status) =>
-    apiClient.patch(`/orders/${id}/status`, { status }).then((res) => fromBackendOrder(res.data.data)),
+  // `reason` is only used when cancelling (the backend appends it to the order's remarks).
+  transitionStatus: (id, status, reason) =>
+    apiClient.patch(`/orders/${id}/status`, { status, ...(reason && { reason }) }).then((res) => fromBackendOrder(res.data.data)),
   transitionPaymentStatus: (id, paymentStatus) =>
     apiClient.patch(`/orders/${id}/payment-status`, { paymentStatus }).then((res) => fromBackendOrder(res.data.data)),
   // items: [{ id, unitPrice, hsnCode }] — id is the order_item id (existing

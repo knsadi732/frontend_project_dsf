@@ -155,16 +155,18 @@ export function SalesPage() {
   };
 
   const columns = [
-    { key: 'orderNumber', header: 'SO Number' },
+    {
+      key: 'orderNumber',
+      header: 'SO Number',
+      // A marketplace order's real ID is its channel_order_number (what's
+      // printed on the invoice); the internal order_number is only the
+      // fallback for a direct order — same rule as Invoices/Returns.
+      render: (row) => row.channelOrderNumber || row.orderNumber,
+    },
     {
       key: 'customer',
       header: 'Customer',
-      render: (row) => (
-        <div className="flex flex-col">
-          <span>{customersById[row.customerId]?.name ?? row.customerId}</span>
-          {row.channelOrderNumber && <span className="text-xs text-text-muted">Mkt. order: {row.channelOrderNumber}</span>}
-        </div>
-      ),
+      render: (row) => customersById[row.customerId]?.name ?? row.customerId,
     },
     {
       key: 'items',

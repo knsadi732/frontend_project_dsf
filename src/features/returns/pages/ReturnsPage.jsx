@@ -4,6 +4,7 @@ import { useReturnsSummaryQuery } from '@/features/returns/queries/useReturnsSum
 import { useReturnsSummaryByProductQuery } from '@/features/returns/queries/useReturnsSummaryByProductQuery';
 import { useCreateReturn } from '@/features/returns/mutations/useCreateReturn';
 import { useUpdateReturn } from '@/features/returns/mutations/useUpdateReturn';
+import { useUpdateSalesOrder } from '@/features/sales/mutations/useUpdateSalesOrder';
 import { useDeleteReturn } from '@/features/returns/mutations/useDeleteReturn';
 import { ReturnFormModal } from '@/features/returns/components/ReturnFormModal';
 import { StatCard } from '@/features/dashboard/components/StatCard';
@@ -44,6 +45,7 @@ export function ReturnsPage() {
   const { data: byProduct = [] } = useReturnsSummaryByProductQuery();
   const createReturn = useCreateReturn();
   const updateReturn = useUpdateReturn();
+  const updateSalesOrder = useUpdateSalesOrder();
   const deleteReturn = useDeleteReturn();
 
   const returnsList = data?.data ?? [];
@@ -67,6 +69,11 @@ export function ReturnsPage() {
     action.then(() => setFormState({ open: false, returnItem: null }));
   };
 
+  // Cancelling an undelivered order from the Return form: the order moves to
+  // 'cancelled' with the reason (backend appends it to the order's remarks).
+  const handleCancelOrder = ({ id, reason }) =>
+    updateSalesOrder.mutateAsync({ id, status: 'cancelled', reason }).then(() => setFormState({ open: false, returnItem: null }));
+
   const handleConfirmDelete = () => {
     deleteReturn.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
@@ -76,10 +83,27 @@ export function ReturnsPage() {
     { key: 'soNumber', header: 'Linked SO' },
     { key: 'type', header: 'Type', render: (row) => <BaseBadge variant={row.type === 'customer' ? 'warning' : 'default'}>{row.type}</BaseBadge> },
     { key: 'quantity', header: 'Qty' },
-    { key: 'amount', header: 'Amount', render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}` },
+    // The value of the returned item — not what was refunded (see the Refund column).
+    { key: 'amount', header: 'Item value', render: (row) => `₹${Number(row.amount).toLocaleString('en-IN')}` },
     { key: 'reason', header: 'Reason', render: (row) => reasonLabel(row.reason) },
     { key: 'createdDate', header: 'Date' },
     { key: 'status', header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
+    {
+      key: 'resolutionType',
+      header: 'Resolution',
+      render: (row) => {
+        if (row.resolutionType === 'replacement') {
+          return <BaseBadge variant="info">{row.replacementOrderNumber ? `Replacement → ${row.replacementOrderNumber}` : 'Replacement'}</BaseBadge>;
+        }
+        if (row.resolutionType === 'refund') return <BaseBadge variant="success">Refund</BaseBadge>;
+        return <span className="text-xs text-text-muted">—</span>;
+      },
+    },
+    {
+      key: 'refundAmount',
+      header: 'Refund',
+      render: (row) => (row.resolutionType === 'refund' && row.refundAmount > 0 ? `₹${Number(row.refundAmount).toLocaleString('en-IN')}` : '—'),
+    },
     {
       key: 'actions',
       header: '',
@@ -158,11 +182,14 @@ export function ReturnsPage() {
       />
 
       <ReturnFormModal
+        // Remounts per open so the Request / Order type filters start fresh each time.
+        key={`${formState.open}-${formState.returnItem?.id ?? 'new'}`}
         open={formState.open}
         initialValues={formState.returnItem}
         onClose={() => setFormState({ open: false, returnItem: null })}
         onSubmit={handleSubmit}
-        isSubmitting={createReturn.isPending || updateReturn.isPending}
+        onCancelOrder={handleCancelOrder}
+        isSubmitting={createReturn.isPending || updateReturn.isPending || updateSalesOrder.isPending}
       />
 
       <AppModal

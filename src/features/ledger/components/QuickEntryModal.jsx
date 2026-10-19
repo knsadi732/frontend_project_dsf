@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 const NATURE_OPTIONS = [
   { value: 'expense', label: 'Expense (money out, category-tracked)' },
   { value: 'sale', label: 'Sale (money in)' },
+  { value: 'marketplace_charge', label: 'Marketplace charge (ads / fees / shipping — adjusts sales, not an expense)' },
   { value: 'manual', label: 'Manual (pick direction)' },
 ];
 

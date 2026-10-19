@@ -8,7 +8,7 @@ export function useUpdateSalesOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }) => salesApi.transitionStatus(id, status),
+    mutationFn: ({ id, status, reason }) => salesApi.transitionStatus(id, status, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });

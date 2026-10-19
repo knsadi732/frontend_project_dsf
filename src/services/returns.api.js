@@ -11,7 +11,10 @@ function fromBackendReturn(row) {
     id: row.id,
     returnNumber: row.returnNumber ?? row.return_number,
     salesOrderId: row.orderId ?? row.order_id,
-    soNumber: row.orderNumber ?? row.order_number,
+    // A marketplace order's real ID is its channel_order_number (what's printed
+    // on the invoice); the internal order_number is only the fallback for a
+    // direct order, same rule as the Invoices page's "Linked SO" column.
+    soNumber: row.channelOrderNumber ?? row.channel_order_number ?? row.orderNumber ?? row.order_number,
     customer: row.customerName ?? row.customer_name,
     productVariantId: row.productVariantId ?? row.product_variant_id,
     productLabel: row.productName && row.variantSku ? `${row.variantSku} — ${row.productName}` : (row.productName ?? row.product_name),
@@ -35,6 +38,9 @@ function fromBackendReturn(row) {
     refundDate: row.refundDate ?? row.refund_date,
     refundStatus: row.refundStatus ?? row.refund_status,
     replacementOrderId: row.replacementOrderId ?? row.replacement_order_id,
+    // The replacement order's marketplace ID (internal ORD-… number for a direct order).
+    replacementOrderNumber:
+      row.replacementChannelOrderNumber ?? row.replacement_channel_order_number ?? row.replacementOrderNumber ?? row.replacement_order_number ?? null,
     remarks: row.remarks,
   };
 }
@@ -78,7 +84,12 @@ export const returnsApi = {
         amount: payload.amount,
         ...(payload.remarks && { remarks: payload.remarks }),
       })
-      .then((res) => fromBackendReturn(res.data.data)),
+      .then((res) => fromBackendReturn(res.data.data))
+      // The create endpoint doesn't take a resolution, so a Replacement (exchange)
+      // request is flagged right after — status stays 'requested', no side effects.
+      .then((created) =>
+        payload.resolutionType === 'replacement' ? returnsApi.update(created.id, { resolutionType: 'replacement' }) : created,
+      ),
   update: (id, payload) =>
     apiClient
       .patch(`/returns/${id}`, {

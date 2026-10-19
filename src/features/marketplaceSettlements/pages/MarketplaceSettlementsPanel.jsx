@@ -4,6 +4,8 @@ import { useMonthlyChannelCostQuery } from '@/features/marketplaceSettlements/qu
 import { useMonthlyProductCostQuery } from '@/features/marketplaceSettlements/queries/useMonthlyProductCostQuery';
 import { useCreateMarketplaceSettlement } from '@/features/marketplaceSettlements/mutations/useCreateMarketplaceSettlement';
 import { MarketplaceSettlementFormModal } from '@/features/marketplaceSettlements/components/MarketplaceSettlementFormModal';
+import { AmazonReportUploadModal } from '@/features/marketplaceSettlements/components/AmazonReportUploadModal';
+import { AppButton } from '@/components/ui/AppButton';
 import { AppTable } from '@/components/ui/AppTable';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { BaseBadge } from '@/components/ui/BaseBadge';
@@ -18,6 +20,7 @@ export function MarketplaceSettlementsPanel() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formOpen, setFormOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   const { data, isLoading, isFetching, refetch } = useMarketplaceSettlementsQuery({ page, pageSize });
   const { data: monthlyCost = [] } = useMonthlyChannelCostQuery();
@@ -65,6 +68,7 @@ export function MarketplaceSettlementsPanel() {
         <div className="flex items-center gap-2">
           <RefreshButton onClick={refetch} isFetching={isFetching} />
           <Can module={MODULES.FINANCE} action={ACTIONS.CREATE}>
+            <AppButton variant="secondary" onClick={() => setUploadOpen(true)}>Upload Amazon report</AppButton>
             <CreateButton onClick={() => setFormOpen(true)}>New settlement</CreateButton>
           </Can>
         </div>
@@ -110,6 +114,8 @@ export function MarketplaceSettlementsPanel() {
         }}
         emptyMessage="No settlements recorded yet"
       />
+
+      <AmazonReportUploadModal open={uploadOpen} onClose={() => setUploadOpen(false)} />
 
       <MarketplaceSettlementFormModal
         open={formOpen}

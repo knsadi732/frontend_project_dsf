@@ -50,6 +50,9 @@ import { ProductLifecycleChart } from '@/features/dashboard/components/ProductLi
 import { ProductSalesTrendModal } from '@/features/dashboard/components/ProductSalesTrendModal';
 import { SalesForecastChart } from '@/features/dashboard/components/SalesForecastChart';
 import { MarketplaceMarginPanel } from '@/features/dashboard/components/MarketplaceMarginPanel';
+import { AmazonCostSummary } from '@/features/dashboard/components/AmazonCostSummary';
+import { AmazonReportUploadModal } from '@/features/marketplaceSettlements/components/AmazonReportUploadModal';
+import { useAmazonSummaryQuery } from '@/features/marketplaceSettlements/queries/useAmazonSummaryQuery';
 import { salesTrendByDate, productMix, salesVsInventory, salesTotalsInRange, salesUnitsInRange, salesTargetProgress } from '@/features/dashboard/utils/salesChartData';
 import { marketplaceMarginByProduct } from '@/features/dashboard/utils/marketplaceMargin';
 import { marginByVariant, breakEvenEligibleProducts } from '@/features/production/utils/unitCost';
@@ -71,6 +74,13 @@ import { AppInput } from '@/components/ui/AppInput';
 import { BaseLoader } from '@/components/ui/BaseLoader';
 import { useAuth } from '@/hooks/useAuth';
 import { MODULES, ACTIONS } from '@/constants/roles';
+
+// "YYYY-MM-DD" -> "01 Oct 2026", built from the parts so a timezone can never shift the day.
+function formatRangeDay(value) {
+  if (!value) return '';
+  const [year, month, day] = String(value).slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
 // Role-scoped by construction: each section below is gated by the same
 // module permission used everywhere else in the app (can()), so e.g. an
@@ -109,6 +119,11 @@ export function DashboardPage() {
   const { data: pnlPrevious } = usePnlReportQuery(previousRange);
   const { data: gstCurrent } = useGstr3bReportQuery(periodSelector.range);
   const { data: gstPrevious } = useGstr3bReportQuery(previousRange);
+  // Amazon ads / shipping / fees / TCS / what was released, for the same period the rest of the dashboard uses.
+  const [amazonUploadOpen, setAmazonUploadOpen] = useState(false);
+  const canUploadAmazon = can(MODULES.FINANCE, ACTIONS.CREATE);
+  const amazonSummary = useAmazonSummaryQuery(periodSelector.range, { enabled: canViewFinance });
+  const amazonRangeLabel = `${formatRangeDay(periodSelector.range.from)} – ${formatRangeDay(periodSelector.range.to)}`;
 
   // Called unconditionally (Rules of Hooks) regardless of canViewSales/
   // canViewInventory — cheap read-only fetches, only their *results* are
@@ -506,6 +521,18 @@ export function DashboardPage() {
           </ChartCard>
         )}
       </div>
+
+      {canViewFinance && (
+        <AmazonCostSummary
+          summary={amazonSummary.data}
+          isLoading={amazonSummary.isLoading}
+          isError={amazonSummary.isError}
+          rangeLabel={amazonRangeLabel}
+          onUploadClick={canUploadAmazon ? () => setAmazonUploadOpen(true) : undefined}
+        />
+      )}
+
+      <AmazonReportUploadModal open={amazonUploadOpen} onClose={() => setAmazonUploadOpen(false)} />
 
       {canViewForecast && (
         <BaseCard className="group relative overflow-hidden p-4 transition-shadow duration-200 hover:shadow-md">

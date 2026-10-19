@@ -6,7 +6,7 @@ import { z } from 'zod';
 // Mode, Invoice/Order ID, Party, GST).
 export const quickEntrySchema = z
   .object({
-    transactionNature: z.enum(['expense', 'sale', 'manual']),
+    transactionNature: z.enum(['expense', 'sale', 'manual', 'marketplace_charge']),
     transactionDate: z.string().min(1, 'Date is required'),
     amount: z.coerce.number().positive('Amount must be greater than 0'),
     direction: z.enum(['debit', 'credit', '']).optional(),

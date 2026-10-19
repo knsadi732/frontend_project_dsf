@@ -87,6 +87,19 @@ export const marketplaceSettlementApi = {
         ...(payload.remarks && { remarks: payload.remarks }),
       })
       .then((res) => fromBackendSettlement(res.data.data)),
+  // Uploads Amazon reports (GST report .csv / Payments settlement .txt). The backend detects each file's type and
+  // returns one result per file — { file, kind, ok, ...counts } or { file, ok: false, error }.
+  importAmazonReports: (files) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    return apiClient.post('/marketplace-settlements/amazon-import', formData).then((res) => res.data.data ?? []);
+  },
+  // Amazon-only dashboard summary for [from, to] (YYYY-MM-DD): ads, shipping, charges, TCS/TDS,
+  // anything else deducted, sales/refunds and what was released — already shaped by the backend.
+  amazonSummary: ({ from, to } = {}) =>
+    apiClient
+      .get('/marketplace-settlements/amazon-summary', { params: { ...(from && { from }), ...(to && { to }) } })
+      .then((res) => res.data.data),
   monthlyChannelCost: (month) =>
     apiClient.get('/marketplace-settlements/monthly-channel-cost', { params: month ? { month } : {} }).then((res) => (res.data.data ?? []).map(fromMonthlyChannelCost)),
   monthlyProductCost: (month) =>
