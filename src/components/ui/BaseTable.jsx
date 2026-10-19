@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
@@ -13,6 +14,19 @@ function TableSkeleton({ columns, rowCount }) {
   ));
 }
 
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+function compareValues(a, b) {
+  const aEmpty = a == null || a === '';
+  const bEmpty = b == null || b === '';
+  if (aEmpty || bEmpty) return aEmpty === bEmpty ? 0 : aEmpty ? 1 : -1;
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  if (typeof a === 'boolean' && typeof b === 'boolean') return Number(a) - Number(b);
+  return collator.compare(String(a), String(b));
+}
+
+const getSortValue = (column, row) => (column.sortValue ? column.sortValue(row) : row[column.key]);
+
 export function BaseTable({
   columns,
   data,
@@ -20,12 +34,29 @@ export function BaseTable({
   isLoading = false,
   pageSize,
   emptyMessage = 'No records found',
-  sort,
+  sort: controlledSort,
   onSortChange,
   onRowClick,
   className,
   stickyHeader = false,
 }) {
+  // Server-side sorting when onSortChange is given; otherwise sort the loaded rows here.
+  const isControlled = Boolean(onSortChange);
+  const [localSort, setLocalSort] = useState(null);
+  const sort = isControlled ? controlledSort : localSort;
+  const handleSortChange = isControlled ? onSortChange : setLocalSort;
+
+  const isSortable = (column) =>
+    column.sortable ?? (isControlled ? false : typeof column.header === 'string' && data.some((row) => getSortValue(column, row) != null));
+
+  const sortedData = useMemo(() => {
+    if (isControlled || !sort) return data;
+    const column = columns.find((c) => c.key === sort.key);
+    if (!column) return data;
+    const factor = sort.direction === 'asc' ? 1 : -1;
+    return [...data].sort((a, b) => factor * compareValues(getSortValue(column, a), getSortValue(column, b)));
+  }, [data, columns, sort, isControlled]);
+
   return (
     <div className={cn('overflow-x-auto', className)}>
       <table className="w-full border-collapse text-left text-sm">
@@ -42,11 +73,11 @@ export function BaseTable({
 
               return (
                 <th key={column.key} scope="col" className="px-3 py-1.5 font-medium">
-                  {column.sortable ? (
+                  {isSortable(column) ? (
                     <button
                       type="button"
                       onClick={() =>
-                        onSortChange?.({
+                        handleSortChange({
                           key: column.key,
                           direction: isSorted && sort.direction === 'asc' ? 'desc' : 'asc',
                         })
@@ -67,14 +98,14 @@ export function BaseTable({
         <tbody>
           {isLoading ? (
             <TableSkeleton columns={columns} rowCount={Math.min(pageSize ?? 8, 8)} />
-          ) : data.length === 0 ? (
+          ) : sortedData.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="px-3 py-8 text-center text-text-muted">
                 {emptyMessage}
               </td>
             </tr>
           ) : (
-            data.map((row, index) => (
+            sortedData.map((row, index) => (
               <tr
                 key={rowKey(row)}
                 onClick={() => onRowClick?.(row)}
