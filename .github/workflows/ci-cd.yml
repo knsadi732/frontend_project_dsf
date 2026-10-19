@@ -23,8 +23,10 @@ jobs:
       - run: npm test
       - run: npm run build
         env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-          VITE_SOCKET_URL: ${{ vars.VITE_SOCKET_URL }}
+          # Fall back to the EC2 backend (same as .env.production) when the repo variables aren't set,
+          # so the CI build is never baked with an empty API address.
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'http://3.108.220.220/api/v1' }}
+          VITE_SOCKET_URL: ${{ vars.VITE_SOCKET_URL || 'http://3.108.220.220' }}
           VITE_MOCK_AUTH: 'false'
 
       - uses: actions/upload-artifact@v4
@@ -36,7 +38,11 @@ jobs:
   deploy:
     name: Deploy to Cloudflare Pages (test-server)
     needs: test
-    if: github.ref == 'refs/heads/test-server' && github.event_name == 'push'
+    # Skipped until Cloudflare Pages is configured (repo variable CLOUDFLARE_PAGES_PROJECT plus the
+    # CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID secrets — see deploy/README.md). Unconfigured, this
+    # job failed in 3 seconds on every push and emailed a failure. The live frontend is the nginx site
+    # on the EC2 box (/var/www/dsf-erp-frontend), updated by hand for now.
+    if: github.ref == 'refs/heads/test-server' && github.event_name == 'push' && vars.CLOUDFLARE_PAGES_PROJECT != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
