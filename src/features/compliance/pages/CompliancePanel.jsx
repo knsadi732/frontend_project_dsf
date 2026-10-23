@@ -15,6 +15,7 @@ import { BalanceSheetSnapshotCard } from '@/features/compliance/components/Balan
 import { PeriodSelectorBar } from '@/features/compliance/components/PeriodSelectorBar';
 import { Gstr3bReportCard } from '@/features/compliance/components/Gstr3bReportCard';
 import { Gstr1ReportSection } from '@/features/compliance/components/Gstr1ReportSection';
+import { GstStateWiseSection } from '@/features/compliance/components/GstStateWiseSection';
 import { Gstr2bProxySection } from '@/features/compliance/components/Gstr2bProxySection';
 import { AppTable } from '@/components/ui/AppTable';
 import { CreateButton } from '@/components/ui/ActionButtons';
@@ -43,6 +44,7 @@ function ReportsTab() {
       <BalanceSheetSnapshotCard report={pnl} isLoading={isPnlLoading} />
       <Gstr3bReportCard report={gstr3b} isLoading={isGstr3bLoading} />
       <Gstr1ReportSection report={gstr1} isLoading={isGstr1Loading} />
+      <GstStateWiseSection report={gstr1} isLoading={isGstr1Loading} />
       <Gstr2bProxySection report={gstr2bProxy} isLoading={isGstr2bLoading} />
     </div>
   );
