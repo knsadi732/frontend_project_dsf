@@ -23,7 +23,7 @@ import { AppTable } from '@/components/ui/AppTable';
 import { BaseBadge } from '@/components/ui/BaseBadge';
 import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
-import { MultiFilter } from '@/components/ui/MultiFilter';
+import { CategorizedFilterPanel } from '@/components/ui/CategorizedFilterPanel';
 import { CreateButton } from '@/components/ui/ActionButtons';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
@@ -277,23 +277,17 @@ export function InventoryPage() {
           </div>
 
           <FilterBar>
-            <MultiFilter
-              filters={[
-                { key: 'warehouseId', label: 'Warehouse', options: warehouseOptions, placeholder: 'All warehouses' },
-                { key: 'inventoryCategory', label: 'Type', options: INVENTORY_CATEGORY_OPTIONS, placeholder: 'All types' },
-                { key: 'productCode', label: 'Product code', options: productCodeOptions, placeholder: 'All products' },
+            <CategorizedFilterPanel
+              categories={[
+                { key: 'warehouseId', label: 'Warehouse', options: [{ value: '', label: 'All' }, ...warehouseOptions] },
+                { key: 'inventoryCategory', label: 'Type', options: [{ value: '', label: 'All' }, ...INVENTORY_CATEGORY_OPTIONS] },
+                { key: 'productCode', label: 'Product code', options: [{ value: '', label: 'All' }, ...productCodeOptions] },
               ]}
               values={{ warehouseId, inventoryCategory, productCode }}
-              onChange={(key, value) => {
-                if (key === 'warehouseId') setWarehouseId(value);
-                if (key === 'inventoryCategory') setInventoryCategory(value);
-                if (key === 'productCode') setProductCode(value);
-                setPage(1);
-              }}
-              onClear={() => {
-                setWarehouseId('');
-                setInventoryCategory('');
-                setProductCode('');
+              onApply={(draft) => {
+                setWarehouseId(draft.warehouseId ?? '');
+                setInventoryCategory(draft.inventoryCategory ?? '');
+                setProductCode(draft.productCode ?? '');
                 setPage(1);
               }}
             />

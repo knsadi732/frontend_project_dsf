@@ -21,7 +21,7 @@ import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DownloadButton, EditButton, CreateButton } from '@/components/ui/ActionButtons';
-import { MultiFilter } from '@/components/ui/MultiFilter';
+import { CategorizedFilterPanel } from '@/components/ui/CategorizedFilterPanel';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -256,15 +256,13 @@ export function SalesPage() {
           placeholder="Search sales orders…"
           className="w-72"
         />
-        <MultiFilter
-          filters={[{ key: 'status', label: 'Status', options: STATUS_OPTIONS }]}
+        <CategorizedFilterPanel
+          categories={[
+            { key: 'status', label: 'Status', options: [{ value: '', label: 'All' }, ...STATUS_OPTIONS] },
+          ]}
           values={{ status }}
-          onChange={(key, value) => {
-            setStatus(value);
-            setPage(1);
-          }}
-          onClear={() => {
-            setStatus('');
+          onApply={(draft) => {
+            setStatus(draft.status ?? '');
             setPage(1);
           }}
         />

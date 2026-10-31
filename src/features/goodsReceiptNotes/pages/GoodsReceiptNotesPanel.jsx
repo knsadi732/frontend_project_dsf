@@ -7,7 +7,7 @@ import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { goodsReceiptNoteApi } from '@/features/goodsReceiptNotes/api';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
-import { MultiFilter } from '@/components/ui/MultiFilter';
+import { CategorizedFilterPanel } from '@/components/ui/CategorizedFilterPanel';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppTable } from '@/components/ui/AppTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -110,20 +110,15 @@ export function GoodsReceiptNotesPanel() {
           placeholder="Search GRNs…"
           className="w-72"
         />
-        <MultiFilter
-          filters={[
-            { key: 'vendorId', label: 'Vendor', options: vendorOptions, placeholder: 'All vendors' },
-            { key: 'warehouseId', label: 'Warehouse', options: warehouseOptions, placeholder: 'All warehouses' },
+        <CategorizedFilterPanel
+          categories={[
+            { key: 'vendorId', label: 'Vendor', options: [{ value: '', label: 'All' }, ...vendorOptions] },
+            { key: 'warehouseId', label: 'Warehouse', options: [{ value: '', label: 'All' }, ...warehouseOptions] },
           ]}
           values={{ vendorId, warehouseId }}
-          onChange={(key, value) => {
-            if (key === 'vendorId') setVendorId(value);
-            if (key === 'warehouseId') setWarehouseId(value);
-            setPage(1);
-          }}
-          onClear={() => {
-            setVendorId('');
-            setWarehouseId('');
+          onApply={(draft) => {
+            setVendorId(draft.vendorId ?? '');
+            setWarehouseId(draft.warehouseId ?? '');
             setPage(1);
           }}
         />

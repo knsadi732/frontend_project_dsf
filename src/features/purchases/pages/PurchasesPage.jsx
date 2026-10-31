@@ -19,7 +19,7 @@ import { generatePurchaseOrderPdf } from '@/features/purchases/utils/generatePur
 import { PURCHASE_ORDER_STATUS_PIPELINE, PURCHASE_ORDER_CANCELLED } from '@/features/purchases/validators/purchase.schema';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { FilterBar } from '@/components/ui/FilterBar';
-import { MultiFilter } from '@/components/ui/MultiFilter';
+import { CategorizedFilterPanel } from '@/components/ui/CategorizedFilterPanel';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { AppTable } from '@/components/ui/AppTable';
 import { AppButton } from '@/components/ui/AppButton';
@@ -296,15 +296,13 @@ export function PurchasesPage() {
               placeholder="Search purchase orders…"
               className="w-72"
             />
-            <MultiFilter
-              filters={[{ key: 'status', label: 'Status', options: STATUS_OPTIONS }]}
+            <CategorizedFilterPanel
+              categories={[
+                { key: 'status', label: 'Status', options: [{ value: '', label: 'All' }, ...STATUS_OPTIONS] },
+              ]}
               values={{ status }}
-              onChange={(key, value) => {
-                setStatus(value);
-                setPage(1);
-              }}
-              onClear={() => {
-                setStatus('');
+              onApply={(draft) => {
+                setStatus(draft.status ?? '');
                 setPage(1);
               }}
             />

@@ -6,7 +6,7 @@ import { useVendorsQuery } from '@/features/vendors/queries/useVendorsQuery';
 import { VendorPaymentFormModal } from '@/features/vendorBills/components/VendorPaymentFormModal';
 import { AppTable } from '@/components/ui/AppTable';
 import { FilterBar } from '@/components/ui/FilterBar';
-import { MultiFilter } from '@/components/ui/MultiFilter';
+import { CategorizedFilterPanel } from '@/components/ui/CategorizedFilterPanel';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { ViewButton } from '@/components/ui/ActionButtons';
@@ -74,20 +74,15 @@ export function VendorBillsPanel() {
       <p className="text-sm text-text-muted">Vendor bills and payments (Accounts Payable) — auto-created from GRNs.</p>
 
       <FilterBar>
-        <MultiFilter
-          filters={[
-            { key: 'status', label: 'Status', options: STATUS_OPTIONS },
-            { key: 'vendorId', label: 'Vendor', options: vendorOptions, placeholder: 'All vendors' },
+        <CategorizedFilterPanel
+          categories={[
+            { key: 'status', label: 'Status', options: [{ value: '', label: 'All' }, ...STATUS_OPTIONS] },
+            { key: 'vendorId', label: 'Vendor', options: [{ value: '', label: 'All' }, ...vendorOptions] },
           ]}
           values={{ status, vendorId }}
-          onChange={(key, value) => {
-            if (key === 'status') setStatus(value);
-            if (key === 'vendorId') setVendorId(value);
-            setPage(1);
-          }}
-          onClear={() => {
-            setStatus('');
-            setVendorId('');
+          onApply={(draft) => {
+            setStatus(draft.status ?? '');
+            setVendorId(draft.vendorId ?? '');
             setPage(1);
           }}
         />

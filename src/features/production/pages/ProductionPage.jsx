@@ -21,7 +21,7 @@ import { AppButton } from '@/components/ui/AppButton';
 import { AppModal } from '@/components/ui/AppModal';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { DownloadButton, EditButton, DeleteButton, CreateButton } from '@/components/ui/ActionButtons';
-import { MultiFilter } from '@/components/ui/MultiFilter';
+import { CategorizedFilterPanel } from '@/components/ui/CategorizedFilterPanel';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { Can } from '@/routes/PermissionGuard';
 import { MODULES, ACTIONS } from '@/constants/roles';
@@ -230,15 +230,13 @@ export function ProductionPage() {
           placeholder="Search work orders…"
           className="w-72"
         />
-        <MultiFilter
-          filters={[{ key: 'status', label: 'Stage', options: WORK_ORDER_STAGE_OPTIONS, placeholder: 'All stages' }]}
+        <CategorizedFilterPanel
+          categories={[
+            { key: 'status', label: 'Stage', options: [{ value: '', label: 'All' }, ...WORK_ORDER_STAGE_OPTIONS] },
+          ]}
           values={{ status }}
-          onChange={(key, value) => {
-            setStatus(value);
-            setPage(1);
-          }}
-          onClear={() => {
-            setStatus('');
+          onApply={(draft) => {
+            setStatus(draft.status ?? '');
             setPage(1);
           }}
         />

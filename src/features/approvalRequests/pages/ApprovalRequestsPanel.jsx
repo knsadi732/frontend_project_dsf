@@ -5,7 +5,7 @@ import { useRejectApprovalRequest } from '@/features/approvalRequests/mutations/
 import { AppTable } from '@/components/ui/AppTable';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { BaseBadge } from '@/components/ui/BaseBadge';
-import { MultiFilter } from '@/components/ui/MultiFilter';
+import { CategorizedFilterPanel } from '@/components/ui/CategorizedFilterPanel';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { RefreshButton } from '@/components/ui/RefreshButton';
 import { ApproveButton, RejectButton } from '@/components/ui/ActionButtons';
@@ -69,11 +69,15 @@ export function ApprovalRequestsPanel() {
       </p>
 
       <FilterBar>
-        <MultiFilter
-          filters={[{ key: 'status', label: 'Status', options: STATUS_OPTIONS }]}
+        <CategorizedFilterPanel
+          categories={[
+            { key: 'status', label: 'Status', options: [{ value: '', label: 'All' }, ...STATUS_OPTIONS] },
+          ]}
           values={{ status }}
-          onChange={(key, value) => { setStatus(value); setPage(1); }}
-          onClear={() => { setStatus(''); setPage(1); }}
+          onApply={(draft) => {
+            setStatus(draft.status ?? '');
+            setPage(1);
+          }}
         />
         <RefreshButton onClick={refetch} isFetching={isFetching} />
       </FilterBar>
