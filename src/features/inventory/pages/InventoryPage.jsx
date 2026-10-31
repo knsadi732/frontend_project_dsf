@@ -113,6 +113,7 @@ export function InventoryPage() {
     downloadXlsx(
       'inventory.xlsx',
       [
+        { key: 'productCode', label: 'Product code' },
         { key: 'sku', label: 'SKU' },
         { key: 'productName', label: 'Product name' },
         { key: 'variantSize', label: 'Size' },
@@ -146,6 +147,7 @@ export function InventoryPage() {
   };
 
   const columns = [
+    { key: 'productCode', header: 'Product Code', render: (row) => row.productCode ?? '—' },
     { key: 'sku', header: 'SKU', render: (row) => row.sku ?? '—' },
     { key: 'productName', header: 'Product Name', render: (row) => row.productName ?? '—' },
     {

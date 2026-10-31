@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Calculator } from 'lucide-react';
+import { Calculator, Download } from 'lucide-react';
+import { downloadXlsx } from '@/utils/downloadXlsx';
 import { useProductVariantsQuery } from '@/features/productVariants/queries/useProductVariantsQuery';
 import { useCreateProductVariant } from '@/features/productVariants/mutations/useCreateProductVariant';
 import { useUpdateProductVariant } from '@/features/productVariants/mutations/useUpdateProductVariant';
@@ -73,7 +74,33 @@ export function ProductVariantsPanel() {
     deleteVariant.mutate(deleteTarget.id, { onSettled: () => setDeleteTarget(null) });
   };
 
+  // Exports every variant matching the current search/product filter, not just the page on screen.
+  const handleDownloadList = () => {
+    downloadXlsx(
+      'product-variants.xlsx',
+      [
+        { key: 'productCode', label: 'Product code' },
+        { key: 'productName', label: 'Product' },
+        { key: 'size', label: 'Size' },
+        { key: 'color', label: 'Color' },
+        { key: 'sku', label: 'SKU' },
+        { key: 'barcode', label: 'Barcode' },
+        { key: 'mrp', label: 'MRP' },
+        { key: 'sellingPrice', label: 'Selling Price' },
+        { key: 'costPrice', label: 'Cost Price' },
+        { key: 'status', label: 'Status' },
+      ],
+      filteredVariants.map((variant) => ({
+        ...variant,
+        productCode: productsById[variant.productId]?.productCode ?? '',
+        productName: productsById[variant.productId]?.name ?? '',
+      })),
+      'Variants',
+    );
+  };
+
   const columns = [
+    { key: 'productCode', header: 'Product code', render: (row) => productsById?.[row.productId]?.productCode ?? '—' },
     { key: 'product', header: 'Product', render: (row) => productsById?.[row.productId]?.name ?? row.productId },
     { key: 'size', header: 'Size' },
     { key: 'color', header: 'Color' },
@@ -113,6 +140,10 @@ export function ProductVariantsPanel() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-muted">Variants capture size/color/SKU/barcode/pricing per product.</p>
         <div className="flex items-center gap-2">
+          <AppButton variant="secondary" onClick={handleDownloadList}>
+            <Download className="size-4" />
+            Download list
+          </AppButton>
           <RefreshButton onClick={refetch} isFetching={isFetching} />
           <Can module={MODULES.PRODUCTS} action={ACTIONS.CREATE}>
             <CreateButton onClick={() => setFormState({ open: true, variant: null })}>New variant</CreateButton>
