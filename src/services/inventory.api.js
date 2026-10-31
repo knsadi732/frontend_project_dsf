@@ -16,6 +16,7 @@ function toClientStock(row) {
     variantSize: row.variant_size ?? row.variantSize,
     variantColor: row.variant_color ?? row.variantColor,
     productName: row.product_name ?? row.productName,
+    productCode: row.product_code ?? row.productCode,
     categoryName: row.category_name ?? row.categoryName,
     productType: row.product_type ?? row.productType,
     isSellable: row.is_sellable ?? row.isSellable,
@@ -36,7 +37,7 @@ function toClientStock(row) {
 // (snake_case) rather than through the pagination middleware — so it needs
 // translating here same as `pageSize` -> `limit`.
 export const productStockApi = {
-  list: ({ pageSize, warehouseId, inventoryCategory, ...params } = {}) =>
+  list: ({ pageSize, warehouseId, inventoryCategory, productCode, ...params } = {}) =>
     apiClient
       .get('/products/stock', {
         params: {
@@ -44,6 +45,7 @@ export const productStockApi = {
           ...(pageSize !== undefined && { limit: pageSize }),
           ...(warehouseId && { warehouse_id: warehouseId }),
           ...(inventoryCategory && { inventory_category: inventoryCategory }),
+          ...(productCode && { product_code: productCode }),
         },
       })
       .then((res) => ({

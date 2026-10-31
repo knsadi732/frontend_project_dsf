@@ -10,6 +10,7 @@ import { useUpdateInventoryItem } from '@/features/inventory/mutations/useUpdate
 import { useDeleteInventoryItem } from '@/features/inventory/mutations/useDeleteInventoryItem';
 import { useWarehousesQuery } from '@/features/warehouses/queries/useWarehousesQuery';
 import { useBinsQuery } from '@/features/bins/queries/useBinsQuery';
+import { useProductsQuery } from '@/features/products/queries/useProductsQuery';
 import { InventoryFormModal } from '@/features/inventory/components/InventoryFormModal';
 import { WarehouseZonesPanel } from '@/features/warehouseZones';
 import { RacksPanel } from '@/features/racks';
@@ -72,14 +73,15 @@ export function InventoryPage() {
   const [activeTab] = useTabParam('inventory');
   const [warehouseId, setWarehouseId] = useState('');
   const [inventoryCategory, setInventoryCategory] = useState('');
+  const [productCode, setProductCode] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [formState, setFormState] = useState({ open: false, item: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const filters = useMemo(
-    () => ({ warehouseId, inventoryCategory, page, pageSize }),
-    [warehouseId, inventoryCategory, page, pageSize],
+    () => ({ warehouseId, inventoryCategory, productCode, page, pageSize }),
+    [warehouseId, inventoryCategory, productCode, page, pageSize],
   );
 
   // GET /products/stock (permission: product.manage) — paginated
@@ -102,6 +104,11 @@ export function InventoryPage() {
   const warehouses = warehousesData?.data ?? [];
   const warehouseOptions = warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }));
 
+  const { data: productsData } = useProductsQuery({ pageSize: 100 });
+  const productCodeOptions = (productsData?.data ?? [])
+    .filter((product) => product.productCode)
+    .map((product) => ({ value: product.productCode, label: `${product.productCode} — ${product.name}` }));
+
   const { data: binsData } = useBinsQuery({ pageSize: 100 });
   const bins = binsData?.data ?? [];
   const binOptions = bins.map((bin) => ({ value: bin.id, label: bin.code }));
@@ -109,7 +116,7 @@ export function InventoryPage() {
   // Exports every row matching the current warehouse/type filter, not just
   // the page on screen — pulled in one request so the file is the full list.
   const handleDownloadList = async () => {
-    const { data: allRows = [] } = await productStockApi.list({ warehouseId, inventoryCategory, page: 1, pageSize: 10000 });
+    const { data: allRows = [] } = await productStockApi.list({ warehouseId, inventoryCategory, productCode, page: 1, pageSize: 10000 });
     downloadXlsx(
       'inventory.xlsx',
       [
@@ -274,16 +281,19 @@ export function InventoryPage() {
               filters={[
                 { key: 'warehouseId', label: 'Warehouse', options: warehouseOptions, placeholder: 'All warehouses' },
                 { key: 'inventoryCategory', label: 'Type', options: INVENTORY_CATEGORY_OPTIONS, placeholder: 'All types' },
+                { key: 'productCode', label: 'Product code', options: productCodeOptions, placeholder: 'All products' },
               ]}
-              values={{ warehouseId, inventoryCategory }}
+              values={{ warehouseId, inventoryCategory, productCode }}
               onChange={(key, value) => {
                 if (key === 'warehouseId') setWarehouseId(value);
                 if (key === 'inventoryCategory') setInventoryCategory(value);
+                if (key === 'productCode') setProductCode(value);
                 setPage(1);
               }}
               onClear={() => {
                 setWarehouseId('');
                 setInventoryCategory('');
+                setProductCode('');
                 setPage(1);
               }}
             />

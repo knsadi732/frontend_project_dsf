@@ -49,7 +49,7 @@ export function ProductVariantsPanel() {
   const normalizedSearch = search.trim().toLowerCase();
   const filteredVariants = normalizedSearch
     ? allVariants.filter((variant) => {
-        const haystack = [variant.sku, variant.barcode, variant.size, variant.color, productsById[variant.productId]?.name]
+        const haystack = [variant.sku, variant.barcode, variant.size, variant.color, productsById[variant.productId]?.name, productsById[variant.productId]?.productCode]
           .filter(Boolean)
           .join(' ')
           .toLowerCase();
@@ -158,7 +158,7 @@ export function ProductVariantsPanel() {
             setSearch(value);
             setPage(1);
           }}
-          placeholder="Search SKU, barcode, size, color, product…"
+          placeholder="Search SKU, product code, barcode, size, color, product…"
           className="w-72"
         />
         <CategorizedFilterPanel
